@@ -18,16 +18,7 @@ namespace flopoco
                 (TILE_SHAPE)parameters.getShapePara()
         );
     }
-/*
-    const int BaseMultiplierIrregularLUTXilinx::shape_size[8][6] = {{3, 3, 5, 5, 1, 8},  // A (x,y,r,MSB,LSB,area)
-                                                                    {3, 3, 3, 4, 2, 5},
-                                                                    {3, 2, 3, 3, 1, 4},
-                                                                    {2, 3, 3, 3, 1, 4},
-                                                                    {3, 2, 4, 3, 0, 5},
-                                                                    {3, 2, 4, 4, 1, 5},
-                                                                    {2, 3, 4, 3, 0, 5},
-                                                                    {2, 3, 4, 4, 1, 5}}; // H
-*/
+
     const int BaseMultiplierIrregularLUTXilinx::tile_properties[8][12] = {  {3,3,5,5,5,5,5,5,5,5,1,8},  // A (x,y,r_yuxu,r_yuxs,r_ysxu,r_ysxs,MSB_yuxu,MSB_yuxs,MSB_ysxu,MSB_ysxs,LSB,area)
                                                                             {3,3,3,4,4,4,4,5,5,5,2,5},
                                                                             {3,2,3,4,3,3,3,4,3,3,1,4},
@@ -36,7 +27,6 @@ namespace flopoco
                                                                             {3,2,4,4,4,4,4,4,4,4,1,5},
                                                                             {2,3,4,4,5,4,3,3,4,3,0,5},
                                                                             {2,3,4,4,4,4,4,4,4,4,1,5}}; // H
-
 
     int BaseMultiplierIrregularLUTXilinx::getRelativeResultLSBWeight(Parametrization const& param) const
     {
@@ -56,10 +46,11 @@ namespace flopoco
     bool signedX = signedIO && (wMultX == x_anchor+wX);
     bool signedY = signedIO && (wMultY == y_anchor+wY);
     int word_size = getRelativeResultMSBWeight(this->shape, signedX, signedY) - getRelativeResultLSBWeight(this->shape) + 1;
-        int lut_required = (this->wX+this->wY <= 5)?word_size/2+word_size%2:word_size;
+    int lut_required = (this->wX+this->wY <= 5)?word_size/2+word_size%2:word_size;
 
-        return lut_required + word_size*getBitHeapCompressionCostperBit();
-        //TODO Imprelement position dependent methode, although LUT-Multiplier dont seem to be placed so that they are protruding
+    return lut_required + word_size*getBitHeapCompressionCostperBit();
+
+        //TODO Implement position dependent method, although LUT-Multiplier dont seem to be placed so that they are protruding
         /*
         int x_min = ((x_anchor < 0)?0: x_anchor);
         int y_min = ((y_anchor < 0)?0: y_anchor);
@@ -101,12 +92,9 @@ namespace flopoco
         return false;
     }
 
-
     BaseMultiplierIrregularLUTXilinxOp::BaseMultiplierIrregularLUTXilinxOp(Operator *parentOp, Target* target, bool isSignedX, bool isSignedY, BaseMultiplierIrregularLUTXilinx::TILE_SHAPE shape) : Operator(parentOp,target), shape(shape), wX(BaseMultiplierIrregularLUTXilinx::get_wX(shape)), wY(BaseMultiplierIrregularLUTXilinx::get_wY(shape)), isSignedX(isSignedX), isSignedY(isSignedY)
     {
-        //int wR = static_cast<int>(BaseMultiplierIrregularLUTXilinx::get_wR(shape, isSignedX || isSignedY)); //!!! check for signed case!
-        int wR = BaseMultiplierIrregularLUTXilinx::getRelativeResultMSBWeight(shape, isSignedX, isSignedY)-BaseMultiplierIrregularLUTXilinx::getRelativeResultLSBWeight(shape)+1;
-        cout << "wR=" << wR << endl;
+        int wR = BaseMultiplierIrregularLUTXilinx::get_wR(shape, isSignedX, isSignedY);
 
         ostringstream name;
         name << "BaseMultiplierIrregularLUTXilinx_" << wX << (isSignedX==1 ? "_signed" : "") << "x" << wY  << (isSignedY==1 ? "_signed" : "");
@@ -137,24 +125,6 @@ namespace flopoco
     }
 
     const unsigned short BaseMultiplierIrregularLUTXilinxOp::bit_pattern[8] = {0x1fe, 0xf4, 0x1e, 0x1e, 0x1f, 0x3e, 0x1f, 0x3e};
-
-    /*
-    mpz_class BaseMultiplierIrregularLUTXilinxOp::function(int yx)
-    {
-        int temp = 0;
-        int y = yx>>wX;
-        int x = yx -(y<<wX);
-
-        for( int yp = 0; yp < wY; yp++)
-            for( int xp = 0; xp < wX; xp++)
-                temp += (bit_pattern[(this->shape)-1]&(1<<(yp*wX+xp)))?(x&(1<<xp))*(y&(1<<yp)):0;
-
-        mpz_class r  = (temp >> BaseMultiplierIrregularLUTXilinx::getRelativeResultLSBWeight(this->shape));
-
-        REPORT(DEBUG, "Value for x=" << x << ", y=" << y << " : " << r.get_str(2))
-
-        return r;
-    }*/
 
     mpz_class BaseMultiplierIrregularLUTXilinxOp::function(int yx)
     {
@@ -218,61 +188,39 @@ namespace flopoco
                            BaseMultiplierIrregularLUTXilinx::parseArguments,
                            BaseMultiplierIrregularLUTXilinxOp::unitTest
         ) ;
-        //draw_property_sheet();
-        //draw_tile((BaseMultiplierIrregularLUTXilinx::TILE_SHAPE)4 ,true, true);
-    /*    for(int shape = 1; shape <=8; shape++){
-            int min, max, min_bits, max_bits, bits;
-            stringstream wout, msb;
-            cout << "{" << get_wX((TILE_SHAPE)shape) << "," << get_wY((TILE_SHAPE)shape) << ",";
-            for(int isSignedY = 0; isSignedY<2; isSignedY++){
-                for(int isSignedX = 0; isSignedX<2; isSignedX++){
-                    calc_tile_properties((TILE_SHAPE)shape, isSignedX, isSignedY, min, max, min_bits, max_bits, bits);
-                    wout << bits << ",";
-                    msb << max_bits << ",";
-                }
-            }
-            cout << wout.str() << msb.str() << min_bits << "," << shape_size[(int)shape-1][5] << "}," << endl;
-        }*/
+
     }
 
-        int BaseMultiplierIrregularLUTXilinx::ownLUTCost(int x_anchor, int y_anchor, int wMultX, int wMultY, bool signedIO) {
-            bool signedX = signedIO && (wMultX == x_anchor+wX);
-            bool signedY = signedIO && (wMultY == y_anchor+wY);
-            int word_size = getRelativeResultMSBWeight(this->shape, signedX, signedY) - getRelativeResultLSBWeight(this->shape) + 1;
-            int lut_required = (this->wX+this->wY <= 5)?word_size/2+word_size%2:word_size;
+    int BaseMultiplierIrregularLUTXilinx::ownLUTCost(int x_anchor, int y_anchor, int wMultX, int wMultY, bool signedIO) {
+        bool signedX = signedIO && (wMultX == x_anchor+wX);
+        bool signedY = signedIO && (wMultY == y_anchor+wY);
+        int word_size = getRelativeResultMSBWeight(this->shape, signedX, signedY) - getRelativeResultLSBWeight(this->shape) + 1;
+        int lut_required = (this->wX+this->wY <= 5)?word_size/2+word_size%2:word_size;
 
-            return lut_required;
-        }
+        return lut_required;
+    }
 
-        void BaseMultiplierIrregularLUTXilinxOp::emulate(TestCase* tc)
+    void BaseMultiplierIrregularLUTXilinxOp::emulate(TestCase* tc)
     {
         mpz_class svX = tc->getInputValue("X");
         mpz_class svY = tc->getInputValue("Y");
         mpz_class svR = 0;
-     /*   for( int yp = 0; yp < wY; yp++) {
-            for (int xp = 0; xp < wX; xp++)
-                if (bit_pattern[(this->shape) - 1] & (1 << (yp * wX + xp)))
-                    svR += (svX & (1 << xp)) * (svY & (1 << yp));
-        }*/
 
         svR = svX * svY;
-         //printf("0x%03x: x=%+03d, y=%+03d, r=%+03d", yx, x, y, raw_result);
 
-         for( int yp = 0; yp < wY; yp++){
-             for( int xp = 0; xp < wX; xp++){
-                 if(!(bit_pattern[(this->shape)-1]&(1<<(yp*wX+xp)))){
-                     if((isSignedX && xp==(wX-1)) && (isSignedY && yp==(wY-1)) || !(isSignedX && xp==(wX-1)) && !(isSignedY && yp==(wY-1)) ){
-                         svR -= (svX&(1<<xp))*(svY&(1<<yp));
-                     } else {
-                         svR += (svX&(1<<xp))*(svY&(1<<yp));
-                     }
-                 }
-             }
-         }
-         //printf(", 0x%03x, 0x%03x, msb=%d", raw_result, (1<<wX+wY)-1, BaseMultiplierIrregularLUTXilinx::getRelativeResultMSBWeight(this->shape, this->isSignedX, this->isSignedY));
-         svR &= (1<<(BaseMultiplierIrregularLUTXilinx::getRelativeResultMSBWeight(this->shape, this->isSignedX, this->isSignedY)+1))-1;
-         //printf(", 0x%03x, shift=%01d, 0x%03x\n", raw_result, (unsigned)BaseMultiplierIrregularLUTXilinx::getRelativeResultLSBWeight(this->shape), (unsigned)(raw_result >> BaseMultiplierIrregularLUTXilinx::getRelativeResultLSBWeight(this->shape)));
+        for( int yp = 0; yp < wY; yp++){
+            for( int xp = 0; xp < wX; xp++){
+                if(!(bit_pattern[(this->shape)-1]&(1<<(yp*wX+xp)))){
+                    if((isSignedX && xp==(wX-1)) && (isSignedY && yp==(wY-1)) || !(isSignedX && xp==(wX-1)) && !(isSignedY && yp==(wY-1)) ){
+                        svR -= (svX&(1<<xp))*(svY&(1<<yp));
+                    } else {
+                        svR += (svX&(1<<xp))*(svY&(1<<yp));
+                    }
+                }
+            }
+        }
 
+        svR &= (1<<(BaseMultiplierIrregularLUTXilinx::getRelativeResultMSBWeight(this->shape, this->isSignedX, this->isSignedY)+1))-1;
         svR >>= BaseMultiplierIrregularLUTXilinx::getRelativeResultLSBWeight(this->shape);
         tc->addExpectedOutput("R", svR);
     }
@@ -339,7 +287,7 @@ namespace flopoco
         //max_bits = (msbp && min < 0)?max_bits+1:max_bits; //If the MSB was detected a a positive value one additional bit is required in signed case
         //printf("shape=%d, signedX=%d, singedY=%d, r_min=%+03d, r_max=%+03d, min_bits=%d, max_bits=%d, bits_r=%d\n", shape, isSignedX, isSignedY, min, max, min_bits, max_bits, max_bits-min_bits+1);
         return max_bits;
-    }*/
+    }
 
     void BaseMultiplierIrregularLUTXilinx::draw_tile(TILE_SHAPE shape, bool isSignedX, bool isSignedY, stringstream *stream_handle ){
         stringstream outline;
@@ -520,7 +468,7 @@ namespace flopoco
 
         result_file << outline.str();
         result_file.close();
-    }
+    }*/
 
 
 }

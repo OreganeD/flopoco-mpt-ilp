@@ -49,7 +49,7 @@ namespace flopoco
         int ownLUTCost(int x_anchor, int y_anchor, int wMultX, int wMultY, bool signedIO) override;
         static int get_wX(BaseMultiplierIrregularLUTXilinx::TILE_SHAPE shape) {return tile_properties[(int)shape-1][0];}
         static int get_wY(BaseMultiplierIrregularLUTXilinx::TILE_SHAPE shape) {return tile_properties[(int)shape-1][1];}
-        //static int get_wR(BaseMultiplierIrregularLUTXilinx::TILE_SHAPE shape, bool isSignedX, bool isSignedY) {return tile_properties[(int)shape-1][2+1*isSignedX+2*isSignedY];}
+        static int get_wR(BaseMultiplierIrregularLUTXilinx::TILE_SHAPE shape, bool isSignedX, bool isSignedY) {return tile_properties[(int)shape-1][2+1*isSignedX+2*isSignedY];}
         static int getRelativeResultMSBWeight(BaseMultiplierIrregularLUTXilinx::TILE_SHAPE shape, bool isSignedX, bool isSignedY) {return tile_properties[(int)shape-1][6+1*isSignedX+2*isSignedY];}
         static int getRelativeResultLSBWeight(BaseMultiplierIrregularLUTXilinx::TILE_SHAPE shape) {return tile_properties[(int)shape-1][10];}
         //static int getArea(BaseMultiplierIrregularLUTXilinx::TILE_SHAPE shape) {return tile_properties[(int)shape-1][11];}
@@ -70,21 +70,18 @@ namespace flopoco
         /** Register the factory */
         static void registerFactory();
 
-        static void draw_property_sheet(void);
-        //static int getRelativeResultMSBWeight(TILE_SHAPE shape, bool isSignedX, bool isSignedY);
 
     private:
         TILE_SHAPE shape;
         int wX, wY, wR;
-        bool xIsSigned_;
-        bool yIsSigned_;
-        static const int shape_size[8][6];
+        static const int tile_properties[8][12];
 
-        static void draw_tile(BaseMultiplierIrregularLUTXilinx::TILE_SHAPE shape, bool isSignedX, bool isSignedY, stringstream *stream_handle = nullptr);
+        /*static void draw_tile(BaseMultiplierIrregularLUTXilinx::TILE_SHAPE shape, bool isSignedX, bool isSignedY, stringstream *stream_handle = nullptr);
         static void calc_tile_properties(BaseMultiplierIrregularLUTXilinx::TILE_SHAPE shape, bool isSignedX, bool isSignedY, int &min, int &max, int &min_bits, int &max_bits, int &bits);
+        static void draw_property_sheet(void);
+        //static int getRelativeResultMSBWeight(TILE_SHAPE shape, bool isSignedX, bool isSignedY);*/
         static bool shapeValid(TILE_SHAPE shape, int x, int y);
 
-        static const int tile_properties[8][12];
     };
 
     class BaseMultiplierIrregularLUTXilinxOp : public Operator {
