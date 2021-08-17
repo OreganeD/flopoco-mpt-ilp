@@ -47,18 +47,21 @@ namespace flopoco
         int getDSPCost() const final {return 0;}
         double getLUTCost(int x_anchor, int y_anchor, int wMultX, int wMultY, bool signedIO) override;
         int ownLUTCost(int x_anchor, int y_anchor, int wMultX, int wMultY, bool signedIO) override;
-        static int get_wX(BaseMultiplierIrregularLUTXilinx::TILE_SHAPE shape) {return shape_size[(int)shape-1][0];}
-        static int get_wY(BaseMultiplierIrregularLUTXilinx::TILE_SHAPE shape) {return shape_size[(int)shape-1][1];}
-        static int get_wR(BaseMultiplierIrregularLUTXilinx::TILE_SHAPE shape) {return shape_size[(int)shape-1][2];}
-        static int getRelativeResultMSBWeight(BaseMultiplierIrregularLUTXilinx::TILE_SHAPE shape) {return shape_size[(int)shape-1][3];}
-        static int getRelativeResultLSBWeight(BaseMultiplierIrregularLUTXilinx::TILE_SHAPE shape) {return shape_size[(int)shape-1][4];}
-        //int getArea(BaseMultiplierIrregularLUTXilinx::TILE_SHAPE shape) const {return shape_size[(int)shape-1][5];}
-        unsigned getArea(void) override {return shape_size[(int)shape-1][5];}
+        static int get_wX(BaseMultiplierIrregularLUTXilinx::TILE_SHAPE shape) {return tile_properties[(int)shape-1][0];}
+        static int get_wY(BaseMultiplierIrregularLUTXilinx::TILE_SHAPE shape) {return tile_properties[(int)shape-1][1];}
+        //static int get_wR(BaseMultiplierIrregularLUTXilinx::TILE_SHAPE shape, bool isSignedX, bool isSignedY) {return tile_properties[(int)shape-1][2+1*isSignedX+2*isSignedY];}
+        static int getRelativeResultMSBWeight(BaseMultiplierIrregularLUTXilinx::TILE_SHAPE shape, bool isSignedX, bool isSignedY) {return tile_properties[(int)shape-1][6+1*isSignedX+2*isSignedY];}
+        static int getRelativeResultLSBWeight(BaseMultiplierIrregularLUTXilinx::TILE_SHAPE shape) {return tile_properties[(int)shape-1][10];}
+        //static int getArea(BaseMultiplierIrregularLUTXilinx::TILE_SHAPE shape) {return tile_properties[(int)shape-1][11];}
+        unsigned getArea(void) override {return tile_properties[(int)shape-1][11];}
         int getRelativeResultLSBWeight(Parametrization const& param) const override;
         int getRelativeResultMSBWeight(Parametrization const& param) const override;
-        int getRelativeResultMSBWeight(Parametrization const& param, bool isSignedX, bool isSignedY) const override {return getRelativeResultMSBWeight(param);};
+        int getRelativeResultMSBWeight(Parametrization const& param, bool isSignedX, bool isSignedY) const override {return BaseMultiplierIrregularLUTXilinx::getRelativeResultMSBWeight(
+                    static_cast<TILE_SHAPE>(param.getShapePara()), isSignedX, isSignedY);};
         bool shapeValid(int x, int y) override;
         bool shapeValid(Parametrization const & param, unsigned x, unsigned y) const override;
+        bool signSupX() override {return true;}
+        bool signSupY() override {return true;}
 
         Operator *generateOperator(Operator *parentOp, Target *target, Parametrization const & params) const final;
 
@@ -67,12 +70,21 @@ namespace flopoco
         /** Register the factory */
         static void registerFactory();
 
+        static void draw_property_sheet(void);
+        //static int getRelativeResultMSBWeight(TILE_SHAPE shape, bool isSignedX, bool isSignedY);
+
     private:
         TILE_SHAPE shape;
         int wX, wY, wR;
         bool xIsSigned_;
         bool yIsSigned_;
         static const int shape_size[8][6];
+
+        static void draw_tile(BaseMultiplierIrregularLUTXilinx::TILE_SHAPE shape, bool isSignedX, bool isSignedY, stringstream *stream_handle = nullptr);
+        static void calc_tile_properties(BaseMultiplierIrregularLUTXilinx::TILE_SHAPE shape, bool isSignedX, bool isSignedY, int &min, int &max, int &min_bits, int &max_bits, int &bits);
+        static bool shapeValid(TILE_SHAPE shape, int x, int y);
+
+        static const int tile_properties[8][12];
     };
 
     class BaseMultiplierIrregularLUTXilinxOp : public Operator {
