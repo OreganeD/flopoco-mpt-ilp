@@ -39,16 +39,16 @@ namespace flopoco
     {
         if(!param.getShapePara() || param.getShapePara() > 8)
             throw string("Error in ") + string("srcFileName") + string(": shape unknown");
-        return getRelativeResultMSBWeight((TILE_SHAPE)param.getShapePara(), param.isSignedMultX(), param.isSignedMultY())+1;
+        return getRelativeResultMSBWeight((TILE_SHAPE)param.getShapePara(), param.isSignedMultX(), param.isSignedMultY());
     }
 
     double BaseMultiplierIrregularLUTXilinx::getLUTCost(int x_anchor, int y_anchor, int wMultX, int wMultY, bool signedIO){
-    bool signedX = signedIO && (wMultX == x_anchor+wX);
-    bool signedY = signedIO && (wMultY == y_anchor+wY);
-    int word_size = getRelativeResultMSBWeight(this->shape, signedX, signedY) - getRelativeResultLSBWeight(this->shape) + 1;
-    int lut_required = (this->wX+this->wY <= 5)?word_size/2+word_size%2:word_size;
+        bool signedX = signedIO && (wMultX == x_anchor+wX);
+        bool signedY = signedIO && (wMultY == y_anchor+wY);
+        int word_size = getRelativeResultMSBWeight(this->shape, signedX, signedY) - getRelativeResultLSBWeight(this->shape) + 1;
+        int lut_required = (this->wX+this->wY <= 5)?word_size/2+word_size%2:word_size;
 
-    return lut_required + word_size*getBitHeapCompressionCostperBit();
+        return lut_required + word_size*getBitHeapCompressionCostperBit();
 
         //TODO Implement position dependent method, although LUT-Multiplier dont seem to be placed so that they are protruding
         /*

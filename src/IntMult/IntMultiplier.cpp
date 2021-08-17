@@ -61,7 +61,7 @@ namespace flopoco {
         mpz_class errorBudget = 0, centerErrConstant = 0;
         if(wFullP - wOut)
             computeTruncMultParamsMPZ(wFullP, wOut, guardBits, keepBits, errorBudget, centerErrConstant);
-        cout << " guardBits=" << guardBits << " keepBits=" << keepBits << " errorBudget=" << errorBudget << " centerErrConstant=" << centerErrConstant << endl;
+        //cout << " guardBits=" << guardBits << " keepBits=" << keepBits << " errorBudget=" << errorBudget << " centerErrConstant=" << centerErrConstant << endl;
 
         REPORT(INFO, "IntMultiplier(): Constructing a multiplier of size " <<
 					wX << "x" << wY << " faithfully rounded to bit " << wOut <<
@@ -512,7 +512,7 @@ namespace flopoco {
 
 			//unsigned int toSkip = lsbZerosXIn + lsbZerosYIn + truncated;                                                // calc LSB bits to be ignored in the tiles output
 			unsigned int toSkip = ((LSBWeight < 0) ? static_cast<unsigned int>(-LSBWeight) : 0) + truncated;            // calc LSB bits to be ignored in the tiles output
-			unsigned int tokeep = parameters.getRelativeResultMSBWeight() - toSkip - parameters.getRelativeResultLSBWeight();                                     // the tiles MSBs that are actually used
+			unsigned int tokeep = parameters.getRelativeResultMSBWeight() - toSkip - parameters.getRelativeResultLSBWeight()+1;                                     // the tiles MSBs that are actually used
 			assert(tokeep > 0); //A tiling should not give a useless tile
 
 			oname.str("");

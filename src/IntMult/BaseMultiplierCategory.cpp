@@ -100,12 +100,12 @@ int BaseMultiplierCategory::getRelativeResultLSBWeight(Parametrization const & p
 
 int BaseMultiplierCategory::getRelativeResultMSBWeight(Parametrization const & param) const
 {
-	return IntMultiplier::prodsize(param.getTileXWordSize(), param.getTileYWordSize(), param.isSignedX_, param.isSignedY_);
+	return IntMultiplier::prodsize(param.getTileXWordSize(), param.getTileYWordSize(), param.isSignedX_, param.isSignedY_)-1;
 }
 
 int BaseMultiplierCategory::getRelativeResultMSBWeight(Parametrization const & param, bool isSignedX, bool isSignedY) const
 {
-    return IntMultiplier::prodsize(param.getTileXWordSize(), param.getTileYWordSize(), isSignedX, isSignedY);
+    return IntMultiplier::prodsize(param.getTileXWordSize(), param.getTileYWordSize(), isSignedX, isSignedY)-1;
 }
 
 // determines if a position (x,y) is coverd by a tile (s), relative to the tiles origin position(shape_x,shape_y)
