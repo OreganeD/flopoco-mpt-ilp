@@ -1382,13 +1382,19 @@ namespace flopoco{
         char tikz_colors[N_TIKZ_COLORS][MAX_STRING_SIZE] = { "red", "green", "blue", "cyan", "magenta", "yellow", "brown", "lime", "olive", "orange", "pink", "purple", "teal", "violet"};
         int color = 0;
 
-        vector<vector<int> > bh_bit(solution.getNumberOfStages()+1, vector<int>(bitheap->width, 0));
-        vector<vector<int> > coveredBits(solution.getNumberOfStages()+1, vector<int>(bitheap->width, 0));
+        vector<vector<int> > bh_bit(solution.getNumberOfStages()+1, vector<int>(bitheap->width+1, 0));
+        vector<vector<int> > coveredBits(solution.getNumberOfStages()+1, vector<int>(bitheap->width+1, 0));
+        vector<int> bh_constants(bitheap->width+1, 0);
 
         int lastMaxHeight = 0, previousMaxHeight;
-        for(unsigned int c = 0; c < bitheap->width; c++) {
-            bh_bit[0][c] = bitAmount[0][c];
-            lastMaxHeight = (lastMaxHeight < bitAmount[0][c])?bitAmount[0][c]:lastMaxHeight;
+        for(unsigned int c = 0; c < orderedBits[0].size(); c++) {
+            bh_bit[0][c] = orderedBits[0][c].size();
+            lastMaxHeight = (lastMaxHeight < orderedBits[0][c].size())?orderedBits[0][c].size():lastMaxHeight;
+            //cout << "col=" << c << " height=" << orderedBits[0][c].size() << endl;
+            for(unsigned int b = 0; b < orderedBits[0][c].size(); b++) {
+                if(orderedBits[0][c][b]->signal->type() == Signal::SignalType::constantWithDeclaration || orderedBits[0][c][b]->signal->type() == Signal::SignalType::constant) bh_constants[c]++;
+                //cout << (orderedBits[0][c][b]->signal->getName()) << " is constant " << (orderedBits[0][c][b]->signal->type() == Signal::SignalType::constantWithDeclaration) << endl;
+            }
         }
 
         int shift = 0;
@@ -1447,6 +1453,9 @@ namespace flopoco{
                 if(bh_bit[s][c]){       //bits in column of current stage
                     compr << tab <<  tab <<"\\foreach \\i in {0,...," << bh_bit[s][c]-1 << "}" << endl <<
                           tab << tab << tab <<"\\draw[fill=blue!20] (-0.25*" << c << ",0.25*\\i+" << -shift*0.25L << ") circle (2pt);" << endl;
+                    if(s == 0 && bh_constants[c] != 0) for(int b=0; b < bh_constants[c]; b++){
+                        compr << tab <<  tab <<"\\node[] at (-0.25*" << c << ",0+" << 0.25*b-shift*0.25L << ") {\\textsf{\\tiny c}};" << endl;
+                    }
                 }
             }
             previousMaxHeight = lastMaxHeight;
