@@ -173,6 +173,7 @@ if __name__ == '__main__':
     tclscriptfile.write("read_xdc -mode out_of_context " + xdc_file_name + "\n")
     tclscriptfile.write("set_property top " + entity + "  [current_fileset]\n")
     tclscriptfile.write("set_property STEPS.SYNTH_DESIGN.ARGS.MAX_DSP " + str(maxdsp) + "  [get_runs synth_1]\n")
+    tclscriptfile.write("set_property STEPS.SYNTH_DESIGN.ARGS.FLATTEN_HIERARCHY none [get_runs synth_1]\n")
     tclscriptfile.write("update_compile_order -fileset sources_1\n")
     tclscriptfile.write("update_compile_order -fileset sim_1\n")
 #    if maxdsp>=0:
@@ -199,6 +200,7 @@ if __name__ == '__main__':
 
     tclscriptfile.write("set_property IOB FALSE [all_inputs]\n")
     tclscriptfile.write("set_property IOB FALSE [all_outputs]\n")
+    
     tclscriptfile.write("report_utilization  -file "+  utilization_report_file +"\n")
 
 
@@ -213,7 +215,6 @@ if __name__ == '__main__':
         timing_report_file +="placed.rpt"
 
     tclscriptfile.write("report_timing -file " + timing_report_file + " \n")
-
     tclscriptfile.close()
 
     vivado_command = ("vivado -mode batch -source " + tcl_script_name)
