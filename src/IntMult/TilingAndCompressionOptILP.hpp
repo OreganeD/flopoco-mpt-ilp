@@ -38,7 +38,8 @@ public:
         unsigned keepBits,
         mpz_class errorBudget,
         mpz_class &centerErrConstant,
-        bool performOptimalTruncation);
+        bool performOptimalTruncation,
+        bool minStages);
 
     void solve() override;
 	void compressionAlgorithm() override;
@@ -50,7 +51,7 @@ private:
     mpz_class &centerErrConstant, eBudget;
     unsigned long long  errorBudget;
 	vector<BaseMultiplierCategory*> tiles;
-    bool performOptimalTruncation;
+	bool performOptimalTruncation, minLutsFocus;
 #ifdef HAVE_SCALP
     BasicCompressor* flipflop;
     void constructProblem(int s_max);

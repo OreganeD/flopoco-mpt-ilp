@@ -21,7 +21,8 @@ TilingAndCompressionOptILP::TilingAndCompressionOptILP(
         unsigned keepBits,
         mpz_class errorBudget,
         mpz_class &centerErrConstant,
-        bool performOptimalTruncation):TilingStrategy(
+        bool performOptimalTruncation,
+        bool minStages):TilingStrategy(
 			wX_,
 			wY_,
 			wOut_,
@@ -35,7 +36,8 @@ TilingAndCompressionOptILP::TilingAndCompressionOptILP(
         keepBits{keepBits},
         eBudget{errorBudget},
         centerErrConstant{centerErrConstant},
-        performOptimalTruncation{performOptimalTruncation}
+        performOptimalTruncation{performOptimalTruncation},
+        minLutsFocus{!minStages}
 	{
 	    //Check if error bound fits into UINT64 and otherwise use optiTrunc=0
         cout << errorBudget << endl;
@@ -81,7 +83,7 @@ void TilingAndCompressionOptILP::solve()
 
     ScaLP::status stat;
     solver->reset();
-    bool tryOneMoreStage = true;
+    bool tryOneMoreStage = minLutsFocus;
     s_max = 0;
     do{ //increase stages till a feasible solution is found to get the minimal possible number of compressor stages
         //Try to find a cheaper result with one more stage, check if previous solution was feasible
