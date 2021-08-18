@@ -1382,9 +1382,9 @@ namespace flopoco{
         char tikz_colors[N_TIKZ_COLORS][MAX_STRING_SIZE] = { "red", "green", "blue", "cyan", "magenta", "yellow", "brown", "lime", "olive", "orange", "pink", "purple", "teal", "violet"};
         int color = 0;
 
-        vector<vector<int> > bh_bit(solution.getNumberOfStages()+1, vector<int>(bitheap->width+1, 0));
-        vector<vector<int> > coveredBits(solution.getNumberOfStages()+1, vector<int>(bitheap->width+1, 0));
-        vector<int> bh_constants(bitheap->width+1, 0);
+        vector<vector<int> > bh_bit(solution.getNumberOfStages()+1, vector<int>(bitheap->width+4, 0));
+        vector<vector<int> > coveredBits(solution.getNumberOfStages()+1, vector<int>(bitheap->width+4, 0));
+        vector<int> bh_constants(bitheap->width+4, 0);
 
         int lastMaxHeight = 0, previousMaxHeight;
         for(unsigned int c = 0; c < orderedBits[0].size(); c++) {
