@@ -78,6 +78,7 @@ THIS INCLUDES WRITING ITS AUTOTEST
 *** fix-point-in, FP out version of FPExp 
 ** TODO some day
 *** Resurrect and fuse CordicAtan2 and FixAtan2
+*** Resurrect Cordic2DNorm (or whatever it is called)
 *** resurrect DualTable
 *** resurrect the low-latency adders
 Problems: 
