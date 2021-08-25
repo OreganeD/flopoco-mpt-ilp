@@ -343,16 +343,17 @@ namespace flopoco{
 		outPortMap(mult, "R", "P");
 		vhdl << instance(mult, "mult");
 #else
-		THROWERROR("First update FPMult so that it supports different IO sizes");
 		newInstance(
 				"FPMult", 
 				getName()+"mult", 
-				"wE=" + to_string(wE) + " wF=" + to_string(logwF), 
-				"X=>Y, Y=>lnX",
+				"wE=" + to_string(wE) + " wF=" + to_string(logwF)
+				+ " wEY=" + to_string(wE) + " wFY=" + to_string(wF)
+				+ " wEOut=" + to_string(wE) + " wFOut=" + to_string(wF+wE+expG)
+				+ " correctlyRounded=0", // faithful is enough here 
+				"Y=>Y, X=>lnX",
 				"R=>P"
 			);
 #endif
-
 
 #if 0
 
@@ -366,9 +367,10 @@ namespace flopoco{
 		newInstance(
 				"FPExp", 
 				getName()+"exp", 
-				"wE=" + to_string(wE) + " wF=" + to_string(wF) + " g=" + to_string(expG) , 
-				"X=>Y, Y=>lnX",
-				"R=>P"
+				"wE=" + to_string(wE) + " wF=" + to_string(wF)
+				+ " g=" + to_string(expG) + " fullInput=1", 
+				"X=>P",
+				"R=>E"
 			);
 
 #endif
@@ -643,7 +645,7 @@ namespace flopoco{
 		int wF;
 		UserInterface::parseStrictlyPositiveInt(args, "wF", &wF);
 		int type;
-		UserInterface::parseStrictlyPositiveInt(args, "type", &type);
+		UserInterface::parsePositiveInt(args, "type", &type);
 		return new FPPow(parentOp, target, wE, wF, type);
 	}
 

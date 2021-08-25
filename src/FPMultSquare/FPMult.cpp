@@ -37,8 +37,7 @@ namespace flopoco{
 		ostringstream name;
 		name << "FPMult_"<<wEX_<<"_"<<wFX_<<"_"<<wEY_<<"_"<<wFY_<<"_"<<wER_<<"_"<<wFR_<<"_uid"<<getNewUId();
 		setNameWithFreqAndUID(name.str());
-		setCopyrightString("Bogdan Pasca, Florent de Dinechin 2008-2011");
-
+		setCopyrightString("Bogdan Pasca, Florent de Dinechin 2008-2021");
 
 		addFPInput ("X", wEX_, wFX_);
 		addFPInput ("Y", wEY_, wFY_);
@@ -239,11 +238,11 @@ namespace flopoco{
 		if(wEY==0)
 			wEY=wEX;
 		if(wFY==0)
-			wFY=wEX;
+			wFY=wFX;
 		if(wEOut==0)
 			wEOut=wEX;
 		if(wFOut==0)
-			wFOut=wEX;
+			wFOut=wFX;
 		return new FPMult(parentOp, target, wEX, wFX, wEY, wFY, wEOut, wFOut, true, correctlyRounded, dspOccupationThreshold); //currently, user interface only supports same data formats for all inputs and output
 	}
 

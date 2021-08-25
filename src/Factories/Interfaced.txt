@@ -35,11 +35,12 @@ GenericLut
 Fix2FP
 FP2Fix
 FPAdd
+FPMult
 FPDiv
 FPSqrt
 FPExp
 FPLog
-FPMult
+FPPow
 OutputIEEE
 
 IEEEAdd

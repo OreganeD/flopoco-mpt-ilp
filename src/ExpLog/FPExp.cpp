@@ -247,13 +247,13 @@ namespace flopoco{
 		name << "FPExp_" << wE << "_" << wF ;
 		setNameWithFreqAndUID(name.str());
 
-		setCopyrightString("F. de Dinechin, Bogdan Pasca (2008-2019)");
+		setCopyrightString("F. de Dinechin, Bogdan Pasca (2008-2021)");
 		srcFileName="FPExp";
 
 
 		/*  We have the following cases. 
 
-			 wF is really small. Then Y is small enough that e^Y is can be
+			 wF is really small. Then Y is small enough that e^Y can be
 			 tabulated in a blockram.  In this case g=2.
 		    
 			 10/11 < sizeY < ?? Y is still split into A and Z, but e^Z is simply
@@ -283,7 +283,8 @@ namespace flopoco{
 		//* The following lines decide the architecture out of the size of wF *
 
 		// First check if wF is small enough to tabulate e^Y in a block RAM
-		g=2;
+		if(guardBits==-1) // otherwise we don't touch it from the initialization
+			g=2; 
 		sizeY=wF+g;
 		sizeExpY = wF+g+1+2; // e^Y has MSB weight 1; 2 added because it enables to keep g=2 and it costs nothing here, being at the table output.
 		mpz_class sizeExpATable= (mpz_class(1)<<sizeY) * sizeExpY;
@@ -297,7 +298,8 @@ namespace flopoco{
 		}
 		else if (wF<=23) {
 			REPORT(DETAILED, "We will split Y into A and Z, using a table for the Z part");
-			g=4;
+			if(guardBits==-1) // otherwise we don't touch it from the initialization
+				g=4;
 			k=10;
 			sizeY=wF+g;
 			sizeExpY = wF+g+1; // e^Y has MSB weight 1
@@ -327,7 +329,8 @@ namespace flopoco{
 		}
 
 		else {// generic case
-			g=4;
+			if(guardBits==-1) // otherwise we don't touch it from the initialization
+				g=4;
 			if(k==0 && d==0) { 		// if automatic mode, set up the parameters
 				REPORT(DETAILED, "Chosing sensible defaults for both k and d");
 				d=2; 
@@ -956,12 +959,14 @@ namespace flopoco{
 
 		OperatorPtr FPExp::parseArguments(OperatorPtr parentOp, Target *target, vector<string> &args) {
 			int wE, wF, k, d, g;
+			bool fullInput;
 			UserInterface::parseStrictlyPositiveInt(args, "wE", &wE); 
 			UserInterface::parseStrictlyPositiveInt(args, "wF", &wF);
 			UserInterface::parsePositiveInt(args, "k", &k);
 			UserInterface::parsePositiveInt(args, "d", &d);
 			UserInterface::parseInt(args, "g", &g);
-			return new FPExp(parentOp, target, wE, wF, k, d, g);
+			UserInterface::parseBoolean(args, "fullInput", &fullInput);
+			return new FPExp(parentOp, target, wE, wF, k, d, g, fullInput);
 		}
 
 
@@ -1019,7 +1024,8 @@ namespace flopoco{
 			wF(int): mantissa size in bits;  \
 			d(int)=0: degree of the polynomial. 0 choses a sensible default.; \
 			k(int)=0: input size to the range reduction table, should be between 5 and 15. 0 choses a sensible default.;\
-			g(int)=-1: number of guard bits",
+			g(int)=-1: number of guard bits;\
+			fullInput(bool)=0: input a mantissa of wF+wE+g bits (useful mostly for FPPow)",
 			"Parameter d and k control the DSP/RamBlock tradeoff. In both cases, a value of 0 choses a sensible default. Parameter g is mostly for internal use.<br> For all the details, see <a href=\"bib/flopoco.html#DinechinPasca2010-FPT\">this article</a>.",
 			FPExp::parseArguments,
 			FPExp::unitTest
