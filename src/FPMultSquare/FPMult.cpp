@@ -59,11 +59,16 @@ namespace flopoco{
 		vhdl << tab << declare("expX", wEX_) << " <= X"<< range(wEX_ + wFX_ -1, wFX_) << ";" << endl;
 		vhdl << tab << declare("expY", wEY_) << " <= Y"<< range(wEY_ + wFY_ -1, wFY_) << ";" << endl;
 
+		// In case when the exponents differ, crash with grace
+		if((wEY_!=wEX_) || (wER_!=wEX_)		) {
+			THROWERROR("Giving up because exponent sizes are not all identical.\nIt seems nobody ever cared to manage properly the case when exponent sizes differ.\nIt shouldn't be difficult, but life is too short to implement stuff that nobody needs.\nPlease drop us a mail if this case is useful to you...");
+		}
+		int wEmax_ = max(wEX_, wEY_); // not sufficient, there should be weR as well
 		//Add exponents and substract bias
-		vhdl << tab << declare(getTarget()->adderDelay(wEX_+2), "expSumPreSub", wEX_+2) << " <= (\"00\" & expX) + (\"00\" & expY);" << endl;
-		vhdl << tab << declare("bias", wEX_+2) << " <= CONV_STD_LOGIC_VECTOR(" << intpow2(wER-1)-1 << ","<<wEX_+2<<");"<< endl;
+		vhdl << tab << declare(getTarget()->adderDelay(wEmax_+2), "expSumPreSub", wEmax_+2) << " <= (\"00\" & expX) + (\"00\" & expY);" << endl;
+		vhdl << tab << declare("bias", wEmax_+2) << " <= CONV_STD_LOGIC_VECTOR(" << intpow2(wER-1)-1 << ","<<wEmax_+2<<");"<< endl;
 
-		vhdl << tab << declare(getTarget()->adderDelay(wEX_+2), "expSum",wEX+2) << " <= expSumPreSub - bias;" << endl;
+		vhdl << tab << declare(getTarget()->adderDelay(wEmax_+2), "expSum",wEX+2) << " <= expSumPreSub - bias;" << endl;
 
 		/* Significand Handling */
 		vhdl << tab << declare("sigX",1 + wFX_) << " <= \"1\" & X" << range(wFX_-1,0) << ";" << endl;
