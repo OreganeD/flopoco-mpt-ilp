@@ -17,11 +17,10 @@
 #include <sstream>
 #include <math.h>	// for NaN
 #include "FPPow.hpp"
-#include "IterativeLog.hpp"
+#include "FPLog.hpp"
 #include "FPExp.hpp"
-#include "ShiftersEtc/LZOC.hpp"
 #include "FPMultSquare/FPMult.hpp"
-#include "TestBenches/FPNumber.hpp"
+//#include "TestBenches/FPNumber.hpp"
 #include "utils.hpp"
 
 
@@ -73,8 +72,8 @@ namespace flopoco{
 
 
 
-	FPPow::FPPow(Target* target, int wE, int wF, int type, int logTableSize, int expTableSize, int expDegree)
-		: Operator(target), wE(wE), wF(wF), type(type)
+	FPPow::FPPow(OperatorPtr parentOp, Target* target, int wE, int wF, int type)
+		: Operator(parentOp, target), wE(wE), wF(wF), type(type)
 	{
 
 		setCopyrightString("F. de Dinechin, C. Klein  (2008)");
@@ -138,9 +137,10 @@ namespace flopoco{
 
 		vhdl<<"-- Comparison of X to 1   --"<<endl;
 		vhdl << tab  << declare("OneExpFrac", wE+wF) << " <=  \"0\" & " << rangeAssign(wE-2, 0, "'1'") << " & " << rangeAssign(wF-1, 0, "'0'") << ";" << endl;
-		IntAdder *cmpOneAdder = new IntAdder(target, wE+wF+1);
 		vhdl << tab << declare("ExpFracX",wE+wF+1) << "<= \"0\" & expFieldX & fracX;"<<endl;
 		vhdl << tab << declare("OneExpFracCompl",wE+wF+1) << "<=  \"1\" & (not OneExpFrac);"<<endl;
+#if 0
+		IntAdder *cmpOneAdder = new IntAdder(target, wE+wF+1);
 		inPortMap(cmpOneAdder, "X", "ExpFracX");
 		inPortMap(cmpOneAdder, "Y", "OneExpFracCompl");
 		inPortMapCst(cmpOneAdder, "Cin", "'1'");
@@ -148,6 +148,14 @@ namespace flopoco{
 		vhdl << instance(cmpOneAdder, "cmpXOne") << endl;
 		syncCycleFromSignal("cmpXOneRes");
 		nextCycle();
+#else
+		newInstance("IntAdder",
+								"cmpXOne",
+								"wIn=" + to_string(wE+wF+1),
+								"X=>ExpFracX,Y=>OneExpFracCompl",
+								"R=>cmpXOneRes",
+								"Cin=>'1'"); // it is a subtraction
+#endif
 		// setCriticalPath( cmpOneAdder->getOutputDelay("R") );
 		vhdl << tab  << declare("XisOneAndNormal") << " <= '1' when X = (\"010\" & OneExpFrac)" << " else '0';" << endl;
 		vhdl << tab  << declare("absXgtOneAndNormal") << " <= normalX and (not XisOneAndNormal) and (not cmpXOneRes("<<wE+wF<<"));" << endl;
@@ -160,8 +168,6 @@ namespace flopoco{
 
 		if(type==0){//pow
 
-			setCycle(0);
-
 			// We first have to reverse the fraction, because our LZOC counts leading bits, not trailing ones.
 			// There must be some standard VHDL way of doing that
 			vhdl << tab  << declare("fracYreverted", wF)<<" <= ";
@@ -172,6 +178,7 @@ namespace flopoco{
 			}
 			vhdl << ";" <<  endl;
 
+#if 0
 			LZOC* right1counter = new LZOC(target, wF);
 			inPortMap(right1counter, "I", "fracYreverted");
 			inPortMapCst(right1counter, "OZB", "\'0\'");
@@ -181,12 +188,18 @@ namespace flopoco{
 			syncCycleFromSignal("Z_rightY");
 			syncCycleFromSignal("cmpXOneRes");
 			nextCycle();
-
+#else
+		newInstance(
+				"LZOC", 
+				getName()+"right1counter", 
+				"wIn=" + to_string(wF) + " countType=0", 
+				"I=>fracYreverted",
+				"O=>Z_rightY"
+			);
+#endif
 			vhdl<<"-- compute the weight of the less significant one of the mantissa"<<endl;
 			vhdl << tab  << declare("WeightLSBYpre", wE+1)<<" <= ('0' & expFieldY)- CONV_STD_LOGIC_VECTOR("<< (1<<(wE-1))-1 + wF <<","<<wE+1<<");"<<endl;
 			vhdl << tab  << declare("WeightLSBY", wE+1)<<" <= WeightLSBYpre + Z_rightY;"<<endl;
-			// No problem tooverpipeline
-			nextCycle();
 
 			vhdl << tab  << declare("oddIntY") <<" <= normalY when WeightLSBY = CONV_STD_LOGIC_VECTOR(0, "<<wE+1<<") else '0'; -- LSB has null weight"<<endl;
 			vhdl << tab  << declare("evenIntY")<<" <= normalY when WeightLSBY(wE)='0' and oddIntY='0' else '0'; --LSB has strictly positive weight "<<endl;
@@ -294,19 +307,27 @@ namespace flopoco{
 
 		// Now the part that takes 99% of the size: computing exp(y*logx).
 
-		setCycle(0);
-		setCriticalPath(0);
 		// For the input to the log, take |X| as the case X<0 is managed separately
 		vhdl << tab << declare("logIn", 3+wE + logwF) << " <= flagsX & \"0\" & expFieldX & fracX & " << rangeAssign(logwF-wF-1, 0, "'0'") << " ;" << endl;
 
+
+#if 0
 		IterativeLog* log = new IterativeLog(target,  wE,  logwF, logTableSize );
 		inPortMap(log, "X", "logIn");
 		outPortMap(log, "R", "lnX");
 		vhdl << instance(log, "log");
+#else
+		newInstance(
+				"FPLog", 
+				getName()+"log", 
+				"wE=" + to_string(wE) + " wF=" + to_string(logwF), 
+				"X=>logIn",
+				"R=>lnX"
+			);
+#endif
 
-		syncCycleFromSignal("lnX");
-		nextCycle();
 
+#if 0		
 #if 0
 		// TODO: the following mult could be  truncated
 		FPMult* mult = new FPMult(target,   /*X:*/ wE, logwF,   /*Y:*/ wE, wF,  /*R: */  wE,  wF+wE+expG,
@@ -321,24 +342,37 @@ namespace flopoco{
 		inPortMap(mult, "X", "lnX");
 		outPortMap(mult, "R", "P");
 		vhdl << instance(mult, "mult");
-
-
-
-		syncCycleFromSignal("P");
-#if 0 // while fine-tuning the pipeline
-		setCriticalPath( mult->getOutputDelay("R") );
-		FPExp* exp = new FPExp(target,  wE,  wF, 0/* means default*/, 0, expG, true, inDelayMap("X", getCriticalPath() + 2*getTarget()->localWireDelay()) );
 #else
-		nextCycle();
-		FPExp* exp = new FPExp(target,  wE,  wF, 0/* means default*/, 0, expG, true);
+		THROWERROR("First update FPMult so that it supports different IO sizes");
+		newInstance(
+				"FPMult", 
+				getName()+"mult", 
+				"wE=" + to_string(wE) + " wF=" + to_string(logwF), 
+				"X=>Y, Y=>lnX",
+				"R=>P"
+			);
 #endif
+
+
+#if 0
+
+		FPExp* exp = new FPExp(target,  wE,  wF, 0/* means default*/, 0, expG, true);
 
 		inPortMap(exp, "X", "P");
 		outPortMap(exp, "R", "E");
 		vhdl << instance(exp, "exp");
 
-		syncCycleFromSignal("E");
-		nextCycle();
+#else
+		newInstance(
+				"FPExp", 
+				getName()+"exp", 
+				"wE=" + to_string(wE) + " wF=" + to_string(wF) + " g=" + to_string(expG) , 
+				"X=>Y, Y=>lnX",
+				"R=>P"
+			);
+
+#endif
+
 
 		vhdl << tab  << declare("flagsE", 2) << " <= E(wE+wF+2 downto wE+wF+1);" << endl;
 
@@ -608,9 +642,9 @@ namespace flopoco{
 		UserInterface::parseStrictlyPositiveInt(args, "wE", &wE);
 		int wF;
 		UserInterface::parseStrictlyPositiveInt(args, "wF", &wF);
-		int inTableSize;
-		UserInterface::parseStrictlyPositiveInt(args, "inTableSize", &inTableSize);
-		return new IterativeLog(target, wE, wF, inTableSize);
+		int type;
+		UserInterface::parseStrictlyPositiveInt(args, "type", &type);
+		return new FPPow(parentOp, target, wE, wF, type);
 	}
 
 	void FPPow::registerFactory(){
@@ -620,9 +654,7 @@ namespace flopoco{
 											 "",
 											 "wE(int): exponent size in bits for both inputs; \
 wF(int): mantissa size in bits for both inputs; \
-logSizeTable(int)=0: The table size for the log in bits; \
-expTableSize(int)=0: The table size for the exponent in bit; \
-expDegree(int)=0:",
+type(int)=0: 0 for pow, 1 for the powr function introduced in IEEE754-2008",
 											 "",
 											 FPPow::parseArguments
 											 ) ;

@@ -5,7 +5,7 @@
 
 #include "Operator.hpp"
 #include "ShiftersEtc/LZOC.hpp"
-#include "ShiftersEtc/LZOCShifterSticky.hpp"
+#include "ShiftersEtc/Normalizer.hpp"
 #include "ShiftersEtc/Shifters.hpp"
 
 
@@ -15,7 +15,7 @@ namespace flopoco{
 	class FPPow : public Operator
 	{
 	public:
-		FPPow(Target* target, int wE, int wF, int type, int logTableSize=0, int expTableSize=0, int expDegree=0);
+		FPPow(OperatorPtr parentOp, Target* target, int wE, int wF, int type);
 		~FPPow();
 
 		void compute_error(mpfr_t & r, mpfr_t &epsE, mpfr_t& epsM, mpfr_t& epsL );
