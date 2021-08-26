@@ -481,7 +481,6 @@ namespace flopoco{
 
 	void FPPow::buildStandardTestCases(TestCaseList* tcl){
 		TestCase *tc;
-
 		// Random testing quickly gets the 2^(3+3) combinations of (exn,sign)
 		// I'm not sure it gets all the cases with an integer y
 		// Anyway, much TODO here.

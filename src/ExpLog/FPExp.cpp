@@ -476,7 +476,7 @@ namespace flopoco{
 								"X=>mXu,S=>shiftValIn",
 								"R=>fixX0");
 
-		int sizeShiftOut=maxshift + wF+1;
+		int sizeShiftOut=maxshift + wFIn+1;
 		int sizeXfix = wE-2 +wF+g +1; // still unsigned; msb=wE-1; lsb = -wF-g
 
 		vhdl << tab << declareFixPoint("ufixX", false, wE-2, -wF-g) << " <= " << " unsigned(fixX0" << 
