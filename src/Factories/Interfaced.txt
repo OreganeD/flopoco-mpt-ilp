@@ -7,7 +7,7 @@ Compressor
 Shifter
 LZOC
 LZOC3
-LZOCShifterSticky
+Normalizer
 ShiftReg
 IntAdder
 IntDualAddSub
@@ -19,6 +19,7 @@ DSPBlock
 IntMultiplier
 IntMultiplierLUT
 IntKaratsubaRectangular
+IntSquarer
 FixFunctionByTable
 FixFunctionByMultipartiteTable
 FixFunctionBySimplePoly
@@ -31,13 +32,15 @@ FixFixConstMult
 GenericMux
 GenericLut
 
+Fix2FP
+FP2Fix
 FPAdd
+FPMult
 FPDiv
 FPSqrt
 FPExp
 FPLog
-FP2Fix
-FPMult
+FPPow
 OutputIEEE
 
 IEEEAdd
@@ -47,9 +50,11 @@ FixFIR
 FixHalfSine
 FixRootRaisedCosine
 FixIIR
+FixIIRShiftAdd
 Posit2FP
 
 FixSinCos
+FixAtan2
 
 Xilinx_GenericAddSub
 Xilinx_Comparator
@@ -85,3 +90,4 @@ PositFunctionByTable
 Posit2Posit
 
 #FixFunctionByVaryingPiecewisePoly # to revive soon
+#SRTDivNbBitsMin

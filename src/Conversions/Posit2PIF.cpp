@@ -11,7 +11,7 @@
 // include the header of the Operator
 #include "Posit2PIF.hpp"
 
-#include "ShiftersEtc/LZOCShifterSticky.hpp"
+#include "ShiftersEtc/Normalizer.hpp"
 #include "TestBenches/PositNumber.hpp"
 #include "TestBenches/IEEENumber.hpp"
 
@@ -33,7 +33,7 @@ namespace flopoco {
 		name << "Posit2PIF_" << widthI << "_" << wES;
 		setNameWithFreqAndUID(name.str());
 		// Copyright 
-		setCopyrightString("test");
+    setCopyrightString("Oregane Desrentes 2019");
 
     
 		if (widthI < 3) {
@@ -105,15 +105,15 @@ namespace flopoco {
 		ostringstream param, inmap, outmap;
 		int wCount = intlog2(widthI) - 1; //comme ça le shifter ne pense pas qu'il peut shifter un nombre absurde de bits
 
-		param << "wIn=" << widthI - 2;
-		param << " wOut=" << widthI - 2;
-		param << " wCount=" << wCount; 
+		param << "wX=" << widthI - 2;
+		param << " wR=" << widthI - 2;
+		param << " maxShift=" << ((1<<wCount)-1); // this is highy suspiscious in terms of optimality, if it works at all
 
-		inmap << "I=>remainder,OZb=>count_type";
+		inmap << "X=>remainder,OZb=>count_type";
 
-		outmap << "Count=>lzCount,O=>usefulBits";
+		outmap << "Count=>lzCount,R=>usefulBits";
 
-		newInstance("LZOCShifterSticky", "lzoc", param.str(), inmap.str(), outmap.str());
+		newInstance("Normalizer", "lzoc", param.str(), inmap.str(), outmap.str());
 
 		vhdl << "with neg_count select " << declare(0., "extended_neg_count", wCount+2) << " <= "  << endl <<
 		  tab << "\"" << string(wCount+2, '0') << "\" when '0', " << endl <<

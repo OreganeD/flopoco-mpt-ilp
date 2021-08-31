@@ -40,6 +40,23 @@ namespace flopoco {
 
 			int getDeltaWidthSigned() const { return deltaWidthUnsignedSigned_; }
 			string getType() const {return type_;}
+            double getBitHeapCompressionCostperBit();
+
+            /**
+             * @brief Returns true if the x-input supports signed when the multiplier is instantiated, every tile that
+             * supports signed multiplication should implement this function so that the tiling heuristic can avoid
+             * placing tiles without signed support at the bottom and left |_ edge of the area to be tiled.
+             * @return true if there is signed support for the x-input
+             */
+            virtual bool signSupX(){return false;}
+
+            /**
+             * @brief Returns true if the y-input supports signed when the multiplier is instantiated, every tile that
+             * supports signed multiplication should implement this function so that the tiling heuristic can avoid
+             * placing tiles without signed support at the bottom and left |_ edge of the area to be tiled.
+             * @return true if there is signed support for the y-input
+             */
+            virtual bool signSupY(){return false;}
 
 			class Parametrization{
 				public:
@@ -64,6 +81,8 @@ namespace flopoco {
 					int getShapePara() const {return shape_para_;}
 				    string getMultType() const {return bmCat_->getType();}
                     Parametrization tryDSPExpand(int m_x_pos, int m_y_pos, int wX, int wY, bool signedIO);
+                    Parametrization setSignStatus(int m_x_pos, int m_y_pos, int wX, int wY, bool signedIO);
+                    Parametrization shrinkFitDSP(int m_x_pos, int m_y_pos, int wX, int wY);
                     vector<int> getOutputWeights(){return output_weights;}
 
             private:
@@ -93,19 +112,18 @@ namespace flopoco {
 					int shape_para_;
 					BaseMultiplierCategory const * bmCat_;
                     vector<int> output_weights;
-
 				friend BaseMultiplierCategory;
 			};
 
             virtual int getDSPCost() const = 0;
-            virtual double getLUTCost(int x_anchor, int y_anchor, int wMultX, int wMultY);
-            virtual int ownLUTCost(int x_anchor, int y_anchor, int wMultX, int wMultY);
+            virtual double getLUTCost(int x_anchor, int y_anchor, int wMultX, int wMultY, bool signedIO);
+            virtual int ownLUTCost(int x_anchor, int y_anchor, int wMultX, int wMultY, bool signedIO);
             virtual unsigned int getArea() {return tile_param.wX_*tile_param.wY_;}
             virtual bool isVariable() const { return false; }
             virtual bool isIrregular() const { return false; }
             virtual bool isKaratsuba() const { return false; }
             float efficiency() {return getArea()/cost();}
-            float cost() {return getLUTCost(0, 0, 48, 48);}
+            float cost() {return getLUTCost(0, 0, 48, 48, false);}
 
 			virtual bool shapeValid(Parametrization const & param, unsigned x, unsigned y) const;
             virtual bool shapeValid(int x, int y);
@@ -114,6 +132,7 @@ namespace flopoco {
 
             virtual int getRelativeResultLSBWeight(Parametrization const & param) const;
             virtual int getRelativeResultMSBWeight(Parametrization const & param) const;
+            virtual int getRelativeResultMSBWeight(Parametrization const & param, bool isSignedX, bool isSignedY) const;
 
 			virtual Operator* generateOperator(
 					Operator *parentOp,
@@ -130,6 +149,10 @@ namespace flopoco {
             int wX_DSPexpanded(int m_x_pos, int m_y_pos, int wX, int wY, bool signedIO);
             int wY_DSPexpanded(int m_x_pos, int m_y_pos, int wX, int wY, bool signedIO);
             virtual int isSuperTile(int rx1, int ry1, int lx1, int ly1, int rx2, int ry2, int lx2, int ly2) {return 0;}
+            void setTarget(Target* target){ this->target = target;}
+
+	    protected:
+            Target* target = NULL;
 
 		private:
             BaseMultiplierCategory::Parametrization tile_param;
@@ -140,7 +163,6 @@ namespace flopoco {
             const bool rectangular;
             string type_; /**< Name to identify the corresponding base multiplier in the solution (for debug only) */
             vector<int> output_weights;
-
     };
 
 	typedef BaseMultiplierCategory::Parametrization BaseMultiplierParametrization;

@@ -12,13 +12,16 @@ IntMultiplierLUT::IntMultiplierLUT(Operator *parentOp, Target* target, int wX, i
 	*/
 	if(flipXY)
 	{
-		//swapp x and y:
+		//swapp x and y and associated signedness:
 		int tmp = wX;
 		wX = wY;
 		wY = tmp;
+		bool tmpsgn = isSignedY;
+		isSignedY = isSignedX;
+		isSignedX = tmpsgn;
 	}
 
-	int wR = static_cast<int>(IntMultiplier::prodsize(wX, wY)); //!!! check for signed case!
+	int wR = static_cast<int>(IntMultiplier::prodsize(wX, wY, isSignedX, isSignedY)); //!!! check for signed case!
 
 	ostringstream name;
 	name << "IntMultiplierLUT_" << wX << (isSignedX==1 ? "_signed" : "") << "x" << wY  << (isSignedY==1 ? "_signed" : "");
@@ -41,10 +44,10 @@ IntMultiplierLUT::IntMultiplierLUT(Operator *parentOp, Target* target, int wX, i
 		return;
 	}
 
-    vhdl << declare(0.0,"Xtable",wX+wY) << " <= Y & X;" << endl;
-    // if Table is not shared, the names of the IO-Signals have to be known in advance, so connectIOFromPortMap knows where to connect to
-    inPortMap("X", "Xtable");
-    outPortMap("Y", "Y1");
+	vhdl << declare(0.0,"Xtable",wX+wY) << " <= Y & X;" << endl;
+	// if Table is not shared, the names of the IO-Signals have to be known in advance, so connectIOFromPortMap knows where to connect to
+	inPortMap("X", "Xtable");
+	outPortMap("Y", "Y1");
 
 	vector<mpz_class> val;
 	REPORT(DEBUG, "Filling table for a LUT multiplier of size " << wX << "x" << wY << " (out put size is " << wR << ")")
@@ -56,7 +59,7 @@ IntMultiplierLUT::IntMultiplierLUT(Operator *parentOp, Target* target, int wX, i
 	op->setShared();
 	UserInterface::addToGlobalOpList(op);
 
-    vhdl << tab << "R <= Y1;" << endl;
+	vhdl << tab << "R <= Y1;" << endl;
 	vhdl << instance(op, "TableMult");
 }
 
@@ -65,7 +68,7 @@ mpz_class IntMultiplierLUT::function(int yx)
 	mpz_class r;
 	int y = yx>>wX;
 	int x = yx -(y<<wX);
-	int wF = IntMultiplier::prodsize(wX, wY);
+	int wF = IntMultiplier::prodsize(wX, wY, isSignedX, isSignedY);
 
 	if(isSignedX){
 		if ( x >= (1 << (wX-1)))
@@ -129,7 +132,7 @@ void IntMultiplierLUT::emulate(TestCase* tc)
 	tc->addExpectedOutput("R", svR);
 }
 
-TestList IntMultiplierLUT::unitTest(int index)
+TestList IntMultiplierLUT::unitTest(int)
 {
 	// the static list of mandatory tests
 	TestList testStateList;

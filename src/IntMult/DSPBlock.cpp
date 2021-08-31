@@ -1,12 +1,13 @@
 #include "DSPBlock.hpp"
+#include "IntMultiplier.hpp"
 
 namespace flopoco {
 
 DSPBlock::DSPBlock(Operator *parentOp, Target* target, int wX, int wY, bool xIsSigned, bool yIsSigned, bool isPipelined, int wZ, bool usePostAdder, bool usePreAdder, bool preAdderSubtracts) : Operator(parentOp,target), xIsSigned_{xIsSigned}, yIsSigned_{yIsSigned}, wX_{wX}, wY_{wY}
 {
-    useNumericStd();
+	useNumericStd();
 
-    ostringstream name;
+	ostringstream name;
 //	name << "DSPBlock_" << wX << "x" << wY << (usePreAdder==1 ? "_PreAdd" : "") << (usePostAdder==1 ? "_PostAdd" : "") << (isPipelined==1 ? "_pip" : "") << "_uid" << getNewUId();
 	name << "DSPBlock_" << wX << "x" << wY << (usePreAdder==1 && !preAdderSubtracts ? "_PreAdd" : usePreAdder==1 && preAdderSubtracts ? "_PreSub" : "") << (usePostAdder==1 ? "_PostAdd" : "") << (isPipelined==1 ? "_pip" : "");
 //	setShared(); //set this operator to be a shared operator, does not work for pipelined ones!!
@@ -43,21 +44,21 @@ DSPBlock::DSPBlock(Operator *parentOp, Target* target, int wX, int wY, bool xIsS
 
 	int wM; //the width of the multiplier result
 	if(usePreAdder)
-    {
+	{
 
-        //implement pre-adder:
+		//implement pre-adder:
 		if(!isPipelined) stageDelay = getTarget()->DSPAdderDelay();
 		vhdl << tab << declare(stageDelay,"X",wX) << " <= std_logic_vector(" << (xIsSigned ? "signed" : "unsigned") << "(X1) ";
 		if(preAdderSubtracts) {
-            vhdl << "-";
+			vhdl << "-";
 		} else {
-            vhdl << "+";
-        }
+			vhdl << "+";
+		}
 		vhdl << " " << (xIsSigned ? "signed" : "unsigned") << "(X2)); -- pre-adder" << endl;
-    }
+	}
 
 	int wIntermMult = wX + wY + onlyOneDelta;
-	wM = (wX > 1 ? wX : 0) + (wY > 1 ? wY : 0) + (wX==1 && wY==1 ? 1 : 0); //consider special cases with wX or wY (or both) equals one
+	wM = IntMultiplier::prodsize(wX, wY, xIsSigned, yIsSigned);//(wX > 1 ? wX : 0) + (wY > 1 ? wY : 0) + (wX==1 && wY==1 ? 1 : 0); //consider special cases with wX or wY (or both) equals one
 //	wM = wX + wY;
 //	cout << "wM=" << wM << endl;
 //	cout << "maxTargetCriticalPath=" << maxTargetCriticalPath << endl;
@@ -79,10 +80,50 @@ DSPBlock::DSPBlock(Operator *parentOp, Target* target, int wX, int wY, bool xIsS
 		vhdl << tab << declare(stageDelay,"Rtmp",wM) << " <= A;" << endl;
 	} else {
 		vhdl << tab << declare(.0,"Rtmp",wM) << " <= M;" << endl;
-    }
+	}
 	addOutput("R", wM);
 	vhdl << tab << "R <= Rtmp;" << endl;
 }
+
+void DSPBlock::emulate(TestCase* tc)
+{
+	mpz_class svX = tc->getInputValue("X");
+	mpz_class svY = tc->getInputValue("Y");
+	mpz_class svR;
+
+	if(xIsSigned_)
+	{
+		if (wX_ == 1) {
+			svX = -svX;
+		} else {
+			// Manage signed digits
+			mpz_class big1 = (mpz_class{1} << (wX_));
+			mpz_class big1P = (mpz_class{1} << (wX_-1));
+
+			if(svX >= big1P) {
+				svX -= big1;
+				//cerr << "X is neg. Interpreted value : " << svX.get_str(10) << endl;
+			}
+		}
+	}
+	if (yIsSigned_) {
+		if (wY_ == 1) {
+			svY = -svY;
+		} else {
+			mpz_class big2 = (mpz_class{1} << (wY_));
+			mpz_class big2P = (mpz_class{1} << (wY_-1));
+
+			if(svY >= big2P) {
+				svY -= big2;
+				//cerr << "Y is neg. Interpreted value : " << svY.get_str(10) << endl;
+			}
+		}
+	}
+
+	svY = svX * svY;
+	tc->addExpectedOutput("R", svY);
+}
+
 
 /*
  ToDo: extend this to the DSP functionality (inc. pre- and post-adders
@@ -136,12 +177,12 @@ void DSPBlock::buildStandardTestCases(TestCaseList* tcl)
 
 OperatorPtr DSPBlock::parseArguments(OperatorPtr parentOp, Target *target, vector<string> &args)
 {
-    int wX,wY,wZ;
-    bool usePostAdder, usePreAdder, preAdderSubtracts;
+	int wX,wY,wZ;
+	bool usePostAdder, usePreAdder, preAdderSubtracts;
 	bool isPipelined;
 	bool xIsSigned,yIsSigned;
-    UserInterface::parseStrictlyPositiveInt(args, "wX", &wX);
-    UserInterface::parseStrictlyPositiveInt(args, "wY", &wY);
+	UserInterface::parseStrictlyPositiveInt(args, "wX", &wX);
+	UserInterface::parseStrictlyPositiveInt(args, "wY", &wY);
 	UserInterface::parsePositiveInt(args, "wZ", &wZ);
 	UserInterface::parseBoolean(args, "isPipelined", &isPipelined);
 	UserInterface::parseBoolean(args,"usePostAdder",&usePostAdder);
@@ -155,22 +196,22 @@ OperatorPtr DSPBlock::parseArguments(OperatorPtr parentOp, Target *target, vecto
 
 void DSPBlock::registerFactory()
 {
-    UserInterface::add( "DSPBlock", // name
-                        "Implements a DSP block commonly found in FPGAs incl. pre-adders and post-adders computing R = (X1+X2) * Y + Z",
-                        "BasicInteger", // categories
-                        "",
-                        "wX(int): size of input X (or X1 and X2 if pre-adders are used);\
-                        wY(int): size of input Y;\
-                        wZ(int)=0: size of input Z (if post-adder is used);\
+	UserInterface::add( "DSPBlock", // name
+						"Implements a DSP block commonly found in FPGAs incl. pre-adders and post-adders computing R = (X1+X2) * Y + Z",
+						"BasicInteger", // categories
+						"",
+						"wX(int): size of input X (or X1 and X2 if pre-adders are used);\
+						wY(int): size of input Y;\
+						wZ(int)=0: size of input Z (if post-adder is used);\
 						xIsSigned(bool)=0: input X is signed;\
 						yIsSigned(bool)=0: input Y is signed;\
 						isPipelined(bool)=1: every stage is pipelined when set to 1;\
-                        usePostAdder(bool)=0: use post-adders;\
-                        usePreAdder(bool)=0: use pre-adders;\
-                        preAdderSubtracts(bool)=0: if true, the pre-adder performs a pre-subtraction;",
-                       "",
-                       DSPBlock::parseArguments
-                       ) ;
+						usePostAdder(bool)=0: use post-adders;\
+						usePreAdder(bool)=0: use pre-adders;\
+						preAdderSubtracts(bool)=0: if true, the pre-adder performs a pre-subtraction;",
+					   "",
+					   DSPBlock::parseArguments
+					   ) ;
 }
 
 

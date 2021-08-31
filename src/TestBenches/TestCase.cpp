@@ -182,6 +182,16 @@ namespace flopoco{
 	}
 
 
+    vector<mpz_class> TestCase::getExpectedOutputValues(string s) {
+        return outputs[s]; // return all possible output values as a vector of mpz_class
+    }
+
+
+    mpz_class TestCase::getExpectedOutputValue(string s) {
+	    return outputs[s][0]; // return only the first added expected output value, located at pos. 0 in the vector for output s
+	}
+
+
 	string TestCase::getInputVHDL(string prepend)
 	{
 		ostringstream o;

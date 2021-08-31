@@ -25,6 +25,10 @@
 #include "Operator.hpp"
 
 #include "Fix2FP.hpp"
+#include "TestBenches/FPNumber.hpp"
+#include "ShiftersEtc/Normalizer.hpp"
+#include "ShiftersEtc/LZOC.hpp"
+#include "IntAddSubCmp/IntAdder.hpp"
 
 #include <cstdlib>
 #include <iostream>
@@ -52,6 +56,7 @@ namespace flopoco{
 
 		ostringstream name;
 	
+		THROWERROR("Sorry, this operator is not yet ported")
 		if ((MSBI < LSBI)){
 			cerr << " Fix2FP: Input constraint LSB <= MSB not met."<<endl;
 			exit (EXIT_FAILURE);
@@ -95,7 +100,7 @@ namespace flopoco{
 	
 		vhdl << tab << declare("input",inputWidth) << " <= I;"<<endl;
 	
-		// code for the LZOCShifter part
+		// code for the Normalizer part
 	
 		if(Signed)
 			vhdl << tab << declare("signSignal")<<"<=input"<<of(MSB-1-LSB)<<";"<<endl;
@@ -110,32 +115,37 @@ namespace flopoco{
 			//code for the case when a rounding is required
 			int maximalOutputValue = (MSB-LSB)>wF+4? MSB-LSB:wF+4;
 	
-			if(Signed){	
-				lzocs = new LZOCShifterSticky(this, target,inputWidth-1 , maximalOutputValue, intlog2(inputWidth-1), 0, -1);
+			if(Signed){
+#if 0
+				lzocs = new Normalizer(this, target,inputWidth-1 , maximalOutputValue, inputWidth-1, 0, -1);
 				lzocs->changeName(getName()+"_LZOCS");
 
-				inPortMap  (lzocs, "I", "input2LZOC");
+				inPortMap  (lzocs, "X", "input2LZOC");
 				inPortMap  (lzocs,"OZb","signSignal");
 				outPortMap (lzocs, "Count","temporalExponent");
-				outPortMap (lzocs, "O","temporalFraction");
+				outPortMap (lzocs, "R","temporalFraction");
 				vhdl << instance(lzocs, "LZOC_component");
 	
 				sizeExponentValue=lzocs->getCountWidth();
+#else
+#endif
 			}else{
 		
-				lzcs = new LZOCShifterSticky(this, target, inputWidth , maximalOutputValue, intlog2(inputWidth), 0, 0);
+#if 0
+				lzcs = new Normalizer(this, target, inputWidth , maximalOutputValue, inputWidth, 0, 0);
 				lzcs->changeName(getName()+"_LZCS");
 			
-				inPortMap  (lzcs, "I", "passedInput");
+				inPortMap  (lzcs, "X", "passedInput");
 				outPortMap (lzcs, "Count","temporalExponent");
-				outPortMap (lzcs, "O","temporalFraction");
+				outPortMap (lzcs, "R","temporalFraction");
 				vhdl << instance(lzcs, "LZC_component");
 	
 				sizeExponentValue=lzcs->getCountWidth();
+#else
+#endif
 			}
 			sizeFractionPlusOne=wF+1;
 		
-			syncCycleFromSignal("temporalExponent");
 	
 			//Code for creating the exponent
 			if(Signed)
@@ -150,6 +160,7 @@ namespace flopoco{
 	
 			vhdl << tab << declare("valueExponent",wE)<<"<= not (zeroPadding4Exponent & temporalExponent );"<<endl;
 	
+#if 0
 			exponentConversion = new IntAdder(this, target,wE);
 			exponentConversion->changeName(getName()+"exponentConversion");
 			inPortMap  (exponentConversion, "X", "MSB2Signal");
@@ -157,8 +168,8 @@ namespace flopoco{
 			inPortMapCst(exponentConversion, "Cin", "'1'");
 			outPortMap (exponentConversion, "R","partialConvertedExponent");
 			vhdl << instance(exponentConversion, "exponentConversion");
-	
-			syncCycleFromSignal("partialConvertedExponent");
+#else
+#endif
 	
 			vhdl << tab << declare("biassOfOnes",wE-1)<<"<=CONV_STD_LOGIC_VECTOR("<<pow(double(2),wE)-1<<","<<wE-1<<");"<<endl;
 			vhdl << tab << declare("biassSignal",wE)<<"<='0' & biassOfOnes;"<<endl;
@@ -166,6 +177,7 @@ namespace flopoco{
 			vhdl << tab << declare("partialConvertedExponentBit",wE+1)<<"<= '0' & partialConvertedExponent;"<<endl;
 			vhdl << tab << declare("sign4OU")<<"<=partialConvertedExponent"<<of(wE-1)<<";"<<endl;
 	
+#if 0
 			exponentFinal = new IntAdder(this, target,wE+1);
 			exponentFinal->changeName(getName()+"exponentFinal");
 			inPortMap  (exponentFinal, "X", "partialConvertedExponentBit");
@@ -173,8 +185,9 @@ namespace flopoco{
 			inPortMapCst(exponentFinal, "Cin", "'0'");
 			outPortMap (exponentFinal, "R","convertedExponentBit");
 			vhdl << instance(exponentFinal, "exponentFinal");
+#else
+#endif
 	
-			syncCycleFromSignal("convertedExponentBit");
 	
 			vhdl << tab << declare("convertedExponent",wE)<<"<= convertedExponentBit"<<range(wE-1,0)<<";"<<endl;
 	
@@ -183,11 +196,11 @@ namespace flopoco{
 	
 			//code for verifing if the number is zero
 	
-			setCycleFromSignal("passedInput");
 	
 			if(Signed){
 				vhdl << tab << declare("minusOne4ZD",MSB -LSB)<<"<=CONV_STD_LOGIC_VECTOR("<<-1<<","<<MSB-LSB<<");"<<endl;
 	
+#if 0
 				zeroD = new IntAdder(this, target, MSB-LSB );
 				zeroD->changeName(getName()+"zeroD");
 				inPortMap  (zeroD, "X", "passedInput");
@@ -196,13 +209,15 @@ namespace flopoco{
 				outPortMap (zeroD, "R","zeroDS");
 				vhdl << instance(zeroD, "zeroD");
 	
-				syncCycleFromSignal("zeroDS");
+#else
+#endif
 	
 				vhdl << tab << declare("zeroInput")<<"<= zeroDS"<<of(MSB-LSB-1)<<" and not(signSignal);"<<endl;
 			}else{
 
 				vhdl << tab << declare("minusOne4ZD",MSB -LSB+1)<<"<=CONV_STD_LOGIC_VECTOR("<<-1<<","<<MSB-LSB+1<<");"<<endl;
 				vhdl << tab << declare("passedInputBit",MSB-LSB+1)<<"<= '0' & passedInput;"<<endl;
+#if 0
 				zeroD = new IntAdder(this, target, MSB-LSB +1);
 				zeroD->changeName(getName()+"zeroD");
 				inPortMap  (zeroD, "X", "passedInputBit");
@@ -210,15 +225,14 @@ namespace flopoco{
 				inPortMapCst(zeroD, "Cin", "'0'");
 				outPortMap (zeroD, "R","zeroDS");
 				vhdl << instance(zeroD, "zeroD");
-	
-				setCycleFromSignal("zeroDS");
+#else
+#endif
+
 	
 				vhdl << tab << declare("zeroInput")<<"<= zeroDS"<<of(MSB-LSB)<<" and not (signSignal);"<<endl;
 			}
 
 			//code for the Convertion of the fraction
-			setCycleFromSignal("temporalFraction");
-	
 			if(Signed){
 	
 				vhdl << tab << declare("sign2vector",maximalOutputValue)<<"<=(others => signSignal);"<<endl;
@@ -228,6 +242,7 @@ namespace flopoco{
 				vhdl << tab << declare("tempAddSign",maximalOutputValue+1)<<"<=tempPaddingAddSign & signSignal;"<<endl;
 
 				//Integer adder for obtaining the fraction value
+#if 0
 				fractionConvert = new IntAdder(this, target,maximalOutputValue+1);
 				fractionConvert->changeName(getName()+"_fractionConvert");
 				inPortMap  (fractionConvert, "X", "tempConvert0");
@@ -235,8 +250,8 @@ namespace flopoco{
 				inPortMapCst(fractionConvert, "Cin", "'0'");
 				outPortMap (fractionConvert, "R","tempFractionResult");
 				vhdl << instance(fractionConvert, "fractionConverter");
-	
-				syncCycleFromSignal("tempFractionResult");
+#else
+#endif
 			}else{
 				vhdl << tab << declare("tempFractionResult",maximalOutputValue+1)<<"<= '0' & temporalFraction;"<<endl;
 			}
@@ -253,7 +268,7 @@ namespace flopoco{
 	
 			int sizeOfRemainder=maximalOutputValue-sizeFractionPlusOne-1;
 	
-			setCycleFromSignal("tempFractionResult");
+#if 0
 			vhdl << tab << declare("minusOne",sizeOfRemainder)<<"<=CONV_STD_LOGIC_VECTOR("<<-1<<","<<sizeOfRemainder<<");"<<endl;
 			vhdl << tab << declare("fractionRemainder",sizeOfRemainder)<<"<= tempFractionResult"<<range(sizeOfRemainder-1,0)<<";"<<endl;
 			oneSubstracter = new IntAdder(this, target,sizeOfRemainder);
@@ -263,15 +278,14 @@ namespace flopoco{
 			inPortMapCst(oneSubstracter, "Cin", "'0'");
 			outPortMap (oneSubstracter, "R","zeroFractionResult");
 			vhdl << instance(oneSubstracter, "oneSubstracter");
+#else
+#endif
 	
-			syncCycleFromSignal("zeroFractionResult");
 	
 			vhdl << tab << declare("zeroRemainder")<<"<= not( not (tempFractionResult"<<of(sizeOfRemainder-1)<<") and zeroFractionResult"<<of(sizeOfRemainder-1)<<");"<<endl;
 	
 			// signals for Muxes
 	
-			if(inputWidth>32&&getTarget()->frequencyMHz()>=250)
-				nextCycle();
 	
 			//selection of mux 3
 			vhdl << tab << declare("outputOfMux3")<<"<=lastBitOfFraction;"<<endl;
@@ -286,7 +300,7 @@ namespace flopoco{
 			vhdl << tab << declare("testR",wE+wF+1)<<"<= possibleCorrector4Rounding;"<<endl;
 			vhdl << tab << declare("testM")<<"<= outputOfMux1;"<<endl;
 	
-	
+#if 0	
 			roundingAdder = new IntAdder(this, target,wF+wE+1);
 			roundingAdder->changeName(getName()+"roundingAdder");
 			inPortMap  (roundingAdder, "X", "concatenationForRounding");
@@ -294,8 +308,8 @@ namespace flopoco{
 			inPortMap  (roundingAdder, "Cin", "outputOfMux1");
 			outPortMap (roundingAdder, "R","roundedResult");
 			vhdl << instance(roundingAdder, "roundingAdder");
-	
-			syncCycleFromSignal("roundedResult");
+#else
+#endif
 	
 	
 			vhdl << tab << declare("convertedExponentAfterRounding",wE)<<"<= roundedResult"<<range(wE+wF-1,wF)<<";"<<endl;
@@ -322,6 +336,7 @@ namespace flopoco{
 				if(Signed){
 					vhdl << tab << declare("minusOne4ZD",MSB -LSB)<<"<=CONV_STD_LOGIC_VECTOR("<<-1<<","<<MSB-LSB<<");"<<endl;
 	
+#if 0
 					zeroD = new IntAdder(this, target, MSB-LSB );
 					zeroD->changeName(getName()+"zeroD");
 					inPortMap  (zeroD, "X", "passedInput");
@@ -330,12 +345,14 @@ namespace flopoco{
 					outPortMap (zeroD, "R","zeroDS");
 					vhdl << instance(zeroD, "zeroD");
 	
-					setCycleFromSignal("zeroDS");
+#else
+#endif
 	
 					vhdl << tab << declare("zeroInput")<<"<= zeroDS"<<of(MSB-LSB-1)<<" and not (signSignal);"<<endl;
 				}else{
 					vhdl << tab << declare("minusOne4ZD",MSB -LSB+1)<<"<=CONV_STD_LOGIC_VECTOR("<<-1<<","<<MSB-LSB+1<<");"<<endl;
 					vhdl << tab << declare("passedInputBit",MSB-LSB+1)<<"<= '0' & passedInput;"<<endl;
+#if 0
 					zeroD = new IntAdder(this, target, MSB-LSB +1);
 					zeroD->changeName(getName()+"zeroD");
 					inPortMap  (zeroD, "X", "passedInputBit");
@@ -344,41 +361,44 @@ namespace flopoco{
 					outPortMap (zeroD, "R","zeroDS");
 					vhdl << instance(zeroD, "zeroD");
 	
-					setCycleFromSignal("zeroDS");
+#else
+#endif
 	
 					vhdl << tab << declare("zeroInput")<<"<= zeroDS"<<of(MSB-LSB)<<" and not (signSignal);"<<endl;
 				}
 
 				//code for the leading zeros/ones
-				setCycleFromSignal("input2LZOC");
 	
 				if(Signed){
-					lzocs		= new LZOCShifterSticky(this, target,inputWidth-1 , maximalOutputValue, intlog2(inputWidth-1), 0, -1);
+#if 0
+					lzocs		= new Normalizer(this, target,inputWidth-1 , maximalOutputValue, inputWidth-1, 0, -1);
 					lzocs->changeName(getName()+"_LZCS");
-					inPortMap  (lzocs, "I", "input2LZOC");
+					inPortMap  (lzocs, "X", "input2LZOC");
 					inPortMap	(lzocs,"OZb","signSignal");
 					outPortMap (lzocs, "Count","temporalExponent");
-					outPortMap (lzocs, "O","temporalFraction");
+					outPortMap (lzocs, "R","temporalFraction");
 					vhdl << instance(lzocs, "LZOC_component");
-	
 					sizeExponentValue=lzocs->getCountWidth();
-				}else{
-					lzcs = new LZOCShifterSticky(this, target, inputWidth , maximalOutputValue, intlog2(inputWidth), 0, 0);
-					lzcs->changeName(getName()+"_LZCS");
-					inPortMap  (lzcs, "I", "passedInput");
-					outPortMap (lzcs, "Count","temporalExponent");
-					outPortMap (lzcs, "O","temporalFraction");
-					vhdl << instance(lzcs, "LZC_component");
+#else
+#endif
 	
+				}else{
+#if 0
+					lzcs = new Normalizer(this, target, inputWidth , maximalOutputValue, inputWidth, 0, 0);
+					lzcs->changeName(getName()+"_LZCS");
+					inPortMap  (lzcs, "X", "passedInput");
+					outPortMap (lzcs, "Count","temporalExponent");
+					outPortMap (lzcs, "R","temporalFraction");
+					vhdl << instance(lzcs, "LZC_component");
 					sizeExponentValue=lzcs->getCountWidth();
+#else
+#endif
+	
 				}	
 				sizeFractionPlusOne=wF+1;
 	
-				syncCycleFromSignal("temporalExponent");
 
 				//code for the fraction
-				setCycleFromSignal("temporalFraction");
-	
 				int sizeFractionPlusOne=wF+1;
 
 				if(Signed){
@@ -391,7 +411,7 @@ namespace flopoco{
 					vhdl << tab << declare("tempConvert0",sizeFractionPlusOne+1)<<"<= '0' & tempConvert;"<<endl;
 	
 					//Integer adder for obtaining the fraction value
-	
+#if 0
 					fractionConvert = new IntAdder(this, target,sizeFractionPlusOne+1);
 					fractionConvert->changeName(getName()+"_fractionConvert");
 					inPortMap  (fractionConvert, "X", "tempConvert0");
@@ -400,7 +420,8 @@ namespace flopoco{
 					outPortMap (fractionConvert, "R","tempFractionResult");
 					vhdl << instance(fractionConvert, "fractionConverter");
 	
-					syncCycleFromSignal("tempFractionResult");
+#else
+#endif
 				}else{
 					vhdl << tab << declare("tempFractionResult",maximalOutputValue+1)<<"<= '0' & temporalFraction;"<<endl;
 				}
@@ -409,7 +430,6 @@ namespace flopoco{
 				vhdl << tab << declare("convertedFraction",wF)<<"<=tempFractionResult"<<range(wF-1,0)<<";"<<endl;
 	
 				//code for creating the exponent
-				setCycleFromSignal("temporalExponent");
 				if(Signed)
 					vhdl << tab << declare("MSB2Signal",wE,true)<<"<= CONV_STD_LOGIC_VECTOR("<<MSB-2<<","<<wE<<");"<<endl;
 				else
@@ -422,6 +442,7 @@ namespace flopoco{
 	
 				vhdl << tab << declare("valueExponent",wE,true)<<"<= not(zeroPadding4Exponent & temporalExponent);"<<endl;
 	
+#if 0
 				exponentConversion = new IntAdder(this, target,wE);
 				exponentConversion->changeName(getName()+"exponentConversion");
 				inPortMap  (exponentConversion, "X", "MSB2Signal");
@@ -429,8 +450,9 @@ namespace flopoco{
 				inPortMapCst(exponentConversion, "Cin", "'1'");
 				outPortMap (exponentConversion, "R","partialConvertedExponent");
 				vhdl << instance(exponentConversion, "exponentConversion");
-	
-				syncCycleFromSignal("partialConvertedExponent");
+#else
+#endif
+
 	
 				vhdl << tab << declare("biassOfOnes",wE-1)<<"<=CONV_STD_LOGIC_VECTOR("<<pow(double(2),wE)-1<<","<<wE-1<<");"<<endl;
 				vhdl << tab << declare("biassSignal",wE)<<"<='0' & biassOfOnes;"<<endl;
@@ -439,6 +461,7 @@ namespace flopoco{
 				vhdl << tab << declare("partialConvertedExponentBit",wE+1)<<"<= '0' & partialConvertedExponent;"<<endl;
 				vhdl << tab << declare("sign4OU")<<"<= partialConvertedExponent"<<of(wE-1)<<";"<<endl;
 	
+#if 0
 				exponentFinal = new IntAdder(this, target,wE+1);
 				exponentFinal->changeName(getName()+"exponentFinal");
 				inPortMap  (exponentFinal, "X", "partialConvertedExponentBit");
@@ -446,8 +469,8 @@ namespace flopoco{
 				inPortMapCst(exponentFinal, "Cin", "'0'");
 				outPortMap (exponentFinal, "R","convertedExponentBit");
 				vhdl << instance(exponentFinal, "exponentFinal");
-	
-				syncCycleFromSignal("convertedExponentBit");
+#else
+#endif
 	
 				vhdl << tab << declare("OUflowSignal1",2)<<"<= convertedExponentBit"<<range(wE,wE-1)<<";"<<endl;
 	
@@ -455,13 +478,12 @@ namespace flopoco{
 	
 				vhdl << tab << declare("overflowSignal1")<<"<= '1' when (sign4OU='0' and OUflowSignal1=\"10\" ) else '0';"<<endl;
 	
-				syncCycleFromSignal("correctingExponent");
-	
 				vhdl << tab << declare("zeroInput4Exponent",wE+1)<<"<=(others=>'0');"<<endl;
 				vhdl << tab << declare("possibleConvertedExponent2",wE)<<"<= convertedExponentBit"<<range(wE-1,0)<<";"<<endl;
 				vhdl << tab << declare("possibleConvertedExponent20",wE+1)<<"<= '0' & possibleConvertedExponent2;"<<endl;
 				vhdl << tab << declare("sign4OU2")<<"<= possibleConvertedExponent2"<<of(wE-1)<<";"<<endl;
 	
+#if 0
 				expCorrect = new IntAdder(this, target,wE+1);
 				expCorrect->changeName(getName()+"expCorrect");
 				inPortMap  (expCorrect, "X",   "possibleConvertedExponent20");
@@ -469,8 +491,8 @@ namespace flopoco{
 				inPortMap  (expCorrect, "Cin", "correctingExponent");
 				outPortMap (expCorrect, "R",   "finalConvertedExponent");
 				vhdl << instance(expCorrect, "expCorrect");
-	
-				syncCycleFromSignal("finalConvertedExponent");
+#else
+#endif
 	
 				vhdl << tab << declare("convertedExponent",wE)<<"<= finalConvertedExponent"<<range(wE-1,0)<<";"<<endl;
 				vhdl << tab << declare("overflowSignal2")<<"<= '1' when (sign4OU2='0' and finalConvertedExponent"<<range(wE,wE-1)<<" = \"10\" ) else '0' ;"<<endl;

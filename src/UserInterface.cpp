@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 #include <iostream>
 #include <iomanip>
+#include <regex>
 
 // TODO check the hard mult threshold
 
@@ -44,11 +45,13 @@ namespace flopoco
 	string   UserInterface::tiling;
 	string UserInterface::ilpSolver;
 	int    UserInterface::ilpTimeout;
+	bool   UserInterface::allRegistersWithAsyncReset;
+#if 0 // Shall we resurrect all this some day?
 	int    UserInterface::resourceEstimation;
 	bool   UserInterface::floorplanning;
 	bool   UserInterface::reDebug;
 	bool   UserInterface::flpDebug;
-
+#endif
 	string UserInterface::depGraphDrawing="";
 
 
@@ -61,7 +64,7 @@ namespace flopoco
 		v.push_back(make_pair("Posit", "Posit operators"));
 		v.push_back(make_pair("ConstMultDiv", "Multipliers and dividers by constants"));
 		//		v.push_back(make_pair("CompositeFloatingPoint", "Composite floating-point operators"));
-		//		v.push_back(make_pair("CompositeFixPoint", "Composite fixed-point operators"));
+		v.push_back(make_pair("CompositeFixPoint", "Composite fixed-point operators"));
 		v.push_back(make_pair("ElementaryFunctions", "Elementary functions in fixed- or floating-Point"));
 		v.push_back(make_pair("FunctionApproximation", "Arbitrary function approximators"));
 		//		v.push_back(make_pair("ComplexFixPoint", "Complex arithmetic in fixed point" ));
@@ -205,7 +208,8 @@ namespace flopoco
 		parsePositiveInt(args, "ilpTimeout", &ilpTimeout, true); // sticky option
 		parseString(args, "compression", &compression, true);
 		parseString(args, "tiling", &tiling, true);
-		parseBoolean(args, "floorplanning", &floorplanning, true);
+		parseBoolean(args, "allRegistersWithAsyncReset", &allRegistersWithAsyncReset, true);
+		//		parseBoolean(args, "floorplanning", &floorplanning, true);
 		//		parseBoolean(args, "reDebug", &reDebug, true );
 		parseString(args, "dependencyGraph", &depGraphDrawing, true);
 		string tableCostModel;
@@ -365,9 +369,10 @@ namespace flopoco
 		useHardMult=true;
 		registerLargeTables=false;
 		tableCompression=false;
+		allRegistersWithAsyncReset=false;
 		unusedHardMultThreshold=0.7;
 		compression = "heuristicMaxEff";
-		tiling = "heuristicBasicTiling";
+		tiling = "heuristicBasicTiling"; //should be heuristicBeamSearchTiling in future
 
 		ilpSolver = "Gurobi";
 		ilpTimeout = 0; //timeout disabled
@@ -387,6 +392,11 @@ namespace flopoco
 		}
 		if(argc==2 && string(argv[1])=="BuildHTMLDoc") {
 			buildHTMLDoc();
+			exit(EXIT_SUCCESS);
+		}
+		if(argc==2 && string(argv[1])=="BuildJSON") {
+			buildOperatorsJSON();
+			buildOperatorListJSON();
 			exit(EXIT_SUCCESS);
 		}
 		if(argc==2 && string(argv[1])=="BuildAutocomplete") {
@@ -439,6 +449,10 @@ namespace flopoco
 				throw s.str();
 			}
 
+			if(operatorSpecs.size()==0) {
+				cerr << "No operator specified" << endl << getFullDoc();
+				exit(EXIT_SUCCESS);
+			}
 			for (auto opParams: operatorSpecs) {
 				string opName = opParams[0];  // operator Name
 				// remove the generic options
@@ -802,11 +816,12 @@ namespace flopoco
 						s << ">: cost model for table storage" << COLOR_RED_NORMAL << "(sticky option)" << COLOR_NORMAL<<endl;
 		s << "  " << COLOR_BOLD << "registerLargeTables" << COLOR_NORMAL << "=<0|1>:    force registering of large ROMs to force the use of blockRAMs (default false)" << COLOR_RED_NORMAL << "(sticky option)" << COLOR_NORMAL<<endl;
 		s << "  " << COLOR_BOLD << "useTargetOptimizations" << COLOR_NORMAL << "=<0|1>: use target specific optimizations (e.g., using primitives) " << COLOR_RED_NORMAL << "(sticky option)" << COLOR_NORMAL<<endl;
+		s << "  " << COLOR_BOLD << "allRegistersWithAsyncReset" << COLOR_NORMAL << "=<0|1>: if set, all the pipeline registers have an asynchronous reset signal" << COLOR_RED_NORMAL << "(sticky option)" << COLOR_NORMAL<<endl;
 		s << "  " << COLOR_BOLD << "ilpSolver" << COLOR_NORMAL << "=<string>:           override ILP solver for operators optimized by ILP, has to match a solver name known by the ScaLP library" << COLOR_RED_NORMAL << "(sticky option)" << COLOR_NORMAL<<endl;
 		s << "  " << COLOR_BOLD << "ilpTimeout" << COLOR_NORMAL << "=<int>:             sets the timeout in seconds for the ILP solver for operators optimized by ILP (default=3600)" << COLOR_RED_NORMAL << "(sticky option)" << COLOR_NORMAL<<endl;
 		s << "  " << COLOR_BOLD << "compression" << COLOR_NORMAL << "=<heuristicMaxEff,heuristicPA,heuristicFirstFit,optimal,optimalMinStages>:        compression method (default=heuristicMaxEff)" << COLOR_RED_NORMAL << "(sticky option)" << COLOR_NORMAL<<endl;
-		s << "  " << COLOR_BOLD << "tiling" << COLOR_NORMAL << "=<heuristicBasicTiling,optimal,heuristicGreedyTiling,heuristicXGreedyTiling,heuristicBeamSearchTiling>:        tiling method (default=heuristicBasicTiling)" << COLOR_RED_NORMAL << "(sticky option)" << COLOR_NORMAL<<endl;
-		s << "  " << COLOR_BOLD << "hardMultThreshold" << COLOR_NORMAL << "=<float>: unused hard mult threshold (O..1, default 0.7) " << COLOR_RED_NORMAL << "(sticky option)" << COLOR_NORMAL<<endl;
+		s << "  " << COLOR_BOLD << "tiling" << COLOR_NORMAL << "=<heuristicBasicTiling,optimal,heuristicGreedyTiling,heuristicXGreedyTiling,heuristicBeamSearchTiling>:        tiling method (default=heuristicBeamSearchTiling)" << COLOR_RED_NORMAL << "(sticky option)" << COLOR_NORMAL<<endl;
+        s << "  " << COLOR_BOLD << "hardMultThreshold" << COLOR_NORMAL << "=<float>: unused hard mult threshold (O..1, default 0.7) " << COLOR_RED_NORMAL << "(sticky option)" << COLOR_NORMAL<<endl;
 		s << "  " << COLOR_BOLD << "verbose" << COLOR_NORMAL << "=<int>:        verbosity level (0-4, default=1)" << COLOR_RED_NORMAL << "(sticky option)" << COLOR_NORMAL<<endl;
 		s << "  " << COLOR_BOLD << "generateFigures" << COLOR_NORMAL << "=<0|1>:generate graphics in SVG or LaTeX for some operators (default off) " << COLOR_RED_NORMAL << "(sticky option)" << COLOR_NORMAL << endl;
 		s << "  " << COLOR_BOLD << "dependencyGraph" << COLOR_NORMAL << "=<no|compact|full>: generate data dependence drawing of the Operator (default no) " << COLOR_RED_NORMAL << COLOR_NORMAL<<endl;
@@ -859,6 +874,95 @@ namespace flopoco
 		}
 		file << "</body>" << endl;
 		file << "</html>" << endl;
+		file.close();
+	}
+
+	void UserInterface::buildOperatorsJSON(){
+		ifstream versionfile;
+		versionfile.open("VERSION", ios::in);
+		string version;
+		versionfile >> version;
+		versionfile.close();
+		ofstream file;
+		file.open("operators_" + version + ".json", ios::out);
+		file << "{" << endl;
+
+		bool firstOperator=true;
+		// The following is an inefficient double loop to avoid duplicating the data structure: nobody needs efficiency here
+		// It is used to keep the order identical to the UI
+		for(auto catIt: UserInterface::categories) {
+			string cat =  catIt.first;
+
+			for(auto it: UserInterface::factoryList) {
+				OperatorFactoryPtr f =  it.second;
+				if(cat == f->m_category)
+				{
+					if(!firstOperator)
+						file << "," << endl;
+					else
+						firstOperator = false;
+
+					file << "\t\"" << f->name() << "\" : {" << endl;
+					file << f->getJSONDescription();
+
+					file << "\t}";
+				}
+			}
+		}
+		file << endl << "}" << endl;
+		file.close();
+	}
+
+	void UserInterface::buildOperatorListJSON(){
+		ifstream versionfile;
+		versionfile.open("VERSION", ios::in);
+		string version;
+		versionfile >> version;
+		versionfile.close();
+		ofstream file;
+		file.open("operator_categories_" + version + ".json", ios::out);
+		file << "{" << endl;
+
+		file << "\t\"sectionsOrdered\": [";
+		bool firstCategory=true;
+		for(auto catIt: UserInterface::categories) {
+			string catDesc =  catIt.second;
+			if(!firstCategory)
+				file << ", ";
+			else
+				firstCategory = false;
+
+			file << "\"" << catDesc << "\"";
+		}
+		file << "]," << endl;
+
+		// The following is an inefficient double loop to avoid duplicating the data structure: nobody needs efficiency here
+		firstCategory=true;
+		for(auto catIt: UserInterface::categories) {
+			string cat =  catIt.first;
+			string catDesc =  catIt.second;
+
+			if(!firstCategory)
+				file << "," << endl;
+			else
+				firstCategory = false;
+
+			file << "\t\"" << catDesc << "\": [";
+			bool firstOperator=true;
+			for(auto it: UserInterface::factoryList) {
+				OperatorFactoryPtr f =  it.second;
+				if(cat == f->m_category)
+				{
+					if(!firstOperator)
+						file << ", ";
+					else
+						firstOperator = false;
+					file << "\"" << f->name() << "\"";
+				}
+			}
+			file << "]";
+		}
+		file << endl << "}" << endl;
 		file.close();
 	}
 
@@ -1178,8 +1282,8 @@ namespace flopoco
 		ostringstream s;
 		s << "<dl>"<<endl;
 		s << "<dt class=\"operatorname\">" <<  name() << "</dt>"<< endl
-			<< "<dd class=\"operatordescription\">"<< m_description << "</dd>" << endl
-			<< "<dd><em>Parameters:</em> <dl>" << endl;
+		  << "<dd class=\"operatordescription\">"<< m_description << "</dd>" << endl
+		  << "<dd><em>Parameters:</em> <dl>" << endl;
 		for (unsigned i=0; i<m_paramNames.size(); i++) {
 			string pname = m_paramNames[i];
 			if("" != m_paramDefault[pname])
@@ -1197,6 +1301,33 @@ namespace flopoco
 		if("" != m_extraHTMLDoc)
 			s << "<dd>" << m_extraHTMLDoc << "</dd>"<<endl;
 		s << "</dl>"<<endl;
+		return s.str();
+	}
+
+	string OperatorFactory::getJSONDescription(){
+		ostringstream s;
+
+		s << "\t\t" << "\"descr\": \"" << std::regex_replace(m_description ,std::regex("\n+"),"\\n")<< "\"," << endl;
+
+		s << "\t\t" << "\"params\": [{" << endl;
+		bool firstParam=true;
+		for (unsigned i=0; i<m_paramNames.size(); i++)
+		{
+			string pname = m_paramNames[i];
+
+			if(!firstParam)
+				s << "\t\t}, {" << endl;
+			else
+				firstParam=false;
+
+			s << "\t\t\t" << "\"" << pname << "\": {" << endl;
+			s << "\t\t\t\t" << "\"descr\": \"" << std::regex_replace(m_paramDoc[pname],std::regex("\n+"),"\\n") << "\"," << endl;
+			s << "\t\t\t\t" << "\"type\": \"" << m_paramType[pname] << "\"," << endl;
+			s << "\t\t\t\t" << "\"optional\": \"" << ((m_paramDefault[pname] != "") ? "true" : "false") << "\"," << endl;
+			s << "\t\t\t\t" << "\"default\": \"" << m_paramDefault[pname] << "\"" << endl;
+			s << "\t\t\t" << "}" << endl;
+		}
+		s << "\t\t" << "}]" << endl;
 		return s.str();
 	}
 

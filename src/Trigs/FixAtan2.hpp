@@ -35,7 +35,7 @@ namespace flopoco {
 		 * 									3 = based on rotating using a table (for sine and cosine) and then using the Taylor series for (1/x)
 		 **/
 
-		FixAtan2(Target* target, int wIn, int wOut, map<string, double> inputDelays = emptyDelayMap);
+		FixAtan2(OperatorPtr parentOp, Target* target, int wIn, int wOut);
 
 
 		/**

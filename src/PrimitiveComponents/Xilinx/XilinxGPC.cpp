@@ -283,7 +283,10 @@ XilinxGPC::XilinxGPC(Operator* parentOp, Target * target, vector<int> heights) :
 
     vhdl << cur_cc->primitiveInstance("cc") << endl;
 
-	vhdl << tab << "R <= cc_co(3) & cc_o;" << endl;
+    declare( 4 * target->carryPropagateDelay()+target->logicDelay(6) + 9e-10,"result", 4+1);    //TODO: Check timing information
+    vhdl << tab << "result <= cc_co(3) & cc_o;" << endl;
+
+	vhdl << tab << "R <= result;" << endl;
 }
 
 OperatorPtr XilinxGPC::parseArguments(OperatorPtr parentOp, Target *target, vector<string> &args)

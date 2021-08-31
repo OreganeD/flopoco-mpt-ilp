@@ -1,7 +1,7 @@
 #include <sstream>
 
 #include "Posit2FP.hpp"
-#include "ShiftersEtc/LZOCShifterSticky.hpp"
+#include "ShiftersEtc/Normalizer.hpp"
 #include "TestBenches/PositNumber.hpp"
 #include "TestBenches/IEEENumber.hpp"
 
@@ -23,7 +23,7 @@ namespace flopoco{
 		ostringstream name;
 		name << "Posit2FP_" << widthI << "_" << esI ;
 		setNameWithFreqAndUID(name.str());
-		setCopyrightString("test");
+    setCopyrightString("Oregane Desrentes 2019");
 
 		if (widthI < 3) {
 			throw std::string("Posit2FP Constructor : widthI is too small, should be greater than two");
@@ -56,16 +56,16 @@ namespace flopoco{
 		vhdl << declare(0., "encodingTail", widthI - 2, true) << " <= absoluteEncoding" <<
 		   range(widthI - 3, 0) << ";" << endl;	
 		ostringstream param, inmap, outmap;
-		int wCount = intlog2(widthI - 1);
-		param << "wIn=" << widthI - 2;
-		param << " wOut=" << widthI - 2;
-		param << " wCount=" << wCount; 
+		int wCount = intlog2(widthI - 1); 
+		param << "wX=" << widthI - 2;
+		param << " wR=" << widthI - 2;
+		param << " maxShift=" << widthI - 1; 
 
-		inmap << "I=>encodingTail,OZb=>exponentSign";
+		inmap << "X=>encodingTail,OZb=>exponentSign";
 
-		outmap << "Count=>lzCount,O=>shiftedResult";
+		outmap << "Count=>lzCount,R=>shiftedResult";
 
-		newInstance("LZOCShifterSticky", "lzoc", param.str(), inmap.str(), outmap.str());
+		newInstance("Normalizer", "lzoc", param.str(), inmap.str(), outmap.str());
 		
 		vhdl << "with exponentSign select " << 
 			declare(target->logicDelay(wCount), "rangeExp", wCount + 1, true) <<

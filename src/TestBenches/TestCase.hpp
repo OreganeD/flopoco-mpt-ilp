@@ -102,6 +102,20 @@ namespace flopoco{
 		 */
 		void addExpectedOutput(string s, mpz_class v);
 
+        /**
+         * returns all mpz associated to an output as a vector of mpz_class (added before by addExpectedOutput())
+         * @param s The name of the output
+         */
+        vector<mpz_class> getExpectedOutputValues(string s);
+
+        /**
+		 * returns the mpz associated to an output (added before by addExpectedOutput())
+         * in case that there are more than one output values associated, only the first one will be returned
+		 * @param s The name of the output
+		 */
+        mpz_class getExpectedOutputValue(string s);
+
+
 		/**
 		 * Adds a comment to the output VHDL. "--" are automatically prepended.
 		 * @param c Comment to add.

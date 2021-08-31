@@ -31,6 +31,13 @@
 #include "FPAddDualPath.hpp"
 #include "FPAdd.hpp"
 
+#include <ShiftersEtc/LZOC.hpp>
+#include <ShiftersEtc/Shifters.hpp>
+#include <ShiftersEtc/Normalizer.hpp>
+#include <IntAddSubCmp/IntAdder.hpp>
+#include <IntAddSubCmp/IntDualAddSub.hpp>
+#include <TestBenches/FPNumber.hpp>
+
 using namespace std;
 
 namespace flopoco{
@@ -204,13 +211,13 @@ namespace flopoco{
 
 			// LZC + Shifting. The number of leading zeros are returned together with the shifted input
 			REPORT(DEBUG, "Building close path LZC + shifter");
-
-			lzocs = (LZOCShifterSticky *) newInstance("LZOCShifterSticky",
-													  getName() + "_LZCShifter",
-													  "countType=0" + join(" wIn=", wF + 2) + join(" wOut=", wF + 2) +
-													  join(" wCount=", intlog2(wF + 2)),
-													  "I=>fracRClose1",
-													  "Count=>nZerosNew,O=>shiftedFrac"
+			int countWidth = intlog2(wF + 2);
+			newInstance("Normalizer",
+									"norm",
+									"countType=0" + join(" wX=", wF+2) + join(" wR=", wF+2) +
+									join(" maxShift=", wF+2),
+									"X=>fracRClose1",
+									"Count=>nZerosNew,R=>shiftedFrac"
 			);
 			// NORMALIZATION
 
@@ -220,9 +227,9 @@ namespace flopoco{
 			vhdl << tab << declare("roundClose0") << " <= shiftedFrac(0) and shiftedFrac(1);" << endl;
 			// Is the result zero?
 			vhdl << tab << declare("resultCloseIsZero0") << " <= '1' when nZerosNew"
-				 << " = CONV_STD_LOGIC_VECTOR(" << (1 << lzocs->getCountWidth()) -
-												   1 // Should be wF+2 but this is a bug of LZOCShifterSticky: for all zeroes it returns this value
-				 << ", " << lzocs->getCountWidth()
+				 << " = CONV_STD_LOGIC_VECTOR(" << (1 << countWidth) -
+												   1 // Should be wF+2 but this is a bug of Normalizer: for all zeroes it returns this value
+				 << ", " << countWidth
 				 << ") else '0';" << endl;
 
 			// add two bits in order to absorb exceptions:
@@ -230,7 +237,7 @@ namespace flopoco{
 			// the first 0 will become a 1 in case of underflow (negative biased exponent)
 			vhdl << tab << declare("exponentResultClose", wE + 2) << " <= (\"00\" & "
 				 << "newX(" << wE + wF - 1 << " downto " << wF << ")) "
-				 << "- (CONV_STD_LOGIC_VECTOR(0," << wE - lzocs->getCountWidth() + 2 << ") & nZerosNew);"
+				 << "- (CONV_STD_LOGIC_VECTOR(0," << wE - countWidth + 2 << ") & nZerosNew);"
 				 << endl;
 
 
@@ -271,7 +278,7 @@ With combined shifter sticky (despite a few useless gates)
 #if 0 // full shifter, then sticky
 		newInstance("Shifter",
 								"RightShifterComponent",
-								"wIn=" + to_string(wF+1) + " maxShift=" + to_string(wF+3) + " dir=1",
+								"wX=" + to_string(wF+1) + " maxShift=" + to_string(wF+3) + " dir=1",
 								"X=>fracNewY,S=>shiftVal",
 								"R=>shiftedFracY");
 		
@@ -289,7 +296,7 @@ With combined shifter sticky (despite a few useless gates)
 #else //combined shifter+Sticky
 		newInstance("Shifter",
 								"RightShifterComponent",
-								"wIn=" + to_string(wF+1) + " wOut=" + to_string(wF+3) + " maxShift=" + to_string(wF+3) + " dir=1 computeSticky=1",
+								"wX=" + to_string(wF+1) + " wR=" + to_string(wF+3) + " maxShift=" + to_string(wF+3) + " dir=1 computeSticky=1",
 								"X=>fracNewY,S=>shiftVal",
 								"R=>shiftedFracY, Sticky=>sticky");
 		

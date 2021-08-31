@@ -25,14 +25,14 @@ TilingStrategyBasicTiling::TilingStrategyBasicTiling(
 		occupation_threshold_{occupation_threshold},
 		max_pref_mult_{maxPrefMult}
 	{
-		truncated = ((unsigned)wOut < IntMultiplier::prodsize(wY, wX));
+		truncated = ((unsigned)wOut < IntMultiplier::prodsize(wY, wX, signedIO_, signedIO_));
 	}
 
 	int TilingStrategyBasicTiling::shrinkBox(
 			int& xright,
-			int& ytop, 
-			int& xdim, 
-			int& ydim, 
+			int& ytop,
+			int& xdim,
+			int& ydim,
 			int offset)
 	{
 		// Come into the frame
@@ -129,7 +129,7 @@ TilingStrategyBasicTiling::TilingStrategyBasicTiling(
 			int curDeltaX,
 			int curDeltaY,
 			int offset
-		) 
+		)
 	{
 		auto& bmc = baseMultiplierCollection->getBaseMultiplier(small_tile_mult_);
 		bool canOverflowLeft = not truncated and not signedIO and (curX + curDeltaX) >= wX;
@@ -170,7 +170,7 @@ TilingStrategyBasicTiling::TilingStrategyBasicTiling(
 				yanchor = ybottom - yMult + 1;
 				} else {
 					xanchor = curX;
-					yanchor = curY;	
+					yanchor = curY;
 				}
 				xendmultbox = xanchor + xMult - 1;
 				yendmultbox = yanchor + yMult - 1;
@@ -187,7 +187,7 @@ TilingStrategyBasicTiling::TilingStrategyBasicTiling(
 				// Test if multiplier does not overflow on already handled data
 				if (((yanchor < curY) && !canOverflowTop) ||
 						((yendmultbox > ybottom) && !canOverflowBottom) ||
-						((xanchor < curX) && !canOverflowRight) || 
+						((xanchor < curX) && !canOverflowRight) ||
 						((xendmultbox > xleft) && !canOverflowLeft)) {
 					continue;
 				}
@@ -198,10 +198,10 @@ TilingStrategyBasicTiling::TilingStrategyBasicTiling(
 				copyXMult = xMult;
 				copyYMult = yMult;
 				int effectiveArea = shrinkBox(
-						copyxanchor, 
-						copyyanchor, 
-						copyXMult, 
-						copyYMult, 
+						copyxanchor,
+						copyyanchor,
+						copyXMult,
+						copyYMult,
 						offset
 						);
 				if (effectiveArea == xMult * yMult && effectiveArea > bestArea) {
@@ -219,7 +219,7 @@ TilingStrategyBasicTiling::TilingStrategyBasicTiling(
 
 		bool signedX = (xendmultbox >= wX - 1) and signedIO;
 		bool signedY = (yendmultbox >= wY - 1) and signedIO;
-		
+
 		if (bestYMult < curDeltaY) {
 			//We need to tile a subbox above or below the current multiplier
 			int xStartUpDownbox = curX;
@@ -229,22 +229,22 @@ TilingStrategyBasicTiling::TilingStrategyBasicTiling(
 				yStartUpDownbox = curY;
 				deltaYUpDownbox = bestYAnchor - curY;
 			} else {
-				yStartUpDownbox = yendmultbox + 1;	
+				yStartUpDownbox = yendmultbox + 1;
 				deltaYUpDownbox = ybottom - yendmultbox;
 			}
 
 			int subboxArea = shrinkBox(
-					xStartUpDownbox, 
-					yStartUpDownbox, 
-					deltaXUpDownbox, 
-					deltaYUpDownbox, 
+					xStartUpDownbox,
+					yStartUpDownbox,
+					deltaXUpDownbox,
+					deltaYUpDownbox,
 					offset
 				);
 			if (subboxArea != 0) {
 				boxCost += tileBox(
-						xStartUpDownbox, 
-						yStartUpDownbox, 
-						deltaXUpDownbox, 
+						xStartUpDownbox,
+						yStartUpDownbox,
+						deltaXUpDownbox,
 						deltaYUpDownbox,
 						offset
 					);
@@ -259,22 +259,22 @@ TilingStrategyBasicTiling::TilingStrategyBasicTiling(
 				xStartUpDownbox = curX;
 				deltaXUpDownbox = bestXAnchor - curX;
 			} else {
-				xStartUpDownbox = xendmultbox + 1;	
+				xStartUpDownbox = xendmultbox + 1;
 				deltaXUpDownbox = xleft - xendmultbox;
 			}
 
 			int subboxArea = shrinkBox(
-					xStartUpDownbox, 
-					yStartUpDownbox, 
-					deltaXUpDownbox, 
-					deltaYUpDownbox, 
+					xStartUpDownbox,
+					yStartUpDownbox,
+					deltaXUpDownbox,
+					deltaYUpDownbox,
 					offset
 				);
 			if (subboxArea != 0) {
 				boxCost += tileBox(
-						xStartUpDownbox, 
-						yStartUpDownbox, 
-						deltaXUpDownbox, 
+						xStartUpDownbox,
+						yStartUpDownbox,
+						deltaXUpDownbox,
 						deltaYUpDownbox,
 						offset
 					);
@@ -284,14 +284,14 @@ TilingStrategyBasicTiling::TilingStrategyBasicTiling(
 		auto param = bmc.parametrize(bestXMult, bestYMult, signedX, signedY);
 		auto coord = make_pair(bestXAnchor, bestYAnchor);
 		solution.push_back(make_pair(param, coord));
-        boxCost += (float)bmc.getLUTCost(bestXAnchor, bestYAnchor, wX, wY);;
-        return boxCost;
+		boxCost += (float)bmc.getLUTCost(bestXAnchor, bestYAnchor, wX, wY, signedIO);;
+		return boxCost;
 	}
 
 	void TilingStrategyBasicTiling::solve()
 	{
-        float totalCost = 0.0f;
-		auto& bm = baseMultiplierCollection->getBaseMultiplier(prefered_multiplier_);	
+		float totalCost = 0.0f;
+		auto& bm = baseMultiplierCollection->getBaseMultiplier(prefered_multiplier_);
 		int wXmultMax = bm.getMaxWordSizeLargeInputUnsigned();
 		//TODO Signed int deltaSignedUnsigned = bm.getDeltaWidthSigned();
 		int wXmult = 1;
@@ -313,8 +313,8 @@ TilingStrategyBasicTiling::TilingStrategyBasicTiling(
 
 		if (truncated) {
 			//Perform tiling from left to right to increase the number of full
-			//multipliers	
-			int offset = IntMultiplier::prodsize(wX, wY) - wOut;
+			//multipliers
+			int offset = IntMultiplier::prodsize(wX, wY, signedIO, signedIO) - wOut;
 			int curX = wX - 1;
 			int curY = 0;
 			if (curX < offset) {
@@ -340,7 +340,7 @@ TilingStrategyBasicTiling::TilingStrategyBasicTiling(
 					int area = shrinkBox(rightX, topY, curDeltaX, curDeltaY, offset);
 					if (area == 0) { // All the box is below the line cut
 						break;
-					} 
+					}
 
 					float occupationRatio = (float (area)) /  multArea;
 					bool occupationAboveThreshold = occupationRatio >= occupation_threshold_;
@@ -348,14 +348,14 @@ TilingStrategyBasicTiling::TilingStrategyBasicTiling(
 					if (occupationAboveThreshold and hardLimitUnreached) {
 						// Emit a preferred multiplier for this block
 						auto param = bm.parametrize(
-								curDeltaX, 
-								curDeltaY, 
+								curDeltaX,
+								curDeltaY,
 								isXSigned,
 								isYSigned
 							);
 						auto coords = make_pair(rightX, topY);
 						solution.push_back(make_pair(param, coords));
-						totalCost += 0.65 * param.getOutWordSize();
+						totalCost += target->getBitHeapCompressionCostperBit() * param.getOutWordSize();
 						numUsedMults_ += 1;
 					} else {
 						//Tile the subBox with smaller multiplier;
@@ -398,7 +398,7 @@ TilingStrategyBasicTiling::TilingStrategyBasicTiling(
 					int area = shrinkBox(rightX, topY, curDeltaX, curDeltaY, 0);
 					if (area == 0) { // All the box is below the line cut
 						break;
-					} 
+					}
 
 					bool isSignedX = (rightX + curDeltaX >= wX) and signedIO;
 					bool isSignedY = (topY + curDeltaY >= wY) and signedIO;
@@ -416,7 +416,7 @@ TilingStrategyBasicTiling::TilingStrategyBasicTiling(
 							);
 						auto coord = make_pair(rightX, topY);
 						solution.push_back(make_pair(param, coord));
-						totalCost += 0.65 * param.getOutWordSize();
+						totalCost += target->getBitHeapCompressionCostperBit() * param.getOutWordSize();
 						numUsedMults_ += 1;
 					} else {
 						//Tile the subBox with smaller multiplier;
@@ -434,6 +434,6 @@ TilingStrategyBasicTiling::TilingStrategyBasicTiling(
 			}
 		}
 
-        cout << "Total cost: " << totalCost << endl;
+		cout << "Total cost: " << totalCost << endl;
 	}
 };

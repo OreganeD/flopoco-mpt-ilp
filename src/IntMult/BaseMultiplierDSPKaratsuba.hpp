@@ -44,8 +44,8 @@ namespace flopoco {
         static int getRelativeResultLSBWeight(int n, int wX, int wY) {return 0;}
         float shape_utilisation(int shape_x, int shape_y, int mult_wX, int mult_wY, bool signedIO) override;
         int getDSPCost() const final;
-        double getLUTCost(int x_anchor, int y_anchor, int wMultX, int wMultY) override;
-        int ownLUTCost(int x_anchor, int y_anchor, int wMultX, int wMultY) override;
+        double getLUTCost(int x_anchor, int y_anchor, int wMultX, int wMultY, bool signedIO) override;
+        int ownLUTCost(int x_anchor, int y_anchor, int wMultX, int wMultY, bool signedIO) override;
         bool shapeValid(const Parametrization &param, unsigned int x, unsigned int y) const override;
         bool shapeValid(int x, int y) override;
         bool isKaratsuba() const override { return true;}

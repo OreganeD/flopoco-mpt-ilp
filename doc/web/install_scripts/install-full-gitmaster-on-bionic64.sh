@@ -20,7 +20,9 @@ cd pagsuite/trunk/oscm  && mkdir build && cd build && cmake .. && make -j2 && su
 cd pagsuite/trunk/rpag  && mkdir build && cd build && cmake .. && make -j2 && sudo make install  &&  cd $BASEDIR
 
 #Finally FloPoCo itself, 
-git clone git@gitlab.inria.fr:fdupont/flopoco.git
+#git clone git@gitlab.inria.fr:fdupont/flopoco.git
+git clone https://gitlab.inria.fr/fdupont/flopoco.git
+
 cd flopoco && mkdir build && cd build && cmake -DSCALP_PREFIX_DIR="$BASEDIR/scalp/trunk/" .. && make -j2 &&  cd $BASEDIR
 
 # build the html documentation in doc/web. 

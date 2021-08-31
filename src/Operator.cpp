@@ -44,11 +44,13 @@
 #include <set>
 #include "Operator.hpp"  // Useful only for reporting. TODO split out the REPORT and THROWERROR #defines from Operator to another include.
 #include "utils.hpp"
+#if 0 // these seem to be unused
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/variate_generator.hpp>
 #include <boost/random/normal_distribution.hpp>
 #include <boost/random/uniform_int.hpp>
-
+#endif
+#include <cassert>
 
 namespace flopoco{
 
@@ -937,7 +939,7 @@ namespace flopoco{
 
 		// check the signals doesn't already exist
 		if(isSignalDeclared(name)) {
-			THROWERROR("In declareFixPoint(), signal " << name << " already exists" << endl);
+			THROWERROR("In declareFloatingPoint(), signal " << name << " already exists" << endl);
 		}
 
 		// construct the signal (lifeSpan and cycle are reset to 0 by the constructor)
@@ -957,6 +959,29 @@ namespace flopoco{
 		return name;
 	}
 
+	string Operator::declareCustom(string name, string customType, Signal::SignalType regType) {
+		return declareCustom(0.0, name, customType, regType);
+	}
+
+	string Operator::declareCustom(double criticalPathContribution, string name, string customType, Signal::SignalType regType) {
+		Signal* s;
+
+		// check the signals doesn't already exist
+		if(isSignalDeclared(name)) {
+			THROWERROR("In declareCustom(), signal " << name << " already exists" << endl);
+		}
+
+		// construct the signal (lifeSpan and cycle are reset to 0 by the constructor)
+		s = new Signal(this, name, regType, customType);
+
+		initNewSignal(s, criticalPathContribution, regType, false);
+
+		s->setIsFix(false);
+		s->setIsFP(false);
+		s->setIsIEEE(false);
+
+		return name;
+	}
 
 
 	void Operator::initNewSignal(Signal* s, double criticalPathContribution, Signal::SignalType regType, bool incompleteDeclaration)
@@ -966,6 +991,9 @@ namespace flopoco{
 		s->setCriticalPath(0.0);
 		if(UserInterface::pipelineActive_) {
 			s->setCriticalPathContribution(criticalPathContribution);
+			if(UserInterface::allRegistersWithAsyncReset) {
+				s->setResetType(Signal::asyncReset);				
+			}
 		}
 		else {
 			s->setCriticalPathContribution(0);
@@ -1072,7 +1100,10 @@ namespace flopoco{
 			THROWERROR("In addRegisteredSignalCopy(): " << e2);
 		}
 		s->setResetType(regType);
-		vhdl << tab << declare(copyName, s->width(), s->isBus()) << " <= "<<sourceName<<"^1;" << endl;
+		if(s->isCustom())
+			vhdl << tab << declareCustom(copyName, s->customType()) << " <= "<<sourceName<<"^1;" << endl;
+		else
+			vhdl << tab << declare(copyName, s->width(), s->isBus()) << " <= "<<sourceName<<"^1;" << endl;
 		// this ^ will be caught in doApplySchedule(). We could have arbitrary number of delays but I wait for a use case
 		getSignalByName(copyName) -> setHasBeenScheduled(true); // so that the schedule can start from these signals -- lexicographic time is (0,0)
 	}
@@ -1983,10 +2014,10 @@ namespace flopoco{
 			outputVHDLEntity(o);
 			newArchitecture(o,name);
 			o << buildVHDLComponentDeclarations();
-			o << buildVHDLAttributes();
-			o << buildVHDLSignalDeclarations();			//TODO: this cannot be called before scheduling the signals (it requires the lifespan of the signals, which is not yet computed)
 			o << buildVHDLTypeDeclarations();
+			o << buildVHDLSignalDeclarations();			//TODO: this cannot be called before scheduling the signals (it requires the lifespan of the signals, which is not yet computed)
 			o << buildVHDLConstantDeclarations();
+			o << buildVHDLAttributes();
 			beginArchitecture(o);
 			o << buildVHDLRegisters();					//TODO: this cannot be called before scheduling the signals (it requires the lifespan of the signals, which is not yet computed)
 			if(getIndirectOperator())
@@ -2541,7 +2572,7 @@ namespace flopoco{
 				rhs = getSignalByName(it->second);
 				}catch(string &e){
 					if (allSignalsLowercased.find(toLower(it->second)) != allSignalsLowercased.end() ) {
-						THROWERROR("Signal" << it->second << " undeclared, but a signal that differs only by capitalization has been declared");
+						THROWERROR("Signal " << it->second << " undeclared, but a signal that differs only by capitalization has been declared");
 					}
 					else{
 						REPORT(DEBUG, endl << "Warning: RHS signal name: " << it->second << " unknown so far"  << endl);

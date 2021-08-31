@@ -111,7 +111,7 @@ namespace flopoco{
       //FXP shifter
 			newInstance("Shifter",
 									"FXP_shifter",
-									"wIn=" + to_string(wFI+1) + " maxShift=" + to_string(wFO0+2) + " dir=0",
+									"wX=" + to_string(wFI+1) + " maxShift=" + to_string(wFO0+2) + " dir=0",
 									"X=>fA0,S=>shiftedby",
 									"R=>fA1");
 			

@@ -1,5 +1,7 @@
+if [ -f ~/.bashrc ]; then
+  source ~/.bashrc
+fi
 cd AutotestResults/tmp
-export DYLD_LIBRARY_PATH=/Users/pluto/research/develop/inst/lib
 echo "-------------------------------------------" >> ../$1/report
 echo "./flopoco $*"
 echo "./flopoco $*" >> ../$1/report

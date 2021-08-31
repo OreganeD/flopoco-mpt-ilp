@@ -7,7 +7,7 @@
 
 	Initial software.
 	Copyright © INSA Lyon, INRIA, CNRS, UCBL,
-	2014.
+	2014, 2020.
 	All rights reserved.
 */
 
@@ -26,9 +26,9 @@
 #include "FixAtan2.hpp"
 #include "ShiftersEtc/LZOC.hpp"
 #include "ShiftersEtc/Shifters.hpp"
-#include "FixAtan2ByRecipMultAtan.hpp"
 #include "FixAtan2ByCORDIC.hpp"
-#include "FixAtan2ByBivariateApprox.hpp"
+#include "FixAtan2ByRecipMultAtan.hpp"
+//#include "FixAtan2ByBivariateApprox.hpp"
 
 using namespace std;
 
@@ -36,12 +36,10 @@ namespace flopoco {
 
 
 	// The constructor for a stand-alone operator
-	FixAtan2::FixAtan2(Target* target_, int wIn_, int wOut_,  map<string, double> inputDelays_):
-		Operator(target_, inputDelays_), wIn(wIn_), wOut(wOut_)
+	FixAtan2::FixAtan2(OperatorPtr parentOp, Target* target_, int wIn_, int wOut_):
+		Operator(parentOp, target_), wIn(wIn_), wOut(wOut_)
 	{
 		// Some code that is present in all the variants of FixAtan2
-		//manage the pipeline
-		setCriticalPath(getMaxInputDelays(inputDelays_));
 		//declare the inputs and the outputs
 		// man atan2 says "atan2(y,x) is atan(y/x)" so we will provide the inputs in the same order...
 		addInput ("X",  wIn);
@@ -74,18 +72,16 @@ namespace flopoco {
 		// so negateByComplement should always be false,
 		//except if some day we do an ASIC target where it will cost less hardware.
 
-		if (negateByComplement)	{
-			manageCriticalPath( getTarget()->lutDelay());
+		if (negateByComplement)	{;
 			vhdl << tab << declare("pX", wIn) << " <=      Xsat;" << endl;
 			vhdl << tab << declare("pY", wIn) << " <=			 Ysat;" << endl;
-			vhdl << tab << declare("mX", wIn) << " <= (not Xsat);	 -- negation by not, implies one ulp error." << endl;
-			vhdl << tab << declare("mY", wIn) << " <= (not Ysat);	 -- negation by not, implies one ulp error. " << endl;
+			vhdl << tab << declare(getTarget()->logicDelay(), "mX", wIn) << " <= (not Xsat);	 -- negation by not, implies one ulp error." << endl;
+			vhdl << tab << declare(getTarget()->logicDelay(), "mY", wIn) << " <= (not Ysat);	 -- negation by not, implies one ulp error. " << endl;
 		}else {
-			manageCriticalPath( getTarget()->adderDelay(wIn));
 			vhdl << tab << declare("pX", wIn) << " <= Xsat;" << endl;
 			vhdl << tab << declare("pY", wIn) << " <= Ysat;" << endl;
-			vhdl << tab << declare("mX", wIn) << " <= (" << zg(wIn) << " - Xsat);" << endl;
-			vhdl << tab << declare("mY", wIn) << " <= (" << zg(wIn) << " - Ysat);" << endl;
+			vhdl << tab << declare(getTarget()->adderDelay(wIn), "mX", wIn) << " <= (" << zg(wIn) << " - Xsat);" << endl;
+			vhdl << tab << declare(getTarget()->adderDelay(wIn), "mY", wIn) << " <= (" << zg(wIn) << " - Ysat);" << endl;
 		}
 
 		// TODO: replace the following with LUT-based comparators
@@ -97,10 +93,8 @@ namespace flopoco {
 		// Range reduction: we define 4 quadrants, each centered on one axis (these are not just the sign quadrants)
 		// Then each quadrant is decomposed in its positive and its negative octant.
 
-		manageCriticalPath( getTarget()->lutDelay() + getTarget()->localWireDelay());
-
 		vhdl << tab << "-- quadrant will also be the angle to add at the end" <<endl;
-		vhdl << tab << declare("quadrant", 2) << " <= " << endl;
+		vhdl << tab << declare(getTarget()->logicDelay(), "quadrant", 2) << " <= " << endl;
 		vhdl << tab << tab << "\"00\"  when (not sgnX and not XltY and     mYltX)='1' else"    << endl;
 		vhdl << tab << tab << "\"01\"  when (not sgnY and     XltY and     mYltX)='1' else"    << endl;
 		vhdl << tab << tab << "\"10\"  when (    sgnX and     XltY and not mYltX)='1' else"    << endl;
@@ -115,7 +109,7 @@ namespace flopoco {
 		vhdl << tab << tab << "mX" << range(sizeXYR-1, 0) << " when quadrant=\"10\"   else " << endl;
 		vhdl << tab << tab << "mY" << range(sizeXYR-1, 0) << ";"    << endl;
 
-		vhdl << tab << declare("YR", sizeXYR) << " <= " << endl;
+		vhdl << tab << declare(getTarget()->logicDelay(), "YR", sizeXYR) << " <= " << endl;
 		vhdl << tab << tab << "pY" << range(sizeXYR-1, 0) << " when quadrant=\"00\" and sgnY='0'  else " << endl;
 		vhdl << tab << tab << "mY" << range(sizeXYR-1, 0) << " when quadrant=\"00\" and sgnY='1'  else " << endl;
 		vhdl << tab << tab << "pX" << range(sizeXYR-1, 0) << " when quadrant=\"01\" and sgnX='0'  else " << endl;
@@ -125,18 +119,16 @@ namespace flopoco {
 		vhdl << tab << tab << "pX" << range(sizeXYR-1, 0) << " when quadrant=\"11\" and sgnX='0'  else "    << endl;
 		vhdl << tab << tab << "mX" << range(sizeXYR-1, 0) << " ;"    << endl;
 
-		vhdl << tab << declare("finalAdd") << " <= " << endl;
+		vhdl << tab << declare(getTarget()->logicDelay(), "finalAdd") << " <= " << endl;
 		vhdl << tab << tab << "'1' when (quadrant=\"00\" and sgnY='0') or(quadrant=\"01\" and sgnX='1') or (quadrant=\"10\" and sgnY='1') or (quadrant=\"11\" and sgnX='0')" << endl;
 		vhdl << tab << tab << " else '0';  -- this information is sent to the end of the pipeline, better compute it here as one bit"    << endl;
 	}
 
 	void FixAtan2::buildQuadrantReconstruction(){
-		manageCriticalPath(getTarget()->lutDelay() + getTarget()->adderDelay(wOut));
-		vhdl << tab << declare("qangle", wOut) << " <= (quadrant & " << zg(wOut-2) << ");" << endl;
+		vhdl << tab << declare(getTarget()->adderDelay(wOut), "qangle", wOut) << " <= (quadrant & " << zg(wOut-2) << ");" << endl;
 		vhdl << tab << "A <= "
 				 << tab << tab << "     qangle + finalZ  when finalAdd='1'" << endl
 				 << tab << tab << "else qangle - finalZ;" << endl;
-		getOutDelayMap()["A"] = getCriticalPath();
 	}
 
 
@@ -144,40 +136,30 @@ namespace flopoco {
 
 	void FixAtan2::buildScalingRangeReduction(){
 		int sizeXYR = wIn-1; // no need for sign bit any longer
-		manageCriticalPath( getTarget()->lutDelay() + getTarget()->localWireDelay());
-		vhdl << tab << declare("XorY", sizeXYR-1) << " <= XR" << range(sizeXYR-1,1) << " or YR" << range(sizeXYR-1,1) << ";" << endl;
+		vhdl << tab << declare(getTarget()->logicDelay(), "XorY", sizeXYR-1) << " <= XR" << range(sizeXYR-1,1) << " or YR" << range(sizeXYR-1,1) << ";" << endl;
 		// The LZC
-		LZOC* lzc = new	LZOC(getTarget(), sizeXYR-1);
-		addSubComponent(lzc);
 
-		inPortMap(lzc, "I", "XorY");
-		inPortMapCst(lzc, "OZB", "'0'");
-		outPortMap(lzc, "O", "S");
-		vhdl << instance(lzc, "lzc");
-		syncCycleFromSignal("S");
-		setCriticalPath(lzc->getOutputDelay("O"));
-
-		//setCycleFromSignal("lzo");
-		//		setCriticalPath( lzc->getOutputDelay("O") );
-
-		// The two shifters are two instance of the same component
-		Shifter* lshift = new Shifter(getTarget(), sizeXYR, sizeXYR-1, Shifter::Left);
-		addSubComponent(lshift);
-
-		inPortMap(lshift, "S", "S");
-
-		inPortMap(lshift, "X", "XR");
-		outPortMap(lshift, "R", "XRSfull");
-		vhdl << instance(lshift, "Xshift");
+		newInstance("LZOC",
+								"LZC",
+								"countType=0 wIn=" + to_string(sizeXYR-1), 
+								"I=>XorY",
+								"O=>S");
+		
+		newInstance("Shifter", 
+								"XShift", 
+								"wX=" + to_string(sizeXYR) + " maxShift=" + to_string(sizeXYR-1) + " dir=0",
+								"X=>XR, S=>S",
+								"R=>XRSfull" // output size will be 2*wF+6 TODO: not output unused bits
+								);
+		
 		vhdl << tab << declare("XRS", sizeXYR) << " <=  XRSfull " << range(sizeXYR-1,0) << ";" << endl;
-
-		inPortMap(lshift, "X", "YR");
-		outPortMap(lshift, "R", "YRSfull");
-		vhdl << instance(lshift, "Yshift");
-		vhdl << tab << declare("YRS", sizeXYR) << " <=  YRSfull " << range(sizeXYR-1,0) << ";" << endl;
-
-		syncCycleFromSignal("YRSfull");
-		setCriticalPath(lshift->getOutputDelay("R"));
+		newInstance("Shifter", 
+								"YShift", 
+								"wX=" + to_string(sizeXYR) + " maxShift=" + to_string(sizeXYR-1) + " dir=0",
+								"X=>YR, S=>S",
+								"R=>YRSfull" // output size will be 2*wF+6 TODO: not output unused bits
+								); 
+		vhdl << tab << declare("YRS", sizeXYR) << " <=  YRSfull " << range(sizeXYR-1,0) << ";" << endl;		
 }
 
 
@@ -323,21 +305,22 @@ namespace flopoco {
 		UserInterface::parseInt(args, "lsb", &lsb);
 		UserInterface::parsePositiveInt(args, "method", &method);
 		//select the method
-		if(method < 8){	
-			return new FixAtan2ByRecipMultAtan(target, -lsb,-lsb, method);
+		if(method < 8){
+			return new FixAtan2ByRecipMultAtan(parentOp, target, -lsb,-lsb, method);
 		}
 		else if(method<10) {
-			return new FixAtan2ByCORDIC(target, -lsb,-lsb);
+			return new FixAtan2ByCORDIC(parentOp, target, -lsb,-lsb);
 		}
 		else {
-			return new FixAtan2ByBivariateApprox(target, -lsb, -lsb, method-10);
+			throw("This FixAtan2ByBivariateApprox architecture is still disabled, we are working on it");
+				// return new FixAtan2ByBivariateApprox(parentOp, target, -lsb, -lsb, method-10);
 		}
 			
 	}
 
 	void FixAtan2::registerFactory(){
 		UserInterface::add("FixAtan2", // name
-											 "Computes atan(x/y) as a=(angle in radian)/pi so a in [-1,1[.",
+											 "Computes atan(X/Y) as A=(angle in radian)/pi,  so A in [-1,1).",
 											 "ElementaryFunctions",
 											 "", // seeAlso
 											 "lsb(int): weight of the LSB of both inputs and outputs; \

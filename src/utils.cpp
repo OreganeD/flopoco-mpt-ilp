@@ -647,47 +647,6 @@ namespace flopoco{
 		return x.get_str(10);
 	}
 
-	double getMaxInputDelays(map<string, double> inputDelays)
-	{
-		double maxInputDelay = 0;
-		map<string, double>::iterator iter;
-		for (iter = inputDelays.begin(); iter!=inputDelays.end();++iter)
-			if (iter->second > maxInputDelay)
-				maxInputDelay = iter->second;
-
-		return maxInputDelay;
-	}
-
-	/*
-	double getMaxInputDelays( vector<Signal*> inputList )
-	{
-		double maxInputDelay = 0;
-
-		for (unsigned int i=0; i<inputList.size(); i++)
-			if ((inputList[i]->type() == Signal::in)
-					&& (inputList[i]->getCriticalPath() > maxInputDelay))
-				maxInputDelay = inputList[i]->getCriticalPath();
-
-		return maxInputDelay;
-	}
-	*/
-
-	string printInputDelays( map <string, double> inputDelays){
-		ostringstream o;
-		map<string, double>::iterator iter;
-		for (iter = inputDelays.begin(); iter!=inputDelays.end();++iter)
-			o << "The delay for " << iter->first << " is " << iter->second << ";   ";
-		return o.str();
-	}
-
-	string printMapContent( map <string, int> inputDelays){
-		ostringstream o;
-		map<string, int>::iterator iter;
-		for (iter = inputDelays.begin(); iter!=inputDelays.end();++iter)
-			o  << endl << "   " << iter->first << " cycle " << iter->second;
-		return o.str();
-	}
-
 	string printVectorContent( vector< pair<string, int> > table){
 		ostringstream o;
 		vector< pair<string, int> >::iterator iter;

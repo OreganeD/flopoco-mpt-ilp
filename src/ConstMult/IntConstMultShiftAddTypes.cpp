@@ -682,7 +682,8 @@ void IntConstMultShiftAdd_BASE::build_operand_realisation(
 	}
 
 	string msb_signame = "msb_" + outputSignalName;
-	int  adder_word_size = wordsize - copy_as_is_boundary + finalRightShifts;
+//  int  adder_word_size = wordsize - copy_as_is_boundary + finalRightShifts;
+  int  adder_word_size = wordsize - copy_as_is_boundary;
 	//TODO
 	vector<string> operands(nb_inputs);
 	for (size_t i = 0 ; i < nb_inputs ; ++i) {
@@ -695,13 +696,16 @@ void IntConstMultShiftAdd_BASE::build_operand_realisation(
 		int pad_zeros_right = right_boundary - copy_as_is_boundary;
 		int useful_bits = left_boundary - right_boundary;
 
+
 		if (sign_ext_left > 0) {
 			cur_sig_msb << "( " << (sign_ext_left - 1) << " downto 0 => " <<
 				currentInput.outputSignalName << of(currentInput.wordsize - 1) << ")";
 		}
 
 		if (useful_bits > 0) {
-			int start_select_idx = right_boundary - t->input_shifts[i];
+//      int start_select_idx = right_boundary - t->input_shifts[i];
+			int start_select_idx = right_boundary - max(t->input_shifts[i],0);
+
 			if (cur_sig_msb.str().length() > 0) {
 				cur_sig_msb << " & ";	
 			}
@@ -714,7 +718,7 @@ void IntConstMultShiftAdd_BASE::build_operand_realisation(
 		}
 		
 		string signal_name = inputs_info[i]->getTemporaryName();
-		
+
 		base_op->vhdl << "\t" << base_op->declare(0., signal_name, adder_word_size) <<
 			" <= " << cur_sig_msb.str() << ";" << endl;
 		operands[i] = signal_name;
@@ -750,8 +754,8 @@ void IntConstMultShiftAdd_BASE::build_operand_realisation(
 	
 	string leftshiftedoutput = outputSignalName + "_tmp";
 
-	base_op->vhdl << "\t" << declare(leftshiftedoutput, wordsize + finalRightShifts) << " <= " << 
-		msb_signame;
+//  base_op->vhdl << "\t" << declare(leftshiftedoutput, wordsize + finalRightShifts) << " <= " << msb_signame;
+  base_op->vhdl << "\t" << declare(leftshiftedoutput, wordsize) << " <= " << msb_signame;
 
 	if (copy_as_is.str().size() > 0) {
 		base_op->vhdl << " & " << copy_as_is.str();	
@@ -759,10 +763,11 @@ void IntConstMultShiftAdd_BASE::build_operand_realisation(
 
 	base_op->vhdl << ";" << endl;
 
-	base_op->vhdl << "\t" << declare(outputSignalName, wordsize) << " <= " <<
-		leftshiftedoutput;
+//  base_op->vhdl << "\t" << declare(outputSignalName, wordsize) << " <= " << leftshiftedoutput;
+  base_op->vhdl << "\t" << declare(outputSignalName, wordsize-finalRightShifts) << " <= " << leftshiftedoutput;
 	if (finalRightShifts > 0) {
-		base_op->vhdl << range(finalRightShifts + wordsize - 1, finalRightShifts);
+//    base_op->vhdl << range(finalRightShifts + wordsize - 1, finalRightShifts);
+    base_op->vhdl << range(wordsize - 1, finalRightShifts);
 	}
 	base_op->vhdl << ";" << endl;
 }

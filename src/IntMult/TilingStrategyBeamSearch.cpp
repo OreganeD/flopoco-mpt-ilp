@@ -19,8 +19,10 @@ namespace flopoco {
             bool useSuperTiles,
             bool useKaratsuba,
             MultiplierTileCollection& tiles,
-            unsigned int beamRange
-            ):TilingStrategyGreedy(wX, wY, wOut, signedIO, bmc, prefered_multiplier, occupation_threshold, maxPrefMult, useIrregular, use2xk, useSuperTiles, useKaratsuba, tiles),
+            unsigned int beamRange,
+            unsigned guardBits,
+            unsigned keepBits
+            ):TilingStrategyGreedy(wX, wY, wOut, signedIO, bmc, prefered_multiplier, occupation_threshold, maxPrefMult, useIrregular, use2xk, useSuperTiles, useKaratsuba, tiles, guardBits, keepBits),
             beamRange_{beamRange}
     {
 
@@ -39,7 +41,8 @@ namespace flopoco {
         unsigned int bestArea = 0;
 
         if(truncated_) {
-            field.setTruncated(truncatedRange_, baseState);
+            //field.setTruncated(truncatedRange_, baseState);
+            field.setTruncated(wOut, prodsize_, guardBits_, keepBits_,  baseState);
         }
 
         tempState.reset(baseState);
@@ -108,7 +111,7 @@ namespace flopoco {
 
                 solution.push_back(make_pair(std::get<1>(tile).tryDSPExpand(x, y, wX, wY, signedIO), std::get<2>(tile)));
 
-                currentTotalCost += std::get<0>(tile)->getLUTCost(x, y, wX, wY);
+                currentTotalCost += std::get<0>(tile)->getLUTCost(x, y, wX, wY, signedIO);
             }
         }
 
@@ -209,7 +212,7 @@ namespace flopoco {
             return true;
         }
 
-        cost += tile->getLUTCost(next.first, next.second, wX, wY);
+        cost += tile->getLUTCost(next.first, next.second, wX, wY, signedIO);
 
         if(dspBlockCnt == 0) {
             area += tile->getArea();

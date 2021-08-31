@@ -26,7 +26,9 @@ namespace flopoco {
                 bool useSuperTiles,
                 bool useKaratsuba,
                 MultiplierTileCollection& tiles,
-                unsigned int beamRange);
+                unsigned int beamRange,
+                unsigned guardBits,
+                unsigned keepBits);
         void solve();
 
     private:

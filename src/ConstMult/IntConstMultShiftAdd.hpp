@@ -35,6 +35,7 @@ namespace flopoco {
 
         void emulate(TestCase * tc);
         void buildStandardTestCases(TestCaseList* tcl);
+				static TestList unitTest(int index);
         struct output_signal_info{
         string signal_name;
         vector<vector<int64_t> > output_factors;

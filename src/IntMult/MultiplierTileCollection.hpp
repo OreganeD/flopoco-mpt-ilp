@@ -19,10 +19,10 @@ namespace flopoco {
         superTileSubtitution(vector<BaseMultiplierCategory*> mtc, int rx1, int ry1, int lx1, int ly1, int rx2, int ry2, int lx2, int ly2);
 
     private:
-        void addBaseTile(BaseMultiplierCategory* mult);
-        void addVariableXTile(BaseMultiplierCategory* mult);
-        void addVariableYTile(BaseMultiplierCategory* mult);
-        void addSuperTile(BaseMultiplierCategory* mult);
+        void addBaseTile(Target *target, BaseMultiplierCategory* mult);
+        void addVariableXTile(Target *target, BaseMultiplierCategory* mult);
+        void addVariableYTile(Target *target, BaseMultiplierCategory* mult);
+        void addSuperTile(Target *target, BaseMultiplierCategory* mult);
     };
 }
 #endif //FLOPOCO_MULTIPLIERTILECOLLECTION_HPP

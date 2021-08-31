@@ -37,8 +37,7 @@ namespace flopoco{
 		ostringstream name;
 		name << "FPMult_"<<wEX_<<"_"<<wFX_<<"_"<<wEY_<<"_"<<wFY_<<"_"<<wER_<<"_"<<wFR_<<"_uid"<<getNewUId();
 		setNameWithFreqAndUID(name.str());
-		setCopyrightString("Bogdan Pasca, Florent de Dinechin 2008-2011");
-
+		setCopyrightString("Bogdan Pasca, Florent de Dinechin 2008-2021");
 
 		addFPInput ("X", wEX_, wFX_);
 		addFPInput ("Y", wEY_, wFY_);
@@ -59,11 +58,16 @@ namespace flopoco{
 		vhdl << tab << declare("expX", wEX_) << " <= X"<< range(wEX_ + wFX_ -1, wFX_) << ";" << endl;
 		vhdl << tab << declare("expY", wEY_) << " <= Y"<< range(wEY_ + wFY_ -1, wFY_) << ";" << endl;
 
+		// In case when the exponents differ, crash with grace
+		if((wEY_!=wEX_) || (wER_!=wEX_)		) {
+			THROWERROR("Giving up because exponent sizes are not all identical.\nIt seems nobody ever cared to manage properly the case when exponent sizes differ.\nIt shouldn't be difficult, but life is too short to implement stuff that nobody needs.\nPlease drop us a mail if this case is useful to you...");
+		}
+		int wEmax_ = max(wEX_, wEY_); // not sufficient, there should be weR as well
 		//Add exponents and substract bias
-		vhdl << tab << declare(getTarget()->adderDelay(wEX_+2), "expSumPreSub", wEX_+2) << " <= (\"00\" & expX) + (\"00\" & expY);" << endl;
-		vhdl << tab << declare("bias", wEX_+2) << " <= CONV_STD_LOGIC_VECTOR(" << intpow2(wER-1)-1 << ","<<wEX_+2<<");"<< endl;
+		vhdl << tab << declare(getTarget()->adderDelay(wEmax_+2), "expSumPreSub", wEmax_+2) << " <= (\"00\" & expX) + (\"00\" & expY);" << endl;
+		vhdl << tab << declare("bias", wEmax_+2) << " <= CONV_STD_LOGIC_VECTOR(" << intpow2(wER-1)-1 << ","<<wEmax_+2<<");"<< endl;
 
-		vhdl << tab << declare(getTarget()->adderDelay(wEX_+2), "expSum",wEX+2) << " <= expSumPreSub - bias;" << endl;
+		vhdl << tab << declare(getTarget()->adderDelay(wEmax_+2), "expSum",wEX+2) << " <= expSumPreSub - bias;" << endl;
 
 		/* Significand Handling */
 		vhdl << tab << declare("sigX",1 + wFX_) << " <= \"1\" & X" << range(wFX_-1,0) << ";" << endl;
@@ -219,16 +223,27 @@ namespace flopoco{
 	}
 
 	OperatorPtr FPMult::parseArguments(OperatorPtr parentOp, Target *target , vector<string> &args){
-		int wE, wF;
+		int wEX, wFX, wEY, wFY, wEOut, wFOut;
 		bool correctlyRounded;
 		double dspOccupationThreshold=0.0;
 
-		UserInterface::parseStrictlyPositiveInt(args, "wE", &wE);
-		UserInterface::parseStrictlyPositiveInt(args, "wF", &wF);
+		UserInterface::parseStrictlyPositiveInt(args, "wE", &wEX);
+		UserInterface::parseStrictlyPositiveInt(args, "wF", &wFX);
+		UserInterface::parsePositiveInt(args, "wEY", &wEY);
+		UserInterface::parsePositiveInt(args, "wFY", &wFY);
+		UserInterface::parsePositiveInt(args, "wEOut", &wEOut);
+		UserInterface::parsePositiveInt(args, "wFOut", &wFOut);
 		UserInterface::parseBoolean(args, "correctlyRounded", &correctlyRounded);
 		UserInterface::parseFloat(args, "dspThreshold", &dspOccupationThreshold);
-
-		return new FPMult(parentOp, target, wE, wF, wE, wF, wE, wF, true, correctlyRounded, dspOccupationThreshold); //currently, user interface only supports same data formats for all inputs and output
+		if(wEY==0)
+			wEY=wEX;
+		if(wFY==0)
+			wFY=wFX;
+		if(wEOut==0)
+			wEOut=wEX;
+		if(wFOut==0)
+			wFOut=wFX;
+		return new FPMult(parentOp, target, wEX, wFX, wEY, wFY, wEOut, wFOut, true, correctlyRounded, dspOccupationThreshold); //currently, user interface only supports same data formats for all inputs and output
 	}
 
 	void FPMult::registerFactory(){
@@ -236,10 +251,13 @@ namespace flopoco{
                            "A floating-point multiplier. The actual FloPoCo component supports different input and output sizes, but this is not available from the command line.",
                            "BasicFloatingPoint", // categories
                            "",
-                           "wE(int): exponent size in bits; \
-                           wF(int): input's mantissa size in bits;  \
-                           wFout(int)=0: output's mantissa size in bits (if 0 or ommitted, will be equal to wFIn); \
-						   correctlyRounded(bool)=true: Use correct rounding, if false use faithful rounding;\
+                           "wE(int): input exponent size in bits, for X or for both X and Y; \
+                           wF(int): input significand fraction size in bits, for X or for both X and Y;  \
+                           wEY(int)=0: second input exponent size in bits (0 means wEY=wE);						\
+                           wFY(int)=0: second input significand fraction size in bits (0 means wFY=wF);  \
+                           wEOut(int)=0: result exponent size in bits (0 means wEOout=wE); \
+                           wFOut(int)=0: result significand fraction size in bits (0 means wFOout=wF); \
+						   correctlyRounded(bool)=true: correct (true) or faithful (false) rounding;\
 						   dspThreshold(real)=0.0: threshold of relative occupation ratio of a DSP multiplier to be used or not", // This string will be parsed
                            "",
                            FPMult::parseArguments

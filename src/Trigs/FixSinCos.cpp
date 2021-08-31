@@ -197,6 +197,11 @@ namespace flopoco{
 		// TODO test if wIn!=wOut works for CORDIC
 		UserInterface::parseInt(args, "wA", &wA); 
 		UserInterface::parseInt(args, "lsb", &lsb); 
+		if(lsb>=0) {
+			cerr << " ERROR in FixSinCos::parseArguments: lsb should be negative" << endl<<  UserInterface::getFactoryByName("FixSinCos") -> getFullDoc();
+			exit(EXIT_FAILURE);
+		}
+		
 		UserInterface::parseInt(args, "method", &method);
 		if(method==0)
 			return new FixSinCosPoly(parentOp, target, lsb, wA);
@@ -205,8 +210,8 @@ namespace flopoco{
 		else if (method==2)
 			return new FixSinCosCORDIC(parentOp, target, -lsb+1, -lsb+1, 1);  // reduced iteration
 		else {
-			cerr << " ERROR in FixSinCos::parseArguments: Wrong method number, only 0 (polynomial), 1 (standard CORDIC) and 2 (reduced iteration CORDIC) are allowed";
-			return NULL;
+			cerr << " ERROR in FixSinCos::parseArguments: Wrong method number" << endl<<  UserInterface::getFactoryByName("FixSinCos") -> getFullDoc();
+			exit(EXIT_FAILURE);
 		}
 	}
 

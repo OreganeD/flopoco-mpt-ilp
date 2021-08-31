@@ -1,7 +1,6 @@
 #include "IntConstMultShiftAdd.hpp"
 
 #if defined(HAVE_PAGLIB)
-//&& defined(HAVE_RPAGLIB) && defined(HAVE_SCALP)
 
 #include <iostream>
 #include <sstream>
@@ -62,7 +61,7 @@ IntConstMultShiftAdd::IntConstMultShiftAdd(
 
     ostringstream name;
     name << "IntConstMultShiftAdd_" << wIn;
-    setName(name.str());
+	setNameWithFreqAndUID(name.str());
 
     if(pipelined_realization_str.empty()) return; //in case the realization string is not defined, don't further process it.
 
@@ -259,7 +258,7 @@ void IntConstMultShiftAdd::ProcessIntConstMultShiftAdd(
                         id++;
                     }
 
-                    inputSignalName << "x_in" << id;
+                    inputSignalName << "X" << id;
                     addInput(inputSignalName.str(), wIn);
                     vhdl << "\t" << declare(op_node->outputSignalName,wIn) << " <= " << inputSignalName.str() << ";" << endl;
                     input_signals.push_back(inputSignalName.str());
@@ -320,14 +319,12 @@ void IntConstMultShiftAdd::ProcessIntConstMultShiftAdd(
         }
 
         output_signal_info sig_info;
-        short realizedOutputNodes = 0;
         for (auto operationNode : stageNodesMap[noOfPipelineStages])
         {
             if (is_a<output_node_t>(*operationNode)){
                 IntConstMultShiftAdd_TYPES::IntConstMultShiftAdd_BASE* op_node = additionalNodeInfoMap[operationNode];
                 stringstream outputSignalName;
-                outputSignalName << "x_out" << realizedOutputNodes;
-                realizedOutputNodes++;
+                outputSignalName << "R" ;
                 for(int j=0; j < noOfConfigurations; j++) {
                     outputSignalName << "_c";
                     for(int i=0; i < noOfInputs; i++)
@@ -370,7 +367,7 @@ void IntConstMultShiftAdd::emulate(TestCase * tc)
     for(int i=0;i<noOfInputs;i++ )
     {
         stringstream inputName;
-        inputName << "x_in" << i;
+        inputName << "X" << i;
 
         mpz_class inputVal = tc->getInputValue(inputName.str());
 
@@ -522,6 +519,61 @@ void IntConstMultShiftAdd::buildStandardTestCases(TestCaseList * tcl)
         emulate(tc);
         tcl->add(tc);
     }
+}
+
+TestList IntConstMultShiftAdd::unitTest(int index)
+{
+  // the static list of mandatory tests
+  TestList testStateList;
+  vector<pair<string,string>> paramList;
+
+  list<string> graphs;
+
+  //simplest adder graph possible, multiply by 1:
+  graphs.push_back("\"{{'O',[1],1,[1],0,0}}\"");
+
+  //SCM by 123, obtained from rpag 123:
+  graphs.push_back("\"{{'R',[1],1,[1],0},{'A',[5],1,[1],0,0,[1],0,2},{'A',[123],2,[1],1,7,[-5],1,0},{'O',[123],2,[123],2,0}}\"");
+
+  //MCM by 123, 321, obtained from rpag 123 321:
+  graphs.push_back("\"{{'R',[1],1,[1],0},{'A',[5],1,[1],0,0,[1],0,2},{'A',[123],2,[1],1,7,[-5],1,0},{'A',[321],2,[1],1,0,[5],1,6},{'O',[123],2,[123],2,0},{'O',[321],2,[321],2,0}}\"");
+
+  //SCM by 100000000 using ternary adders, obtained from rpag --ternary_adders 100000000:
+  graphs.push_back("\"{{'A',[191],1,[1],0,6,[1],0,7,[-1],0,0},{'A',[543],1,[1],0,5,[1],0,9,[-1],0,0},{'A',[390625],2,[191],1,11,[-543],1,0},{'O',[100000000],2,[390625],2,8}}\"");
+
+  //MCM by 123, 321 using ternary adders, obtained from rpag --ternary_adders 123 321:
+  graphs.push_back("\"{{'A',[123],1,[1],0,7,[-1],0,2,[-1],0,0},{'A',[321],1,[1],0,6,[1],0,8,[1],0,0},{'O',[123],1,[123],1,0},{'O',[321],1,[321],1,0}}\"");
+
+  //MCM by 11280171, 13342037 using ternary adders, obtained from rpag --ternary_adders 11280171 13342037:
+  graphs.push_back("\"{{'A',[21],1,[1],0,2,[1],0,4,[1],0,0},{'A',[8065],1,[1],0,13,[-1],0,7,[1],0,0},{'A',[10941],2,[21],1,3,[21],1,9,[21],1,0},{'A',[104833],2,[21],1,9,[21],1,12,[8065],1,0},{'A',[11280171],3,[10941],2,3,[10941],2,10,[-10941],2,0},{'A',[13342037],3,[10941],2,0,[-10941],2,3,[104833],2,7},{'O',[11280171],3,[11280171],3,0},{'O',[13342037],3,[13342037],3,0}}\""); //
+
+  //CMM of 123*x1+321*x2 345*x1-543*x2, obtained from rpag --cmm 123,321 345,-543:
+  graphs.push_back("\"{{'A',[0,5],1,[0,1],0,0,[0,1],0,2},{'A',[0,17],1,[0,1],0,0,[0,1],0,4},{'A',[5,0],1,[1,0],0,0,[1,0],0,2},{'A',[128,1],1,[0,1],0,0,[1,0],0,7},{'A',[257,0],1,[1,0],0,0,[1,0],0,8},{'R',[0,5],2,[0,5],1},{'A',[5,68],2,[0,17],1,2,[5,0],1,0},{'A',[123,1],2,[128,1],1,0,[-5,0],1,0},{'A',[385,1],2,[128,1],1,0,[257,0],1,0},{'A',[123,321],3,[0,5],2,6,[123,1],2,0},{'A',[345,-543],3,[385,1],2,0,[-5,-68],2,3},{'O',[123,321],3,[123,321],3,0},{'O',[345,-543],3,[345,-543],3,0}}\"");
+
+  //CMM of 123*x1+321*x2 345*x1-543*x2 using ternary adders, obtained from rpag --ternary_adders --cmm 123,321 345,-543:
+  graphs.push_back("\"{{'A',[1,-4],1,[1,0],0,0,[0,-1],0,2},{'A',[2,5],1,[0,1],0,0,[0,1],0,2,[1,0],0,1},{'A',[5,-1],1,[1,0],0,2,[0,-1],0,0,[1,0],0,0},{'A',[7,-1],1,[1,0],0,3,[0,-1],0,0,[-1,0],0,0},{'A',[123,321],2,[2,5],1,6,[-5,1],1,0},{'A',[345,-543],2,[1,-4],1,7,[7,-1],1,5,[-7,1],1,0},{'O',[123,321],2,[123,321],2,0},{'O',[345,-543],2,[345,-543],2,0}}\""); //
+
+  //MCM's including right shifts:
+  graphs.push_back("\"{{'R',[1],1,[1],0},{'A',[31],1,[1],0,5,[-1],0,0},{'A',[511],1,[1],0,9,[-1],0,0},{'A',[2049],1,[1],0,0,[1],0,11},{'A',[123],2,[31],1,2,[-1],1,0},{'A',[6127],2,[511],1,4,[-2049],1,0},{'A',[1049119],2,[31],1,0,[2049],1,9},{'A',[5079583],3,[123],2,15,[1049119],2,0},{'A',[6274171],3,[123],2,0,[6127],2,10},{'A',[5676877],4,[5079583],3,-1,[6274171],3,-1},{'A',[25397915],4,[5079583],3,0,[5079583],3,2},{'O',[50795830],4,[25397915],4,1},{'O',[90830032],4,[5676877],4,4}}\"");
+  graphs.push_back("\"{{'O',[6],3,[3],2,1},{'O',[10],3,[5],1,1},{'A',[3],2,[1],0,-1,[5],1,-1},{'A',[5],1,[1],0,2,[1],0,0}}\""); //
+
+
+
+//  graphs.push_back("\"\""); //
+//  graphs.push_back("\"\""); //
+
+  for(int wIn=10; wIn<=32; wIn+=22) // test various input widths
+  {
+    for(auto g : graphs)
+    {
+      paramList.push_back(make_pair("wIn", to_string(wIn)));
+      paramList.push_back(make_pair("graph", g));
+      testStateList.push_back(paramList);
+      paramList.clear();
+    }
+  }
+
+  return testStateList;
 }
 
 string IntConstMultShiftAdd::generateSignalName(adder_graph_base_node_t *node)
@@ -901,7 +953,7 @@ void IntConstMultShiftAdd::printAdditionalNodeInfo(map<adder_graph_base_node_t *
 namespace flopoco {
     void flopoco::IntConstMultShiftAdd::registerFactory()
     {
-#if defined(HAVE_PAGLIB) && defined(HAVE_RPAGLIB) && defined(HAVE_SCALP)
+#if defined(HAVE_PAGLIB) && defined(HAVE_RPAGLIB)
       UserInterface::add( "IntConstMultShiftAdd", // name
                           "A component for building constant multipliers based on pipelined adder graphs (PAGs).", // description, string
                           "ConstMultDiv", // category, from the list defined in UserInterface.cpp
@@ -915,7 +967,8 @@ namespace flopoco {
                           sync_every(int)=1: Count of stages after which will be pipelined;"
 						  "truncations(string)=\"\": provides the truncations for subvalues", //format: const1,stage:trunc_input_0,trunc_input_1,...;const2,stage:trunc_input_0,trunc_input_1,...;...",
                           "",
-                          IntConstMultShiftAdd::parseArguments
+                          IntConstMultShiftAdd::parseArguments,
+                          IntConstMultShiftAdd::unitTest
       );
 #endif // HAVE_SCALP and HAVE_PAGLIB
     }

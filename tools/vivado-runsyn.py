@@ -70,6 +70,7 @@ if __name__ == '__main__':
     parser.add_argument('-t', '--target', help='Target name (default is read from the VHDL file)')
     parser.add_argument('-f', '--frequency', help='Objective frequency (default is read from the VHDL file)')
     parser.add_argument('-p', '--part', help='Vivado part idx to use')
+    parser.add_argument('-n', '--maxdsp', help='Max no of DSP blocks that should be used, -1 for unlimited (default is -1)')
 
     options=parser.parse_args()
 
@@ -103,11 +104,18 @@ if __name__ == '__main__':
     else:
         frequency = options.frequency
 
+    if (options.maxdsp==None):
+        maxdsp = -1 #-1 is also the value of unlimited DSPs for vivado
+    else:
+        maxdsp = options.maxdsp
+
+    
 
     report("   entity:        " +  entity)
     report("   target:        " +  target)
     report("   frequency:     " +  frequency + " MHz")
     report("   input signal:  " + " ".join(in_sig))
+    report("   maxdsp:        " +  str(maxdsp))
     report("   output signal: " + " ".join(out_sig))
 
     if target.lower()=="kintex7":
@@ -126,9 +134,12 @@ if __name__ == '__main__':
     if(options.part != None):
         part=options.part
 
-    workdir="/tmp/vivado_runsyn_"+entity+"_"+target+"_"+frequency
+    curdir=os.popen('pwd').read()
+    workdir=curdir[0:-1]+"/tmp/vivado_runsyn_"+entity+"_"+target+"_"+frequency
+    report("   workdir:        "+workdir)
+    
     os.system("rm -R "+workdir)
-    os.mkdir(workdir)
+    os.system("mkdir -p "+workdir)
     os.system("cp "+filename+" "+workdir)
     os.chdir(workdir)
 
@@ -161,8 +172,13 @@ if __name__ == '__main__':
     tclscriptfile.write("add_files -norecurse " + filename_abs + "\n")
     tclscriptfile.write("read_xdc -mode out_of_context " + xdc_file_name + "\n")
     tclscriptfile.write("set_property top " + entity + "  [current_fileset]\n")
+    tclscriptfile.write("set_property STEPS.SYNTH_DESIGN.ARGS.MAX_DSP " + str(maxdsp) + "  [get_runs synth_1]\n")
+    tclscriptfile.write("set_property STEPS.SYNTH_DESIGN.ARGS.FLATTEN_HIERARCHY none [get_runs synth_1]\n")
     tclscriptfile.write("update_compile_order -fileset sources_1\n")
     tclscriptfile.write("update_compile_order -fileset sim_1\n")
+#    if maxdsp>=0:
+#      tclscriptfile.write("synth_design -mode out_of_context -max_dsp " + str(maxdsp) + "\n")
+    #else:
     tclscriptfile.write("synth_design -mode out_of_context\n")
 
     # Reporting files
@@ -184,6 +200,7 @@ if __name__ == '__main__':
 
     tclscriptfile.write("set_property IOB FALSE [all_inputs]\n")
     tclscriptfile.write("set_property IOB FALSE [all_outputs]\n")
+    
     tclscriptfile.write("report_utilization  -file "+  utilization_report_file +"\n")
 
 
@@ -198,18 +215,18 @@ if __name__ == '__main__':
         timing_report_file +="placed.rpt"
 
     tclscriptfile.write("report_timing -file " + timing_report_file + " \n")
-
     tclscriptfile.close()
 
     vivado_command = ("vivado -mode batch -source " + tcl_script_name)
     report("Running Vivado: " + vivado_command)
-    os.system(vivado_command)
-
-
-    report("cat " + utilization_report_file)
-    os.system("cat " + utilization_report_file)
-    report("cat " + timing_report_file)
-    os.system("cat " + timing_report_file)
+    ret=os.system(vivado_command)
+    if ret==0:
+      report("cat " + utilization_report_file)
+      os.system("cat " + utilization_report_file)
+      report("cat " + timing_report_file)
+      os.system("cat " + timing_report_file)
+    else:
+      report("Vivado not found on system")
 
 
 

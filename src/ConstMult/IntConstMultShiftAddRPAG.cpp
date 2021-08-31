@@ -160,7 +160,7 @@ namespace flopoco{
                             epsilon(int)=0: Allowable error for truncated constant multipliers;",
                             "Nope.",
                             IntConstMultShiftAddRPAG::parseArguments,
-							IntConstMultShiftAddRPAG::unitTest
+														IntConstMultShiftAddRPAG::unitTest
                           ) ;
     }
 

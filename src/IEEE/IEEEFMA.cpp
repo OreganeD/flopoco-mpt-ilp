@@ -33,6 +33,12 @@
 
 #include <utils.hpp>
 #include <Operator.hpp>
+#include <ShiftersEtc/LZOC.hpp>
+#include <ShiftersEtc/Shifters.hpp>
+#include <TestBenches/FPNumber.hpp>
+#include <TestBenches/IEEENumber.hpp>
+#include <IntAddSubCmp/IntAdder.hpp>
+
 
 
 using namespace std;
@@ -225,18 +231,10 @@ namespace flopoco{
 
 
 #if 1
-#if 0 // to remove when it works
-		Shifter* addendShifter = new Shifter(target, p, 3*p+4, Shifter::Right);
-		oplist.push_back(addendShifter);
-		inPortMap  (addendShifter, "X", "Csig");
-		inPortMap  (addendShifter, "S", "ShiftValue");
-		outPortMap (addendShifter, "R","CsigShifted");
-		vhdl << instance(addendShifter, "addendShifter");
-#endif
 		newInstance(
 								"Shifter", 
 								"RightShifterComponent", 
-								"wIn=" + to_string(p) + " maxShift=" + to_string(3*p+4) + " dir=1 " + "wOut=" + to_string(4*p+4) + " computeSticky=0", 
+								"wX=" + to_string(p) + " maxShift=" + to_string(3*p+4) + " dir=1 " + "wR=" + to_string(4*p+4) + " computeSticky=0", 
 								"X=>Csig,S=>ShiftValue",
 								"R=>CsigShifted");
 
@@ -357,19 +355,10 @@ namespace flopoco{
 
 
 #if 1
-#if 0 // To remove when debugging done
-		Shifter* normalizationShifter = new Shifter(target, 3*p+4, 3*p+3, Shifter::Left); 
-		oplist.push_back(normalizationShifter);
-
-		inPortMap  (normalizationShifter, "X", "BigSumAbs");
-		inPortMap  (normalizationShifter, "S", "normShiftValue");
-		outPortMap (normalizationShifter, "R", "BigSumNormd");
-		vhdl << endl << instance(normalizationShifter, "NormalizationShifter");
-#endif
 		newInstance(
 								"Shifter", 
 								"NormalizationShifter", 
-								"wIn=" + to_string(3*p+4) + " maxShift=" + to_string(3*p+3) + " dir=0",
+								"wX=" + to_string(3*p+4) + " maxShift=" + to_string(3*p+3) + " dir=0",
 								"X=>BigSumAbs,S=>normShiftValue",
 								"R=>BigSumNormd" // output size will be 2*wF+6 TODO: not output unused bits
 								); 

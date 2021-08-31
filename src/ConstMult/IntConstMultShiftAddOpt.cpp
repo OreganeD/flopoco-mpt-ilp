@@ -44,9 +44,6 @@ namespace flopoco{
 
         this->coeff = coeff;
 
-        cout << "wIn=" << wIn << ", coeff=" << coeff << endl;
-
-
         if(coeff <= 0)
         {
 		  cerr << "Error: Value of constant must be positive and non-zero" << endl;
@@ -110,6 +107,7 @@ namespace flopoco{
 		if(signB > 0) signBStr = ""; else signBStr = "-";
 
 		int coeffStage=1; //its all combinatorial, so the adders are defined to be all in stage 1
+
 		adderGraph << "{'A',[" << preFactor*c << "]," << coeffStage << ",[" << signAStr << preFactor*a << "]," << (preFactor*a == 1?0:1) << "," << eA << ",[" << signBStr << preFactor*b << "]," << (preFactor*b == 1?0:1) << "," << eB << "},";
 	}
 
@@ -123,13 +121,16 @@ namespace flopoco{
 		int_set_t leap1_candidate_set2_div;
 		int_set_t leap1_set;
 
+		bool expRet;
 		switch(solutions_gt[i])
 		{
 		case ADD:
 			int eA,eB,signA,signB;
             REPORT(DEBUG, "additive: " << c << "=" << "Aop(" << solutions_op_a[i] << "," << solutions_op_b[i] << ")");
 
-			assert(getExponents(solutions_op_a[i],solutions_op_b[i],c,&eA,&eB,&signA,&signB));
+			expRet = getExponents(solutions_op_a[i],solutions_op_b[i],c,&eA,&eB,&signA,&signB);
+			assert(expRet);
+
 			generateAOp(solutions_op_a[i],solutions_op_b[i],c,eA,eB,signA,signB,preFactor);
 			if(solutions_op_a[i] != 1) buildAdderGraph(solutions_op_a[i],preFactor);
 			if(solutions_op_b[i] != 1) buildAdderGraph(solutions_op_b[i],preFactor);
@@ -186,12 +187,14 @@ namespace flopoco{
 #endif //DEBUG
 			l1 = *(leap1_set.begin());
 
-			assert(getExponents(solutions_op_a[i], l1*solutions_op_b[i], c,&eA,&eB,&signA,&signB));
+			expRet = getExponents(solutions_op_a[i], l1*solutions_op_b[i], c,&eA,&eB,&signA,&signB);
+			assert(expRet);
+
 			generateAOp(solutions_op_a[i],l1*solutions_op_b[i],c,eA,eB,signA,signB);
 
-			//      cout << l1*solutions_op_b[i] << " = " << l1 << " * " << solutions_op_b[i] << endl;
+			expRet = getExponents(1, solutions_op_a[i],l1,&eA,&eB,&signA,&signB);
+			assert(expRet);
 
-			assert(getExponents(1, solutions_op_a[i],l1,&eA,&eB,&signA,&signB));
 			generateAOp(1,solutions_op_a[i],l1,eA,eB,signA,signB);
 
 			if(solutions_op_a[i] != 1) buildAdderGraph(solutions_op_a[i]);
@@ -224,6 +227,7 @@ namespace flopoco{
 			constantList.push_back("43"); //smallest coefficient requiring 3 adders
 			constantList.push_back("683"); //smallest coefficient requiring 4 adders
 			constantList.push_back("14709"); //smallest coefficient requiring 5 adders
+			constantList.push_back("66511"); //critical coefficient as we have a node with wsOut < wsIn (factor 975)
 			constantList.push_back(to_string(MAX_SCM_CONST)); //maximum supported coefficient
 
 			for(int wIn=3; wIn<16; wIn+=4) // test various input widths

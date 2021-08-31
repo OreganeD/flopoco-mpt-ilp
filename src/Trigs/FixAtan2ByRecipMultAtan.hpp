@@ -22,7 +22,7 @@ namespace flopoco{
 		Actual position of the fixed point in the inputs doesn't matter as long as it is the same for x and y
 
 		*/
-		FixAtan2ByRecipMultAtan(Target* target, int wIn, int wOut, int method=0, map<string, double> inputDelays = emptyDelayMap);
+		FixAtan2ByRecipMultAtan(OperatorPtr parentOp, Target* target, int wIn, int wOut, int method=0);
 
 		// destructor
 		~FixAtan2ByRecipMultAtan();

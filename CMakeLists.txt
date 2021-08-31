@@ -28,6 +28,16 @@ SET(CPACK_PACKAGE_VERSION_MINOR "9")
 SET(CPACK_PACKAGE_VERSION_PATCH "0")
 
 INCLUDE(CPack)
+#
+#Compilation flags
+SET(CMAKE_CXX_FLAGS_DEBUG "-Wall")
+# Uncomment for profiling
+#SET(CMAKE_CXX_FLAGS_DEBUG "-g -Wall")
+#SET(CMAKE_CXX_FLAGS_DEBUG "-g -pg -Wall") #-pg not supported in Apple LLVM version 10.0.0 (dyld error during execution)
+#SET(CMAKE_CXX_FLAGS_DEBUG "-pg -Wall")
+# Do you want an executable of 50MB ?
+#SET(CMAKE_BUILD_TYPE DEBUG)
+#SET(CMAKE_BUILD_TYPE release)
 
 # Detect GMP / GMPXX
 FIND_PATH(GMPXX_H
@@ -292,7 +302,8 @@ find_package(FLEX)
 
 
 # necessary to include generated files
-INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/src/ ${GMP_H} ${GMPXX_H} ${MPFI_H} ${MPFR_H} ${SOLLYA_H})
+#INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/src/ ${GMP_H} ${GMPXX_H} ${MPFI_H} ${MPFR_H} ${SOLLYA_H})
+INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/src/ ${GMP_H} ${GMPXX_H} ${MPFI_H} ${MPFR_H} ${SOLLYA_H})
 
 FLEX_TARGET(
 	VHDLLexer ${CMAKE_CURRENT_SOURCE_DIR}/src/VHDLLexerRule.l

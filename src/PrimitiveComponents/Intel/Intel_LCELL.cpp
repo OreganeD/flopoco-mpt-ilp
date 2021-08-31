@@ -10,14 +10,14 @@
 #include "mpfr.h"
 
 // include the header of the Operator
-#include "Altera_LCELL.hpp"
+#include "Intel_LCELL.hpp"
 
 using namespace std;
 namespace flopoco {
 
-Altera_LCELL::Altera_LCELL(Operator *parentOp, Target *target, const string &lut_mask, const bool &shared_arith, const bool &dont_touch) : Primitive(parentOp, target), _hasSharedArith(false), _hasDontTouch(false), _hasLUT7(false) {
-    srcFileName = "Altera_LCELL";
-    //setNameWithFreqAndUID("Altera_LCELL");
+Intel_LCELL::Intel_LCELL(Operator *parentOp, Target *target, const string &lut_mask, const bool &shared_arith, const bool &dont_touch) : Primitive(parentOp, target), _hasSharedArith(false), _hasDontTouch(false), _hasLUT7(false) {
+    srcFileName = "Intel_LCELL";
+    //setNameWithFreqAndUID("Intel_LCELL");
     if(target->getVendor() == "Altera"){
         std::stringstream o;
         if( target->getID() == "CycloneII" ){
@@ -44,7 +44,7 @@ Altera_LCELL::Altera_LCELL(Operator *parentOp, Target *target, const string &lut
                 }else if( target->getID() == "StratixV" ){
                     o << "stratixv";
                 }else{
-                    throw std::runtime_error("Target not supported for Altera_LCELL");
+                    throw std::runtime_error("Target not supported for Intel_LCELL");
                 }
             }
             o << "lcell_comb";
@@ -52,7 +52,7 @@ Altera_LCELL::Altera_LCELL(Operator *parentOp, Target *target, const string &lut
         }
 
 
-        setGeneric("lut_mask",lut_mask);
+        setGeneric("lut_mask",lut_mask,64);
         addInput("dataa",1,false);
         addInput("datab",1,false);
         addInput("datac",1,false);
@@ -61,7 +61,7 @@ Altera_LCELL::Altera_LCELL(Operator *parentOp, Target *target, const string &lut
         addOutput("combout",1,2,false);
         addOutput("cout",1,2,false);
         if( hasDontTouch() ){
-            if(dont_touch) setGeneric("dont_touch","\"on\"");
+            if(dont_touch) setGeneric("dont_touch","\"on\"",-1);
         }
         if( hasLUT7() ){
             addInput("datae",1,false);
@@ -69,14 +69,15 @@ Altera_LCELL::Altera_LCELL(Operator *parentOp, Target *target, const string &lut
             addInput("datag",1,false);
         }
         if( hasSharedArith() ){
-            if(shared_arith) setGeneric("shared_arith","\"on\"");
+            if(shared_arith) setGeneric("shared_arith","\"on\"",-1);
             addInput("sharein",1,false);
             addOutput("shareout",1,2,false);
             addOutput("sumout",1,2,false);
         }
     }else{
-        throw std::runtime_error("Target not supported for Altera_LCELL");
+        throw std::runtime_error("Target not supported for Intel_LCELL");
     }
 }
+
 
 }//namespace

@@ -66,19 +66,17 @@ namespace flopoco{
 
 void	FixFunction::initialize()
 	{
-		ostringstream s;
-#if 0 // This should be more accurate but it breaks ./flopoco FixFunctionByMultipartiteTable f="1-1/(x+1)" signedIn=0 lsbIn=-15 lsbOut=-16 nbtoi=2 compresstiv=0
-		// We should probably add one ulp for the faithful rounding
-		s << "[" << (signedIn?"-1":"0") << ";1-1b" << lsbIn <<"]";
-#else
-		s << "[" << (signedIn?"-1":"0") << ";1]";
+#if 1 // this sometimes enlarges the interval. 
+		if(signedIn)
+			inputRangeS = sollya_lib_parse_string("[-1;1]");
+		else			
+			inputRangeS = sollya_lib_parse_string("[0;1]");
+#else // This is tighter : interval is [O, 1-1b-l]  but it causes more problems than it solves 
+		string maxvalIn="1-1b"+to_string(lsbIn);
+		ostringstream uselessNoise;
+		uselessNoise << "[" << (signedIn?"-1":"0") << ";" << maxvalIn << "]";
+		inputRangeS = sollya_lib_parse_string(uselessNoise.str().c_str());
 #endif
-
-		
-		// ?? wtf middle age C here? 
-		
-		inputRangeS = sollya_lib_parse_string(s.str().c_str());
-
 		
 		sollya_obj_t outIntervalS = sollya_lib_evaluate(fS,inputRangeS);
 		sollya_obj_t supS = sollya_lib_sup(outIntervalS);

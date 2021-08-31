@@ -85,16 +85,16 @@ namespace flopoco {
         return dsps;
     }
 
-    double BaseMultiplierDSPKaratsuba::getLUTCost(int x_anchor, int y_anchor, int wMultX, int wMultY){
-        int bits = 0, add_bits = 0, protruding_bits;                //TODO: Check handling of protruding bits
+    double BaseMultiplierDSPKaratsuba::getLUTCost(int x_anchor, int y_anchor, int wMultX, int wMultY, bool signedIO){
+        int bits = 0, add_bits = 0, protruding_bits = 0;                //TODO: Check handling of protruding bits
         int gcd = BaseMultiplierDSPKaratsuba::gcd(wX, wY);
         long kxy = gcd;
         for(; kxy % wX || kxy % wY; kxy += gcd);
         for(int j = 0; j <= n; j++){
             for(int i = 0; i <= j; i++){
-                protruding_bits = x_anchor+y_anchor+2*kxy*j+wX+wY - wMultX+wMultY;
-                cout << protruding_bits << endl;
-                protruding_bits =((protruding_bits < 0)?0:protruding_bits);
+                //protruding_bits = x_anchor+y_anchor+2*kxy*j+wX+wY - wMultX+wMultY;
+                //cout << protruding_bits << endl;
+                //protruding_bits =((protruding_bits < 0)?0:protruding_bits);
                 bits += (wX + wY - protruding_bits);
                 if(i != j) {          //the DSPs that are replaced by Karatsuba contribute with 3 bits to bit heap
                     bits += 2 * (wX + wY - protruding_bits);
@@ -102,7 +102,7 @@ namespace flopoco {
                 }
             }
         }
-        return bits*0.65 + add_bits;    //TODO: consider protrusion of multiplier over the bounds of the complete multiplier
+        return bits*getBitHeapCompressionCostperBit() + add_bits;    //TODO: consider protrusion of multiplier over the bounds of the complete multiplier
     }
 
     bool BaseMultiplierDSPKaratsuba::shapeValid(Parametrization const& param, unsigned x, unsigned y) const
@@ -158,7 +158,7 @@ namespace flopoco {
         ) ;
     }
 
-    int BaseMultiplierDSPKaratsuba::ownLUTCost(int x_anchor, int y_anchor, int wMultX, int wMultY) {
+    int BaseMultiplierDSPKaratsuba::ownLUTCost(int x_anchor, int y_anchor, int wMultX, int wMultY, bool signedIO) {
         int add_bits = 0;
         int gcd = BaseMultiplierDSPKaratsuba::gcd(wX, wY);
         long kxy = gcd;

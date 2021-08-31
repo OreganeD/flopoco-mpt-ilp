@@ -26,7 +26,7 @@
 
 namespace flopoco{
 
-#if defined(HAVE_PAGLIB)
+#if defined(HAVE_PAGLIB) && defined(HAVE_OSCM)
     class IntConstMultShiftAddOptTernary : public IntConstMultShiftAdd
 	{
 	public:
@@ -46,7 +46,7 @@ namespace flopoco{
 	public:
 		static void registerFactory();
 	};
-#endif //HAVE_PAGLIB
+#endif //HAVE_PAGLIB, HAVE_OSCM
 
 }
 

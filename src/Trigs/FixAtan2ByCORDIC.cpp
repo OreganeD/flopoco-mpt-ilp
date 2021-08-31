@@ -6,27 +6,27 @@
 #include "mpfr.h"
 
 #include "FixAtan2ByCORDIC.hpp"
-#include "IntAddSubCmp/IntAdder.hpp"
-#include "ConstMult/FixRealKCM.hpp"
-#include "ShiftersEtc/LZOC.hpp"
-#include "ShiftersEtc/Shifters.hpp"
-#include "FixFunctions/FixFunctionByPiecewisePoly.hpp"
-#include "FixFunctions/BipartiteTable.hpp"
 
 
 using namespace std;
+/* TODO The error analysis is probably wrong.
+There are still quite a few last-bit errors with the current setup in
+./flopoco -verbose=3 -pipeline=no FixAtan2ByCORDIC 8 TestBenchFile -2
+
+They are all for vectors of small norm. 
+Probably an error on the xy datapath translates to a larger error on A in this case
+(rather obvious on a drawing).
+We didn't account for it in the error analysis.
+
+
+One wrong testcase is unavoidable, it is atan2 (0,0)
+
+   TODO add a don't care to the test framework?
+
+
 // TODO reduce the CORDIC datapaths (Y with leading 0s and X with leading ones)
 // Or write an exact version of the XY datapath
 
-/* TODO Debugging:
-There are still a few last-bit errors with the current setup in
-./flopoco -verbose=3 -pipeline=no FixAtan2ByCORDIC 8 TestBenchFile -2
-
-
-They are all for vectors of small norm 
-
-One is unavoidable, it is atan2 (0,0)
-   TODO add a don't care to the test framework?
 */
 namespace flopoco{
 
@@ -34,8 +34,8 @@ namespace flopoco{
 	// an option for outputting the norm of the vector as well (scaled or not)
 
 
-	FixAtan2ByCORDIC::FixAtan2ByCORDIC(Target* target_, int wIn_, int wOut_, map<string, double> inputDelays_) :
- 		FixAtan2(target_, wIn_, wOut_, inputDelays_)
+	FixAtan2ByCORDIC::FixAtan2ByCORDIC(OperatorPtr parentOp, Target* target_, int wIn_, int wOut_) :
+ 		FixAtan2(parentOp, target_, wIn_, wOut_)
 	{
 		int stage;
 		srcFileName="FixAtan2ByCORDIC";
@@ -44,11 +44,12 @@ namespace flopoco{
 
 		ostringstream name;
 		name << "FixAtan2ByCORDIC_" << wIn_ << "_" << wOut_ << "_uid" << getNewUId();
-		setNameWithFreq( name.str() );
+		setNameWithFreqAndUID( name.str() );
 	
 		mpfr_t  zatan; 
 		mpfr_init2(zatan, 10*wOut);
-	
+
+		negateByComplement=false;
 		computeGuardBits();
 
 		//Defining the various parameters according to method
@@ -63,11 +64,15 @@ namespace flopoco{
 		/////////////////////////////////////////////////////////////////////////////
 
 		buildQuadrantRangeReduction();
-
-		// No scaling RR: just a copy
+		
+#if 0 // it helps a bit with the last LSB errors, but not 100% 
+		buildScalingRangeReduction();
+#else
+		// No scaling RR: just a copy 
 		vhdl << tab << declare("XRS", wIn-1) << " <=  XR;" << endl;
 		vhdl << tab << declare("YRS", wIn-1) << " <=  YR;" << endl;
-		
+#endif
+
 		int sizeZ=wOut-2+gA; // w-2 because two bits come from arg red 
 
 		////////////////////////////////////////////////////////////////////////////
@@ -183,6 +188,7 @@ namespace flopoco{
 			// ulp = weight of the LSB of the result is 2^(-wOut+1)
 			// half-ulp is 2^-wOut
 			// 1/pi atan(2^-w) < 1/2. 2^-w therefore after w-1 interations,  method error will be bounded by 2^-w 
+			//			maxIterations = wOut-1; // as per the paper
 			maxIterations = wOut-1;
 			//error analysis for the (x,y) datapath
 			double eps;  //error in ulp
@@ -203,14 +209,17 @@ namespace flopoco{
 			}
 			// guard bits depend only on the number of iterations
 			gXY = (int) ceil(log2(eps));
-			//gXY+=2; // experimental
 
 			//error analysis for the A datapath
 			eps = maxIterations*0.5; // only the rounding error in the atan constant
 			gA = 1 + (int) ceil(log2(eps)); // +1 for the final rounding 
-			//gA+=2; // experimental
-			REPORT(DEBUG, "Error analysis computes eps=" << eps << " ulps on the XY datapath, hence  gXY=" << gXY);
-			REPORT(DEBUG, "Error analysis computes eps=" << eps <<  " ulps on the A datapath, hence  gA=" << gA );
+#if 0 // this saves 8 but not 9
+			gXY+=2; // experimental
+			gA+=2; // experimental
+#endif
+			
+			REPORT(DETAILED, "Error analysis computes eps=" << eps << " ulps on the XY datapath, hence  gXY=" << gXY);
+			REPORT(DETAILED, "Error analysis computes eps=" << eps <<  " ulps on the A datapath, hence  gA=" << gA );
 	} 
 
 

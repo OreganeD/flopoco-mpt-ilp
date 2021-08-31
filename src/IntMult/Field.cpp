@@ -234,6 +234,31 @@ namespace flopoco {
         fieldState.updateCursor();
     }
 
+    void Field::setTruncated(unsigned wOut, unsigned prodWidth, unsigned guardBits, unsigned keepBits,  FieldState& fieldState) {
+        cout << "keepBits " << keepBits << " guardBits " << guardBits << " prod " << prodWidth << " wOut " << wOut <<endl;
+        ID fieldID = fieldState.getID();
+        unsigned int updateMissing = 0;
+        for(unsigned int y = 0; y < wY_; y++) {
+            for(unsigned int x = 0; x < wX_; x++) {
+                if((x+y) < ((int)prodWidth-wOut-guardBits)){
+                    field_[y][x] = fieldID;
+                    updateMissing++;
+                } else if((x+y) == ((int)prodWidth-wOut-guardBits)){
+                    if((keepBits)?keepBits--:0){
+                        cout << "keepBit at" << x << "," << y << endl;
+                    } else {
+                        cout << "NO keepBit at" << x << "," << y << endl;
+                        field_[y][x] = fieldID;
+                        updateMissing++;
+                    }
+                }
+            }
+        }
+
+        fieldState.decreaseMissing(updateMissing);
+        fieldState.updateCursor();
+    }
+
     void Field::printField(FieldState& fieldState) {
         ID fieldID = fieldState.getID();
 

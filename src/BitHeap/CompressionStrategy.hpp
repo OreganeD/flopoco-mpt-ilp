@@ -249,6 +249,11 @@ class BitheapPlotter;
 		 */
 		bool checkAlgorithmReachedAdder(unsigned int adderHeight, unsigned int stage);
 
+        /*
+        * @brief Generates a TikZ-graphic of the compressor solution
+        */
+        void printSolutionTeX();
+
 		vector<vector<vector<Bit*> > > orderedBits; /**< The bits of the bitheap ordered by stages. First dimension is the stage, second the column */
 
 		vector<vector<int> > bitAmount; 			/**< Amount of bits in each stage and column. The compression strategies (currently FirstFitting does not) work on this bitAmount, and if a solution is finished, the compressors will be used. */

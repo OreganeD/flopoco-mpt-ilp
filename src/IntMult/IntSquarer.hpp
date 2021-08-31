@@ -19,23 +19,15 @@ namespace flopoco{
 		 * The IntSquarer constructor
 		 * @param[in] target the target device
 		 * @param[in] wIn    the with of the inputs and output
-		 * @param[in] inputDelays the delays for each input
+		 * @param[in] wOut the delays for each input; -1 means: exact squarer
 		 **/
-		IntSquarer(Target* target, int wIn, map<string, double> inputDelays = emptyDelayMap);
-		/*IntSquarer(Target* target, int wIn);
-		  void cmn(Target* target, int wIn, map<string, double> inputDelays);*/
-	
+		IntSquarer(OperatorPtr parentOp, Target* target, int wIn, bool signedIn_=false, int wOut=0);
+
 		/**
 		 *  Destructor
 		 */
 		~IntSquarer();
 
-		/**
-		 * Method belonging to the Operator class overloaded by the IntSquarer class
-		 * @param[in,out] o     the stream where the current architecture will be outputed to
-		 * @param[in]     name  the name of the entity corresponding to the architecture generated in this method
-		 **/
-		void outputVHDL(std::ostream& o, std::string name);
 
 		void emulate(TestCase* tc);
 
@@ -46,19 +38,13 @@ namespace flopoco{
 		static void registerFactory();
 
 	protected:
-		int wIn_;                         /**< the width for X, Y and R*/
-
+		int wIn;                         /**< the width of X and Y */
+		int signedIn;
+		int wOut;                         /**< the actual width of R*/
+		
 	private:
-		map<string, double> inputDelays_; /**< a map between input signal names and their maximum delays */
-		int bufferedInputs;               /**< variable denoting an initial buffering of the inputs */
-		double maxInputDelay;             /**< the maximum delay between the inputs present in the map*/
-		int nbOfChunks;                   /**< the number of chunks that the addition will be split in */
-		int chunkSize_;                   /**< the suggested chunk size so that the addition can take place at the objective frequency*/
-		int *cSize;                       /**< array containing the chunk sizes for all nbOfChunks*/
-		/** A IntAdder subcomponent */
-		IntAdder* intadder;
-		IntAdder* intadd2;
-		IntSquarer *intsquarer;
+		int guardBits;
+		bool faithfulOnly;      /**< true for a truncated bit heap, but false for a tabulated square */
 	};
 }
 #endif

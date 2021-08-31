@@ -519,7 +519,8 @@ namespace flopoco{
 		bitheap->isCompressed = true;
 		//plot the bitheap
 		if(bitheap->getOp()->getTarget()->generateFigures()) {
-			 bitheapPlotter->plotBitHeap();
+		    bitheapPlotter->plotBitHeap();
+            printSolutionTeX();
 		}
 	}
 
@@ -928,6 +929,8 @@ namespace flopoco{
                 adderIn1 << " & " << bitheap->bits[compressionDoneIndex][1]->getName();
                 if(bitheap->bits[compressionDoneIndex].size() > 2)
                     adderIn2 << " & " << bitheap->bits[compressionDoneIndex][2]->getName();
+                else
+                    adderIn2 << " & \'0\'";
 
                 if(bitheap->bits[compressionDoneIndex].size() > 3)
                     adderCin << bitheap->bits[compressionDoneIndex][3]->getName();
@@ -1364,4 +1367,118 @@ namespace flopoco{
             return 0;                           //But the adder LSB can process 3 bits due to the Cin, but not more
         return 1;
     }
+
+    void CompressionStrategy::printSolutionTeX(){
+        stringstream compr;
+        compr <<
+              tab << "\\documentclass[margin=0pt]{standalone}" << endl <<
+              tab << "\\usepackage{graphicx}" << endl <<
+              tab << "\\usepackage{xcolor,tikz,tikzscale}" << endl <<
+              tab << "\\begin{document}" << endl <<
+              tab << "\\begin{tikzpicture}" << endl;
+
+        #define N_TIKZ_COLORS 14
+        #define MAX_STRING_SIZE 20
+        char tikz_colors[N_TIKZ_COLORS][MAX_STRING_SIZE] = { "red", "green", "blue", "cyan", "magenta", "yellow", "brown", "lime", "olive", "orange", "pink", "purple", "teal", "violet"};
+        int color = 0;
+
+        vector<vector<int> > bh_bit(solution.getNumberOfStages()+1, vector<int>(bitheap->width+4, 0));
+        vector<vector<int> > coveredBits(solution.getNumberOfStages()+1, vector<int>(bitheap->width+4, 0));
+        vector<int> bh_constants(bitheap->width+4, 0);
+
+        int lastMaxHeight = 0, previousMaxHeight;
+        for(unsigned int c = 0; c < orderedBits[0].size(); c++) {
+            bh_bit[0][c] = orderedBits[0][c].size();
+            lastMaxHeight = (lastMaxHeight < orderedBits[0][c].size())?orderedBits[0][c].size():lastMaxHeight;
+            //cout << "col=" << c << " height=" << orderedBits[0][c].size() << endl;
+            for(unsigned int b = 0; b < orderedBits[0][c].size(); b++) {
+                if(orderedBits[0][c][b]->signal->type() == Signal::SignalType::constantWithDeclaration || orderedBits[0][c][b]->signal->type() == Signal::SignalType::constant) bh_constants[c]++;
+                //cout << (orderedBits[0][c][b]->signal->getName()) << " is constant " << (orderedBits[0][c][b]->signal->type() == Signal::SignalType::constantWithDeclaration) << endl;
+            }
+        }
+
+        int shift = 0;
+        int finalAdderStart = 0, afound = 0;
+        for(unsigned int s = 0; s <= solution.getNumberOfStages(); s++) {
+            int maxHeight = 0;
+            for (unsigned int c = 0; c < bitheap->width; c++) {
+
+                if(s < solution.getNumberOfStages()){
+                    vector<pair<BasicCompressor *, unsigned int> > tempVector;
+                    tempVector = solution.getCompressorsAtPosition(s, c);
+                    for (unsigned int j = 0; j < tempVector.size(); j++) {      //for every compressor in current column and stage
+                        int cc;
+                        //cout << tempVector[j].first->heights.size() << " " << tempVector[j].first->heights[0] << " " << tempVector[j].first->getStringOfIO() << endl;
+                        compr << tab <<  "\\draw[fill="<< tikz_colors[color++%N_TIKZ_COLORS] << "!50,opacity=0.75] ("<<-(int)c*0.25L+0.125L<<","<<(coveredBits[s][c]*0.25L)-0.125L-shift*0.25L<<")  {[rounded corners=2.5pt]";
+                        for(cc = 0; cc < tempVector[j].first->heights.size(); cc++){
+                            compr << "--("<<-(int)(c+cc)*0.25+0.125<<","<<(coveredBits[s][c+cc]+tempVector[j].first->heights[cc])*0.25L-0.125L-shift*0.25L<<")";
+                            if(cc+1 == tempVector[j].first->heights.size() || cc+1 < tempVector[j].first->heights.size() && (coveredBits[s][c+cc]+tempVector[j].first->heights[cc]) != coveredBits[s][c+cc+1]+tempVector[j].first->heights[cc+1])
+                                compr << "--("<<-(int)(c+cc+1)*0.25+0.125<<","<<(coveredBits[s][c+cc]+tempVector[j].first->heights[cc])*0.25L-0.125L-shift*0.25L<<")";
+                            if(cc+1 == tempVector[j].first->heights.size()){
+                                compr << "--("<<-(int)(c+cc+1)*0.25+0.125<<","<<coveredBits[s][c+cc]*0.25L-0.125L-shift*0.25L<<")";
+                            }
+                            coveredBits[s][c+cc] += tempVector[j].first->heights[cc];
+                        }
+                        for(cc--; 0 <= cc; cc--){
+                            compr << "--("<<-(int)(c+cc)*0.25+0.125<<","<<(((int)coveredBits[s][c+cc]-(int)tempVector[j].first->heights[cc]))*0.25L-0.125L-shift*0.25L<<")";
+                            if(0 <= cc-1 && ((int)coveredBits[s][c+cc]-(int)tempVector[j].first->heights[cc]) != ((int)coveredBits[s][c+cc-1]-(int)tempVector[j].first->heights[cc-1])){
+                                compr << "--("<<-(int)(c+cc)*0.25+0.125<<","<<(((int)coveredBits[s][c+cc-1]-(int)tempVector[j].first->heights[cc-1]))*0.25L-0.125L-shift*0.25L<<")";
+                            }
+                        }
+                        compr << "--cycle};" << endl;
+                        int prevBitPos;
+                        for(cc = 0; cc < tempVector[j].first->outHeights.size(); cc++){
+                            if(0 < cc){ //draw connection for output bits of compressors
+                                compr << tab << "\\draw[black,thick] (-0.25*" << c+cc << "," << bh_bit[s+1][c+cc]*0.25L-shift*0.25L-(lastMaxHeight)*0.25L << ")"
+                                << "--(-0.25*" << c+cc-1 << "," << prevBitPos*0.25L-shift*0.25L-(lastMaxHeight)*0.25L << ") ;" << endl;
+                            }
+                            prevBitPos = bh_bit[s+1][c+cc];
+                            bh_bit[s+1][c+cc] += tempVector[j].first->outHeights[cc];
+                            maxHeight = (maxHeight<bh_bit[s+1][c+cc])?bh_bit[s+1][c+cc]:maxHeight;
+                        }
+                    }
+                    //copy bits that are not compressed in current stage to subsequent stage
+                    bh_bit[s + 1][c] += (0 < bh_bit[s][c] - coveredBits[s][c]) ? bh_bit[s][c] - coveredBits[s][c] : 0;
+                    maxHeight = (maxHeight<bh_bit[s+1][c])?bh_bit[s+1][c]:maxHeight;
+                } else {    //draw final adder
+                    if(1 < bh_bit[s][c] && !afound){
+                        finalAdderStart = c; afound = 1;
+                        compr << tab <<  "\\draw[fill=blue!50,opacity=0.75] ("<<-(int)finalAdderStart*0.25L+0.125L<<","<<-0.125L-(shift)*0.25L<<")  {[rounded corners=2.5pt]";
+                        compr << "--("<<-(int)bitheap->width*0.25L+0.125L<<","<<-0.125L-(shift)*0.25L<<")";
+                        compr << "--("<<-(int)bitheap->width*0.25L+0.125L<<","<<+0.25*bitheap->final_add_height-0.125L-(shift)*0.25L<<")";
+                        compr << "--("<<-(int)finalAdderStart*0.25L+0.125L<<","<<+0.25*bitheap->final_add_height-0.125L-(shift)*0.25L<<")--cycle};";
+                    }
+                }
+
+                if(bh_bit[s][c]){       //bits in column of current stage
+                    compr << tab <<  tab <<"\\foreach \\i in {0,...," << bh_bit[s][c]-1 << "}" << endl <<
+                          tab << tab << tab <<"\\draw[fill=blue!20] (-0.25*" << c << ",0.25*\\i+" << -shift*0.25L << ") circle (2pt);" << endl;
+                    if(s == 0 && bh_constants[c] != 0) for(int b=0; b < bh_constants[c]; b++){
+                        compr << tab <<  tab <<"\\node[] at (-0.25*" << c << ",0+" << 0.25*b-shift*0.25L << ") {\\textsf{\\tiny c}};" << endl;
+                    }
+                }
+            }
+            previousMaxHeight = lastMaxHeight;
+            shift += lastMaxHeight;
+            lastMaxHeight = maxHeight;
+
+            if(s == solution.getNumberOfStages()) { //Output of final stage of the compressor tree
+                compr << tab << "\\draw[black,thick] (-0.25*" << finalAdderStart << "," << -shift*0.25L << ")"
+                      << "--(-0.25*" << bitheap->width-1 << "," << -shift*0.25L << ") ;" << endl;
+                compr << tab <<  tab <<"\\foreach \\i in {0,...," << bitheap->width-1 << "}" << endl <<
+                         tab <<  tab << tab <<"\\draw[fill=blue!20] (-0.25*\\i," << -shift*0.25L << ") circle (2pt);" << endl;
+            }
+
+        }
+
+        compr << tab << "\\end{tikzpicture}" << endl <<
+        tab << "\\end{document}" << endl << endl;
+
+        ofstream result_file;
+        result_file.open("compression.tex");
+        result_file << compr.str();
+        result_file.close();
+    }
+
+
 }

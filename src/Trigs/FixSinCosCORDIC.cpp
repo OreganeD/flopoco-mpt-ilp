@@ -265,15 +265,12 @@ namespace flopoco{
 			//multiply X by Pi
 			newInstance("FixRealConstMult",
 									"piMultiplier",
-									// unsigned here, the conversion to signed comes later
 									"method=KCM signedIn=1 msbIn=" + to_string(zMSB+1)
 									+ " lsbIn=" + to_string(zLSB)
 									+ " lsbOut="  + to_string(zLSB)
 									+ " constant=pi", 
 									"X=>FinalZ",
 									"R=>PiZ");
-
-			// manageCriticalPath(getTarget()->localWireDelay(sizeZ) + getTarget()->DSPMultiplierDelay());
 
 			sizeZ+=3; // +2 cause mult by pi, +1 because we add back the sign
 			

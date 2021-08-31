@@ -23,6 +23,10 @@
 #include "FPLogIterative.hpp"
 #include "FPLog.hpp"
 //#include "TestBenches/FPNumber.hpp"
+#include "ShiftersEtc/LZOC.hpp"
+#include "ShiftersEtc/Normalizer.hpp"
+#include "ShiftersEtc/Shifters.hpp"
+#include "Tables/Table.hpp"
 #include "ConstMult/FixRealKCM.hpp"
 #include "utils.hpp"
 //#include "IntMult/IntSquarer.hpp"
@@ -337,7 +341,7 @@ namespace flopoco{
 
 		newInstance("Shifter",
 								"small_lshift",
-								"wIn=" + to_string(wF-pfinal+2) + " maxShift=" + to_string(wF-pfinal+2) + " dir=0",
+								"wX=" + to_string(wF-pfinal+2) + " maxShift=" + to_string(wF-pfinal+2) + " dir=0",
 								"X=>absZ0,S=>shiftvalinL",
 								"R=>small_absZ0_normd_full");
 
@@ -683,11 +687,11 @@ namespace flopoco{
 								"R=>Log_normal"
 								);
 
-		newInstance("LZOCShifterSticky",
+		newInstance("Normalizer",
 								"final_norm",
-								"wIn=" + to_string(wE+target_prec) + " wOut=" + to_string(target_prec) + " wCount=" + to_string(intlog2(wE+(wF>>1))+1) + " computeSticky=false countType=0",
-								"I=>Log_normal",
-								"O=>Log_normal_normd, Count=>E_normal");
+								"wX=" + to_string(wE+target_prec) + " wR=" + to_string(target_prec) + " maxShift=" + to_string(wE+(wF>>1)) + " countType=0",
+								"X=>Log_normal",
+								"R=>Log_normal_normd, Count=>E_normal");
 
 
 		int Z2o2_small_size=(wF+gLog+2) - pfinal; // we need   (wF+gLog+2) - pfinal bits of Z2O2
@@ -699,7 +703,7 @@ namespace flopoco{
 
 		newInstance("Shifter",
 								"ao_rshift",
-								"wIn=" + to_string(Z2o2_small_size) + " maxShift=" + to_string(sfinal-pfinal+1) + " dir=1", // dir=right
+								"wX=" + to_string(Z2o2_small_size) + " maxShift=" + to_string(sfinal-pfinal+1) + " dir=1", // dir=right
 								"X=>Z2o2_small_bs, S=>shiftvalinR",
 								"R=>Z2o2_small_s");
 

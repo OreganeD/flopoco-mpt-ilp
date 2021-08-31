@@ -33,13 +33,13 @@
 
 using namespace std;
 
-#if defined(HAVE_PAGLIB)
+#if defined(HAVE_PAGLIB) && defined(HAVE_OSCM)
 
 using namespace PAGSuite;
 
 namespace flopoco{
 
-    IntConstMultShiftAddOptTernary::IntConstMultShiftAddOptTernary(Operator* parentOp, Target* target, int wIn, int coeff, bool syncInOut) : IntConstMultShiftAdd(parentOp, target, wIn, "", false, syncInOut, 1000, false, epsilon)
+    IntConstMultShiftAddOptTernary::IntConstMultShiftAddOptTernary(Operator* parentOp, Target* target, int wIn, int coeff, bool syncInOut) : IntConstMultShiftAdd(parentOp, target, wIn, "", false, syncInOut, 1000, false, 0)
     {
 		int maxCoefficient = 4194303; //=2^22-1
 
@@ -105,7 +105,7 @@ namespace flopoco{
 namespace flopoco{
     void flopoco::IntConstMultShiftAddOptTernary::registerFactory() {
 
-#if defined(HAVE_PAGLIB)
+#if defined(HAVE_PAGLIB) && defined(HAVE_OSCM)
         UserInterface::add( "IntConstMultShiftAddOptTernary", // name
                             "Integer constant multiplication using shift and ternary additions in an optimal way (i.e., with minimum number of ternary adders). Works for coefficients up to 4194303 (22 bit)", // description, string
                             "ConstMultDiv", // category, from the list defined in UserInterface.cpp

@@ -55,7 +55,7 @@ namespace flopoco{
 		incompleteDeclaration_(false), hasBeenScheduled_(false), hasBeenDrawn_(false),
 		isFP_(false), isFix_(false), isIEEE_(false),
 		wE_(0), wF_(0), MSB_(width-1), LSB_(0),
-		isSigned_(false), isBus_(isBus)
+		isSigned_(false), isBus_(isBus), isCustom_(false), customType_("")
 	{
 		predecessors_.clear();
 		successors_.clear();
@@ -68,7 +68,7 @@ namespace flopoco{
 		incompleteDeclaration_(false), hasBeenScheduled_(false), hasBeenDrawn_(false),
 		isFP_(false), isFix_(false), isIEEE_(false),
 		wE_(0), wF_(0), MSB_(0), LSB_(0),
-		isBus_(false)
+		isBus_(false), isCustom_(false), customType_("")
 	{
 		width_ = intlog2(fabs(constValue_));
 		MSB_=width_-1;
@@ -85,7 +85,7 @@ namespace flopoco{
 		incompleteDeclaration_(false), hasBeenScheduled_(false), hasBeenDrawn_(false),
 		isFP_(false), isFix_(false), isIEEE_(false),
 		wE_(0), wF_(0), MSB_(width-1), LSB_(0),
-		isSigned_(false), isBus_(false)
+		isSigned_(false), isBus_(false), isCustom_(false), customType_("")
 	{
 		predecessors_.clear();
 		successors_.clear();
@@ -99,7 +99,7 @@ namespace flopoco{
 		incompleteDeclaration_(false), hasBeenScheduled_(false), hasBeenDrawn_(false),
 		isFP_(false), isFix_(true),  isIEEE_(false),
 		wE_(0), wF_(0), MSB_(MSB), LSB_(LSB),
-		isSigned_(isSigned), isBus_(true)
+		isSigned_(isSigned), isBus_(true), isCustom_(false), customType_("")
 	{
 		predecessors_.clear();
 		successors_.clear();
@@ -112,13 +112,25 @@ namespace flopoco{
 		incompleteDeclaration_(false), hasBeenScheduled_(false), hasBeenDrawn_(false),
 		isFP_(true), isFix_(false), isIEEE_(false),
 		wE_(wE), wF_(wF), MSB_(0), LSB_(0),
-		isSigned_(false), isBus_(false)
+		isSigned_(false), isBus_(false), isCustom_(false), customType_("")
 	{
 		if(ieeeFormat) { // correct some of the initializations above
 			width_  = wE+wF+1;
 			isFP_   = false;
 			isIEEE_ = true;
 		}
+		predecessors_.clear();
+		successors_.clear();
+	}
+
+	Signal::Signal(Operator* parentOp, const std::string name, const SignalType type, const std::string customType) :
+		parentOp_(parentOp), name_(name), type_(type), resetType_(noReset), width_(0), constValue_(0.0), tableAttributes_(""), numberOfPossibleValues_(1),
+		lifeSpan_(0), cycle_(0), criticalPath_(0.0), criticalPathContribution_(0.0),
+		incompleteDeclaration_(false), hasBeenScheduled_(false), hasBeenDrawn_(false),
+		isFP_(false), isFix_(false), isIEEE_(false),
+		wE_(0), wF_(0), MSB_(0), LSB_(0),
+		isSigned_(false), isBus_(false), isCustom_(true), customType_(customType)
+	{
 		predecessors_.clear();
 		successors_.clear();
 	}
@@ -186,6 +198,8 @@ namespace flopoco{
 		LSB_    = originalSignal->LSB();
 		isBus_  = originalSignal->isBus();
 		isSigned_ = originalSignal->isSigned();
+		isCustom_ = originalSignal->isCustom();
+		customType_ = originalSignal->customType();
 	}
 
 
@@ -236,9 +250,15 @@ namespace flopoco{
 
 	bool Signal::isFP() const {return isFP_;}
 
+	bool Signal::isCustom() const {return isCustom_;}
+
+	std::string Signal::customType() const {return customType_;}
+
 	void Signal::setIsFP(bool newIsFP) {isFP_ = newIsFP;}
 
 	void Signal::setIsIEEE(bool newIsIEEE) {isIEEE_ = newIsIEEE;}
+
+	void Signal::setIsCustom(bool newIsCustom) {isCustom_ = newIsCustom;}
 
 	bool Signal::isBus() const {return isBus_;}
 
@@ -440,6 +460,9 @@ namespace flopoco{
 				else
 					o << "-" << LSB_;
 				o << " downto 0)";
+			}
+			else if(isCustom_){
+				o << customType_;
 			}
 			else
 				o << " std_logic_vector(" << width()-1 << " downto 0)";

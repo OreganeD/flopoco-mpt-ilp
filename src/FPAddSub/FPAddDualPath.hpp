@@ -7,12 +7,6 @@
 #include <gmpxx.h>
 
 #include "../Operator.hpp"
-#include "../ShiftersEtc/LZOC.hpp"
-#include "../ShiftersEtc/Shifters.hpp"
-#include "../ShiftersEtc/LZOCShifterSticky.hpp"
-#include "../TestBenches/FPNumber.hpp"
-#include "../IntAddSubCmp/IntAdder.hpp"
-#include "../IntAddSubCmp/IntDualAddSub.hpp"
 
 namespace flopoco{
 
@@ -53,18 +47,6 @@ namespace flopoco{
 		/** selects special case for only positive float input and output numbers */
 		bool onlyPositiveIO;
 
-		/** The combined leading zero counter and shifter for the close path */
-		LZOCShifterSticky* lzocs;
-		/** The integer adder object for subtraction in the close path */
-		IntAdder *fracSubClose;
-		/** The dual subtractor for the close path */
-		IntDualAddSub *dualSubClose;
-		/** The fraction adder for the far path */
-		IntAdder *fracAddFar;
-		/** The adder that does the final rounding */
-		IntAdder *finalRoundAdd;
-		/** The right shifter for the far path */
-		Shifter* rightShifter;
 
 		int sizeRightShift;
 

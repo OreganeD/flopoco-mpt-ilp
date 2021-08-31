@@ -27,7 +27,7 @@ namespace flopoco {
 
 		Target* getTarget() { return target; }
 	private:
-        Target* target;
+        Target* target = NULL;
 
         string srcFileName; //for debug outputs
         string uniqueName_; /**< useful only to enable same kind of reporting as for FloPoCo operators. */

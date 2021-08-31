@@ -17,11 +17,10 @@
 #include <sstream>
 #include <math.h>	// for NaN
 #include "FPPow.hpp"
-#include "IterativeLog.hpp"
+#include "FPLog.hpp"
 #include "FPExp.hpp"
-#include "ShiftersEtc/LZOC.hpp"
 #include "FPMultSquare/FPMult.hpp"
-#include "TestBenches/FPNumber.hpp"
+//#include "TestBenches/FPNumber.hpp"
 #include "utils.hpp"
 
 
@@ -73,8 +72,8 @@ namespace flopoco{
 
 
 
-	FPPow::FPPow(Target* target, int wE, int wF, int type, int logTableSize, int expTableSize, int expDegree)
-		: Operator(target), wE(wE), wF(wF), type(type)
+	FPPow::FPPow(OperatorPtr parentOp, Target* target, int wE, int wF, int type)
+		: Operator(parentOp, target), wE(wE), wF(wF), type(type)
 	{
 
 		setCopyrightString("F. de Dinechin, C. Klein  (2008)");
@@ -82,11 +81,7 @@ namespace flopoco{
 
 		ostringstream o;
 
-		o << (type?"FPPowr_":"FPPow_") << wE << "_" << wF << "_";
-		if(getTarget()->isPipelined())
-			o << getTarget()->frequencyMHz() ;
-		else
-			o << "comb";
+		o << (type?"FPPowr_":"FPPow_") << wE << "_" << wF;
 		setNameWithFreqAndUID(o.str());
 
 		addFPInput("X", wE, wF);
@@ -125,33 +120,30 @@ namespace flopoco{
 		vhdl<<"-- Inputs analysis  --"<<endl;
 
 		vhdl<<"-- zero inputs--"<<endl;
-		vhdl << tab  << declare("zeroX") << " <= '1' when flagsX=\"00\" else '0';"<<endl;
-		vhdl << tab  << declare("zeroY") << " <= '1' when flagsY=\"00\" else '0';"<<endl;
+		vhdl << tab  << declare(getTarget()->logicDelay(),"zeroX") << " <= '1' when flagsX=\"00\" else '0';"<<endl;
+		vhdl << tab  << declare(getTarget()->logicDelay(),"zeroY") << " <= '1' when flagsY=\"00\" else '0';"<<endl;
 		vhdl<<"-- normal inputs--"<<endl;
-		vhdl<<tab<<declare("normalX") << " <= '1' when flagsX=\"01\" else '0';"<<endl;
-		vhdl<<tab<<declare("normalY") << " <= '1' when flagsY=\"01\" else '0';"<<endl;
+		vhdl<<tab<<declare(getTarget()->logicDelay(),"normalX") << " <= '1' when flagsX=\"01\" else '0';"<<endl;
+		vhdl<<tab<<declare(getTarget()->logicDelay(),"normalY") << " <= '1' when flagsY=\"01\" else '0';"<<endl;
 		vhdl<<"-- inf input --"<<endl;
-		vhdl<<tab<<declare("infX") << " <= '1' when flagsX=\"10\" else '0';"<<endl;
-		vhdl<<tab<<declare("infY") << " <= '1' when flagsY=\"10\" else '0';"<<endl;
+		vhdl<<tab<<declare(getTarget()->logicDelay(),"infX") << " <= '1' when flagsX=\"10\" else '0';"<<endl;
+		vhdl<<tab<<declare(getTarget()->logicDelay(),"infY") << " <= '1' when flagsY=\"10\" else '0';"<<endl;
 		vhdl<<"-- NaN inputs  --"<<endl;
-		vhdl<<tab<<declare("s_nan_in") << " <= '1' when flagsX=\"11\" or flagsY=\"11\" else '0';"<<endl;
+		vhdl<<tab<<declare(getTarget()->logicDelay(),"s_nan_in") << " <= '1' when flagsX=\"11\" or flagsY=\"11\" else '0';"<<endl;
 
 		vhdl<<"-- Comparison of X to 1   --"<<endl;
 		vhdl << tab  << declare("OneExpFrac", wE+wF) << " <=  \"0\" & " << rangeAssign(wE-2, 0, "'1'") << " & " << rangeAssign(wF-1, 0, "'0'") << ";" << endl;
-		IntAdder *cmpOneAdder = new IntAdder(target, wE+wF+1);
 		vhdl << tab << declare("ExpFracX",wE+wF+1) << "<= \"0\" & expFieldX & fracX;"<<endl;
 		vhdl << tab << declare("OneExpFracCompl",wE+wF+1) << "<=  \"1\" & (not OneExpFrac);"<<endl;
-		inPortMap(cmpOneAdder, "X", "ExpFracX");
-		inPortMap(cmpOneAdder, "Y", "OneExpFracCompl");
-		inPortMapCst(cmpOneAdder, "Cin", "'1'");
-		outPortMap (cmpOneAdder, "R", "cmpXOneRes");
-		vhdl << instance(cmpOneAdder, "cmpXOne") << endl;
-		syncCycleFromSignal("cmpXOneRes");
-		nextCycle();
-		// setCriticalPath( cmpOneAdder->getOutputDelay("R") );
-		vhdl << tab  << declare("XisOneAndNormal") << " <= '1' when X = (\"010\" & OneExpFrac)" << " else '0';" << endl;
-		vhdl << tab  << declare("absXgtOneAndNormal") << " <= normalX and (not XisOneAndNormal) and (not cmpXOneRes("<<wE+wF<<"));" << endl;
-		vhdl << tab  << declare("absXltOneAndNormal") << " <= normalX and cmpXOneRes("<<wE+wF<<");" << endl;
+		newInstance("IntAdder",
+								"cmpXOne",
+								"wIn=" + to_string(wE+wF+1),
+								"X=>ExpFracX,Y=>OneExpFracCompl",
+								"R=>cmpXOneRes",
+								"Cin=>'1'"); // it is a subtraction
+		vhdl << tab  << declare(getTarget()->logicDelay(), "XisOneAndNormal") << " <= '1' when X = (\"010\" & OneExpFrac)" << " else '0';" << endl;
+		vhdl << tab  << declare(getTarget()->logicDelay(), "absXgtOneAndNormal") << " <= normalX and (not XisOneAndNormal) and (not cmpXOneRes("<<wE+wF<<"));" << endl;
+		vhdl << tab  << declare(getTarget()->logicDelay(), "absXltOneAndNormal") << " <= normalX and cmpXOneRes("<<wE+wF<<");" << endl;
 
 
 
@@ -159,8 +151,6 @@ namespace flopoco{
 
 
 		if(type==0){//pow
-
-			setCycle(0);
 
 			// We first have to reverse the fraction, because our LZOC counts leading bits, not trailing ones.
 			// There must be some standard VHDL way of doing that
@@ -172,46 +162,41 @@ namespace flopoco{
 			}
 			vhdl << ";" <<  endl;
 
-			LZOC* right1counter = new LZOC(target, wF);
-			inPortMap(right1counter, "I", "fracYreverted");
-			inPortMapCst(right1counter, "OZB", "\'0\'");
-			outPortMap(right1counter, "O", "Z_rightY");
-			vhdl << instance(right1counter, "right1counter");
-			// Synchronize the datapaths of this LZOC and of the comparator to one
-			syncCycleFromSignal("Z_rightY");
-			syncCycleFromSignal("cmpXOneRes");
-			nextCycle();
-
+		newInstance(
+				"LZOC", 
+				getName()+"right1counter", 
+				"wIn=" + to_string(wF) + " countType=0", 
+				"I=>fracYreverted",
+				"O=>Z_rightY"
+			);
 			vhdl<<"-- compute the weight of the less significant one of the mantissa"<<endl;
-			vhdl << tab  << declare("WeightLSBYpre", wE+1)<<" <= ('0' & expFieldY)- CONV_STD_LOGIC_VECTOR("<< (1<<(wE-1))-1 + wF <<","<<wE+1<<");"<<endl;
-			vhdl << tab  << declare("WeightLSBY", wE+1)<<" <= WeightLSBYpre + Z_rightY;"<<endl;
-			// No problem tooverpipeline
-			nextCycle();
+			vhdl << tab  << declare(getTarget()->adderDelay(wE+1), "WeightLSBYpre", wE+1)<<" <= ('0' & expFieldY)- CONV_STD_LOGIC_VECTOR("<< (1<<(wE-1))-1 + wF <<","<<wE+1<<");"<<endl;
+			vhdl << tab  << declare(getTarget()->adderDelay(wE+1), "WeightLSBY", wE+1)<<" <= WeightLSBYpre + Z_rightY;"<<endl;
 
-			vhdl << tab  << declare("oddIntY") <<" <= normalY when WeightLSBY = CONV_STD_LOGIC_VECTOR(0, "<<wE+1<<") else '0'; -- LSB has null weight"<<endl;
-			vhdl << tab  << declare("evenIntY")<<" <= normalY when WeightLSBY(wE)='0' and oddIntY='0' else '0'; --LSB has strictly positive weight "<<endl;
-			vhdl << tab  << declare("notIntNormalY") <<" <= normalY when WeightLSBY(wE)='1' else '0'; -- LSB has negative weight"<<endl;
+			vhdl << tab  << declare(getTarget()->logicDelay(), "oddIntY") <<" <= normalY when WeightLSBY = CONV_STD_LOGIC_VECTOR(0, "<<wE+1<<") else '0'; -- LSB has null weight"<<endl;
+			vhdl << tab  << declare(getTarget()->logicDelay(), "evenIntY")<<" <= normalY when WeightLSBY(wE)='0' and oddIntY='0' else '0'; --LSB has strictly positive weight "<<endl;
+			vhdl << tab  << declare(getTarget()->logicDelay(), "notIntNormalY") <<" <= normalY when WeightLSBY(wE)='1' else '0'; -- LSB has negative weight"<<endl;
 
 			vhdl << endl;
 
 			vhdl<<"-- Pow Exceptions  --"<<endl;
 
 			// TODO case -inf^integer not managed?
-			vhdl << tab  << declare("RisInfSpecialCase") << "  <= " << endl
+			vhdl << tab  << declare(getTarget()->logicDelay(), "RisInfSpecialCase") << "  <= " << endl
 			     << tab << tab << "   (zeroX  and  (oddIntY or evenIntY)  and signY)  -- (+/- 0) ^ (negative int y)"<<endl
 			     << tab << tab << "or (zeroX and infY and signY)                      -- (+/- 0) ^ (-inf)"  << endl
 			     << tab << tab << "or (absXgtOneAndNormal   and  infY  and not signY) -- (|x|>1) ^ (+inf)"  << endl
 			     << tab << tab << "or (absXltOneAndNormal   and  infY  and signY)     -- (|x|<1) ^ (-inf)" << endl
 			     << tab << tab << "or (infX and  normalY  and not signY) ;            -- (inf) ^ (y>0)" << endl;
 
-			vhdl << tab  << declare("RisZeroSpecialCase") << " <= " << endl
+			vhdl << tab  << declare(getTarget()->logicDelay(), "RisZeroSpecialCase") << " <= " << endl
 			     << tab << tab << "   (zeroX and  (oddIntY or evenIntY)  and not signY)  -- (+/- 0) ^ (positive int y)"<<endl
 			     << tab << tab << "or (zeroX and  infY  and not signY)                   -- (+/- 0) ^ (+inf)"<<endl
 			     << tab << tab << "or (absXltOneAndNormal   and  infY  and not signY)    -- (|x|<1) ^ (+inf)"<<endl
 			     << tab << tab << "or (absXgtOneAndNormal   and  infY  and signY)        -- (|x|>1) ^ (-inf)" << endl
 			     << tab << tab << "or (infX and  normalY  and signY) ;                   -- (inf) ^ (y<0)" << endl;
 
-			vhdl << tab  << declare("RisOne") << " <= " << endl
+			vhdl << tab  << declare(getTarget()->logicDelay(), "RisOne") << " <= " << endl
 			     << tab << tab << "   zeroY                                          -- x^0 = 1 without exception"<<endl
 			     << tab << tab << "or (XisOneAndNormal and signX and infY)           -- (-1) ^ (-/-inf)"<<endl
 			     << tab << tab << "or (XisOneAndNormal  and not signX);              -- (+1) ^ (whatever)" << endl ;
@@ -223,24 +208,24 @@ namespace flopoco{
 		else{
 
 			vhdl<<"-- Powr Exceptions  --"<<endl;
-			vhdl << tab  << declare("RisInfSpecialCase") << "  <= " << endl
+			vhdl << tab  << declare(getTarget()->logicDelay(), "RisInfSpecialCase") << "  <= " << endl
 			     << tab << tab << "   (zeroX  and  normalY and signY)                 -- (+/- 0) ^  (negative finite y)"<<endl
 			     << tab << tab << "or (zeroX and infY and signY)                      -- (+/- 0) ^ (-inf)"  << endl
 			     << tab << tab << "or (absXgtOneAndNormal   and  infY  and not signY) -- (|x|>1) ^ (+inf)"  << endl
 			     << tab << tab << "or (absXltOneAndNormal   and  infY  and signY)     -- (|x|<1) ^ (-inf)" << endl
 			     << tab << tab << "or (infX and  normalY  and not signY) ;            -- (inf) ^ (y>0)" << endl;
 
-			vhdl << tab  << declare("RisZeroSpecialCase") << " <= " << endl
+			vhdl << tab  << declare(getTarget()->logicDelay(), "RisZeroSpecialCase") << " <= " << endl
 			     << tab << tab << "   (zeroX and  normalY and not signY)  -- (+/- 0) ^ (positive int y)"<<endl
 			     << tab << tab << "or (zeroX and  infY  and not signY)                   -- (+/- 0) ^ (+inf)"<<endl
 			     << tab << tab << "or (absXltOneAndNormal   and  infY  and not signY)    -- (|x|<1) ^ (+inf)"<<endl
 			     << tab << tab << "or (absXgtOneAndNormal   and  infY  and signY);        -- (|x|>1) ^ (-inf)" << endl;
 
-			vhdl << tab  << declare("RisOne") << " <= " << endl
+			vhdl << tab  << declare(getTarget()->logicDelay(), "RisOne") << " <= " << endl
 			     << tab << tab << "   (normalX and (not signX)   and zeroY)                           -- x^0 = 1 if 0<x<+inf"<<endl
 			     << tab << tab << "or (XisOneAndNormal  and (not signX) and normalY and (not signY)); -- (+1) ^ (whatever)" << endl ;
 
-			vhdl << tab  << declare("RisNaN") << " <= s_nan_in"<<endl
+			vhdl << tab  << declare(getTarget()->logicDelay(), "RisNaN") << " <= s_nan_in"<<endl
 			     << tab << tab << "or (signX and not zeroX)        -- (x<0) ^ whatever"<<endl
 			     << tab << tab << "or (XisOneAndNormal and infY)   -- (1) ^ (+/-inf)"<<endl
 			     << tab << tab << "or (zeroX and zeroY)            -- (+/- 0) ^ (+/- 0)"<<endl
@@ -294,67 +279,52 @@ namespace flopoco{
 
 		// Now the part that takes 99% of the size: computing exp(y*logx).
 
-		setCycle(0);
-		setCriticalPath(0);
 		// For the input to the log, take |X| as the case X<0 is managed separately
 		vhdl << tab << declare("logIn", 3+wE + logwF) << " <= flagsX & \"0\" & expFieldX & fracX & " << rangeAssign(logwF-wF-1, 0, "'0'") << " ;" << endl;
 
-		IterativeLog* log = new IterativeLog(target,  wE,  logwF, logTableSize );
-		inPortMap(log, "X", "logIn");
-		outPortMap(log, "R", "lnX");
-		vhdl << instance(log, "log");
+		newInstance(
+				"FPLog", 
+				getName()+"log", 
+				"wE=" + to_string(wE) + " wF=" + to_string(logwF), 
+				"X=>logIn",
+				"R=>lnX"
+			);
 
-		syncCycleFromSignal("lnX");
-		nextCycle();
+		newInstance(
+				"FPMult", 
+				getName()+"mult", 
+				"wE=" + to_string(wE) + " wF=" + to_string(logwF)
+				+ " wEY=" + to_string(wE) + " wFY=" + to_string(wF)
+				+ " wEOut=" + to_string(wE) + " wFOut=" + to_string(wF+wE+expG)
+				+ " correctlyRounded=0", // faithful is enough here 
+				"Y=>Y, X=>lnX",
+				"R=>P"
+			);
 
-#if 0
-		// TODO: the following mult could be  truncated
-		FPMult* mult = new FPMult(target,   /*X:*/ wE, logwF,   /*Y:*/ wE, wF,  /*R: */  wE,  wF+wE+expG,
-		                                      1 /* norm*/);
-#else
-		// truncated
-		FPMult* mult = new FPMult(target,   /*X:*/ wE, logwF,   /*Y:*/ wE, wF,  /*R: */  wE,  wF+wE+expG,
-		                                      1, /* norm*/
-		                                      0 /* faithful only*/);
-#endif
-		inPortMap(mult, "Y", "Y");
-		inPortMap(mult, "X", "lnX");
-		outPortMap(mult, "R", "P");
-		vhdl << instance(mult, "mult");
-
-
-
-		syncCycleFromSignal("P");
-#if 0 // while fine-tuning the pipeline
-		setCriticalPath( mult->getOutputDelay("R") );
-		FPExp* exp = new FPExp(target,  wE,  wF, 0/* means default*/, 0, expG, true, inDelayMap("X", getCriticalPath() + 2*getTarget()->localWireDelay()) );
-#else
-		nextCycle();
-		FPExp* exp = new FPExp(target,  wE,  wF, 0/* means default*/, 0, expG, true);
-#endif
-
-		inPortMap(exp, "X", "P");
-		outPortMap(exp, "R", "E");
-		vhdl << instance(exp, "exp");
-
-		syncCycleFromSignal("E");
-		nextCycle();
+		newInstance(
+				"FPExp", 
+				getName()+"exp", 
+				"wE=" + to_string(wE) + " wF=" + to_string(wF)
+				+ " g=" + to_string(expG) + " fullInput=1", 
+				"X=>P",
+				"R=>E"
+			);
 
 		vhdl << tab  << declare("flagsE", 2) << " <= E(wE+wF+2 downto wE+wF+1);" << endl;
 
-		vhdl << tab  << declare("RisZeroFromExp") << " <= '1' when flagsE=\"00\" else '0';" << endl;
-		vhdl << tab  << declare("RisZero") << " <= RisZeroSpecialCase or RisZeroFromExp;" << endl;
-		vhdl << tab  << declare("RisInfFromExp") << "  <= '1' when flagsE=\"10\" else '0';" << endl;
-		vhdl << tab  << declare("RisInf") << "  <= RisInfSpecialCase or RisInfFromExp;" << endl;
+		vhdl << tab  << declare(getTarget()->logicDelay(), "RisZeroFromExp") << " <= '1' when flagsE=\"00\" else '0';" << endl;
+		vhdl << tab  << declare(getTarget()->logicDelay(), "RisZero") << " <= RisZeroSpecialCase or RisZeroFromExp;" << endl;
+		vhdl << tab  << declare(getTarget()->logicDelay(), "RisInfFromExp") << "  <= '1' when flagsE=\"10\" else '0';" << endl;
+		vhdl << tab  << declare(getTarget()->logicDelay(), "RisInf") << "  <= RisInfSpecialCase or RisInfFromExp;" << endl;
 
 
-		vhdl << tab  << declare("flagR", 2) << " <= " << endl
+		vhdl << tab  << declare(getTarget()->logicDelay(), "flagR", 2) << " <= " << endl
 		     << tab  << tab << "     \"11\" when RisNaN='1'" << endl
 		     << tab  << tab << "else \"00\" when RisZero='1'" << endl
 		     << tab  << tab << "else \"10\" when RisInf='1'" << endl
 		     << tab  << tab << "else \"01\";" << endl;
 
-		vhdl << tab << declare("R_expfrac", wE+wF) << " <= CONV_STD_LOGIC_VECTOR("<< (1<<(wE-1))-1<<","<<wE<<") &  CONV_STD_LOGIC_VECTOR(0, "<< wF << ") when RisOne='1'"
+		vhdl << tab << declare(getTarget()->logicDelay(), "R_expfrac", wE+wF) << " <= CONV_STD_LOGIC_VECTOR("<< (1<<(wE-1))-1<<","<<wE<<") &  CONV_STD_LOGIC_VECTOR(0, "<< wF << ") when RisOne='1'"
 		     << endl << tab << tab << " else E" << range(wE+wF-1, 0) << ";" << endl;
 		vhdl << tab << "R <= flagR & signR & R_expfrac;" << endl;
 
@@ -445,7 +415,6 @@ namespace flopoco{
 
 	void FPPow::buildStandardTestCases(TestCaseList* tcl){
 		TestCase *tc;
-
 		// Random testing quickly gets the 2^(3+3) combinations of (exn,sign)
 		// I'm not sure it gets all the cases with an integer y
 		// Anyway, much TODO here.
@@ -608,9 +577,9 @@ namespace flopoco{
 		UserInterface::parseStrictlyPositiveInt(args, "wE", &wE);
 		int wF;
 		UserInterface::parseStrictlyPositiveInt(args, "wF", &wF);
-		int inTableSize;
-		UserInterface::parseStrictlyPositiveInt(args, "inTableSize", &inTableSize);
-		return new IterativeLog(target, wE, wF, inTableSize);
+		int type;
+		UserInterface::parsePositiveInt(args, "type", &type);
+		return new FPPow(parentOp, target, wE, wF, type);
 	}
 
 	void FPPow::registerFactory(){
@@ -620,9 +589,7 @@ namespace flopoco{
 											 "",
 											 "wE(int): exponent size in bits for both inputs; \
 wF(int): mantissa size in bits for both inputs; \
-logSizeTable(int)=0: The table size for the log in bits; \
-expTableSize(int)=0: The table size for the exponent in bit; \
-expDegree(int)=0:",
+type(int)=0: 0 for pow, 1 for the powr function introduced in IEEE754-2008",
 											 "",
 											 FPPow::parseArguments
 											 ) ;

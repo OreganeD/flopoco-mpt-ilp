@@ -33,7 +33,7 @@ namespace flopoco {
 		name << "PIF2Posit_" << widthO << "_" << wES;
 		setNameWithFreqAndUID(name.str());
 		// Copyright 
-		setCopyrightString("test");
+    setCopyrightString("Oregane Desrentes 2019");
 
     
         	// SET UP THE IO SIGNALS
@@ -124,9 +124,9 @@ namespace flopoco {
 		}
 		
 		ostringstream param, inmap, outmap;
-		param << "wIn=" << widthO;
+		param << "wX=" << widthO;
 		param << " maxShift=" << widthO;
-		param << " wOut=" << widthO;
+		param << " wR=" << widthO;
 		param << " dir=" << Shifter::Right;
 		param << " computeSticky=true";
 		param << " inputPadBit=true";

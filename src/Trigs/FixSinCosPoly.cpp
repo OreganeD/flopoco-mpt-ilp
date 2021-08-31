@@ -474,10 +474,12 @@ namespace flopoco{
 				vhdl << tab << declare("Z_trunc_for_square", wZ2o2) << "<= Z "<<range(wZ-1, wZ-wZ2o2) << ";" << endl;
 				//				cerr << "*********** " << 	"f=x*x msbOut=-1 signedIn=0 " + join("lsbIn=",-wZ2o2) + join(" lsbOut=",-wZ2o2);
 				newInstance("FixFunctionByTable", "ZSquarer",
-										"f=x*x msbOut=-1 signedIn=0 " + join("lsbIn=",-wZ2o2) + join(" lsbOut=",-wZ2o2),
+										"f=x*x signedIn=0 " + join("lsbIn=",-wZ2o2) + join(" lsbOut=",-wZ2o2),
 										"X=>Z_trunc_for_square",
-										"Y=>Z2o2_signed");
-				vhdl << tab << declare("Z2o2", wZ2o2) << " <= Z2o2_signed"<<range(wZ2o2-1,0)<<";" << endl;
+										"Y=>Z2o2_w");
+				// The problem is that FixFunction computes msbOut and overshoots here 
+							
+				vhdl << tab << declare("Z2o2", wZ2o2) << " <= Z2o2_w" << range(wZ2o2-1,0) << "; -- get rid of the possible constant 0" << endl;
 				vhdl << tab << declare("CosPiA_trunc_to_z2o2", wZ2o2) << " <= CosPiA" << range(w+g-1, w+g-wZ2o2) << ";" << endl;
 				vhdl << tab << declare(getTarget()->DSPMultiplierDelay(), "Z2o2CosPiA", 2*wZ2o2)
 						 << " <=  CosPiA_trunc_to_z2o2 * Z2o2;" << endl; // range because output is is signed, getting rid of the constant 0
@@ -487,9 +489,11 @@ namespace flopoco{
 				vhdl << ";" << endl;
 				vhdl << tab << declare(getTarget()->adderDelay(w+g), "CosPiACosZ", w+g) << "<= CosPiA - Z2o2CosPiA_aligned;" << endl;
 
+
 				vhdl << tab << declare("SinPiA_trunc_to_z2o2", wZ2o2) << " <= SinPiA" << range(w+g-1, w+g-wZ2o2) << ";" << endl;
 				vhdl << tab << declare(getTarget()->DSPMultiplierDelay(), "Z2o2SinPiA", 2*wZ2o2)
 						 << " <=  SinPiA_trunc_to_z2o2 * Z2o2;" << endl;
+
 				vhdl << tab << declare("Z2o2SinPiA_aligned", w+g)<< " <= " << zg(2*wA+1);
 				if(2*wZ2o2-1 >= 2*wZ2o2- wZ2o2)
 					vhdl << " & Z2o2SinPiA" << range(2*wZ2o2-1, 2*wZ2o2- wZ2o2);

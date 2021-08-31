@@ -135,13 +135,12 @@ namespace flopoco{
 		vhdl << tab << tab << zg(i) << " when others;" << endl;
 		//		vhdl << tab << tab << rangeAssign(i,0,"'-'") << " when others;" << endl; // seems to slow everything down and consume space 
 
-		vhdl << tab << declare("outHighBits", wOut-i) << " <= ";
+		vhdl << tab << declare("outHighBits", wOut-i,true) << " <= ";
 		for (int j=wOut-1;j>=i;j--){
 			vhdl << join( "digit", j);
-			if (j>i)
 				vhdl << " & ";
 		}
-		vhdl << ";" <<endl;
+		vhdl << "\"\";" <<endl;
 
 		vhdl << tab << "O <= outHighBits & lowBits ;" << endl;
 	}

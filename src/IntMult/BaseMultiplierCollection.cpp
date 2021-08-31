@@ -30,16 +30,18 @@ BaseMultiplierCollection::BaseMultiplierCollection(Target* target) : target(targ
 	int maxW = max(wX, wY);
 	int minW = min(wX, wY);
 
-	baseMultiplierCategories.push_back(
-			new BaseMultiplierDSP(maxW, minW, deltaSigned)
-		);
+    BaseMultiplierCategory* m = new BaseMultiplierDSP(maxW, minW, deltaSigned);
+    m->setTarget(target);
+	baseMultiplierCategories.push_back(m);
 
 	//LUT based multipliers
 	double score = target->lutConsumption(1);
 	for (int i = 1 ; i <= target->maxLutInputs(); i++) {
 		double newScore = target->lutConsumption(i+1);
 		if (newScore != score) {
-			baseMultiplierCategories.push_back(new BaseMultiplierLUT(i, score));
+            BaseMultiplierCategory* m = new BaseMultiplierLUT(i, score);
+            m->setTarget(target);
+			baseMultiplierCategories.push_back(m);
 			score = newScore;
 		}
 	}
@@ -47,6 +49,7 @@ BaseMultiplierCollection::BaseMultiplierCollection(Target* target) : target(targ
 	if(target->useTargetOptimizations())
 	{
 		for (BaseMultiplierCategory* t : TargetSpecificBaseMultiplier(target)) {
+		    t->setTarget(target);
 			baseMultiplierCategories.push_back(t);
 		}
 	}
@@ -87,7 +90,7 @@ void BaseMultiplierCollection::print()
 		{
 			cerr << "  base multiplier " << bmc->getMaxWordSizeSmallInputUnsigned() << "x" << bmc->getMaxWordSizeLargeInputUnsigned()
 				 << ", max. DSP cost: " << bmc->getDSPCost()
-				 << ", max. LUT cost: " << bmc->getLUTCost(0,0, 48, 48) << endl;
+				 << ", max. LUT cost: " << bmc->getLUTCost(0,0, 48, 48, false) << endl;
 		}
 
 	}

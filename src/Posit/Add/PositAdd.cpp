@@ -20,9 +20,7 @@ namespace flopoco{
     
     name << "PositAdd_" <<width_<<"_"<<wES_;
     setNameWithFreqAndUID(name.str());
-    setCopyrightString("test");
-
-
+    setCopyrightString("Oregane Desrentes 2019");
     
     int wE = intlog2(width_) + 1 + wES_;
     int wF = width_ - (wES_ + 3);

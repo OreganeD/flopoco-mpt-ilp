@@ -30,6 +30,10 @@
 #include <utils.hpp>
 #include <Operator.hpp>
 
+#include "../ShiftersEtc/LZOC.hpp"
+#include "../ShiftersEtc/Shifters.hpp"
+#include "../ShiftersEtc/Normalizer.hpp"
+#include "../IntAddSubCmp/IntAdder.hpp"
 
 using namespace std;
 
@@ -182,7 +186,7 @@ with vrs -i
 #if 0 // full shifter, then sticky
 		newInstance("Shifter",
 								"RightShifterComponent",
-								"wIn=" + to_string(wF+1) + " maxShift=" + to_string(wF+3) + " dir=1",
+								"wX=" + to_string(wF+1) + " maxShift=" + to_string(wF+3) + " dir=1",
 								"X=>fracY,S=>shiftVal",
 								"R=>shiftedFracY");
 		
@@ -193,7 +197,7 @@ with vrs -i
 #else //combined shifter+Sticky
 		newInstance("Shifter",
 								"RightShifterComponent",
-								"wIn=" + to_string(wF+1) + " wOut=" + to_string(wF+3) + " maxShift=" + to_string(wF+3) + " dir=1 computeSticky=1",
+								"wX=" + to_string(wF+1) + " wR=" + to_string(wF+3) + " maxShift=" + to_string(wF+3) + " dir=1 computeSticky=1",
 								"X=>fracY, S=>shiftVal",
 								"R=>shiftedFracY, Sticky=>sticky");
 		
@@ -217,12 +221,12 @@ with vrs -i
 		//shift in place
 		vhdl << tab << declare("fracSticky",wF+5) << "<= fracAddResult & sticky; "<<endl;
 
-		LZOCShifterSticky* lzocs = (LZOCShifterSticky*)
-			newInstance("LZOCShifterSticky",
+		Normalizer* lzocs = (Normalizer*)
+			newInstance("Normalizer",
 									"LZCAndShifter",
-									"wIn=" + to_string(wF+5) + " wOut=" + to_string(wF+5) + " wCount=" + to_string(intlog2(wF+5)) + " computeSticky=false countType=0",
-									"I=>fracSticky",
-									"Count=>nZerosNew, O=>shiftedFrac");
+									"wX=" + to_string(wF+5) + " wR=" + to_string(wF+5) + " maxShift=" + to_string(wF+5) + " countType=0",
+									"X=>fracSticky",
+									"Count=>nZerosNew, R=>shiftedFrac");
 
 		// pipeline: there is plenty of time for this addition during the significand processing
 		vhdl << tab << declare(getTarget()->adderDelay(wE+1), "extendedExpInc",wE+1) << "<= (\"0\" & expX) + '1';"<<endl;

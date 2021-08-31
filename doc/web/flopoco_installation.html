@@ -11,67 +11,26 @@
 
 <p style="text-align: center"> <img src="FloPoCoSmall.png"/>	</p>
 <ul>
-	<li> <a href="#docker">Installation by Docker (recommended if you want to use flopoco)</a></li>  
 	<li> <a href="#linux">Installation on Linux or MacOS (recommended if you want to hack flopoco)</a></li>  
+	<li> <a href="#docker">Installation by Docker (recommended if you want to use flopoco)</a></li>  
 	<li> <a href="#windows">Installation in Windows</a></li> 
 </ul>
 <p>Operators tend to come and go as we struggle to support them, and we apologize for that. Hopefully the new Autotest features will bring more stability. Meanwhile, it is possible that the operator you want works better in an older version: read the <a href="ReleaseNotes.txt">release notes</a>.</p> 
 
 
-<hr/>
-<h2><a name="docker">Installation by Docker</a></h2>
-<ul>
-	<li>Install Docker on your computer. 
-		<ul>
-			<li> On Debian/Ubuntu,
-				<p>
-					<kbd>apt install docker.io <br> sudo usermod -aG docker ${USER}</kbd>
-				</p>
-			</li>
-			<li>For Windows, see <a href="https://www.docker.com/">docker.com</a>
-				</li>
-		</ul>
-	<li> Download the Dockerfile corresponding to the version you want <a href="Docker/">from this directory</a></li>  
-	<li> Download and compile FloPoCo and its dependencies by the following command:
-	<p><kbd>
-    docker build -t flopoco -f Dockerfile.4.1.2 .
-	</kbd></p>
-	(replace Dockerfile.4.1.2 with the one you selected)
-	</li> 
-	<li> The following command sets up a convenient alias (in linux)
-	<p><kbd>
-    alias flopoco="docker run --rm=true -v `pwd`:/flopoco_workspace flopoco"
-	</kbd></p>
-	Now if you type for instance 
-	<p><kbd>
-    flopoco FPAdd we=8 wf=23
-	</kbd></p>	</li>
-	you will obtain in the current directory a flopoco.vhdl file containing a single-precision floating-point adder.
-</ul>
 
 <hr/>
 <h2><a name="linux">Installation in Ubuntu and other Debian derivative</a></h2>
 
-<p>For Debian/Ubuntu, simply look at <a href="install_scripts/"> this directory of installation scripts </a>. Each script works for one environment, and Vagrant or Docker are your friends to set up this environment if you just want to use flopoco.
-</p>
-	
-<p>If you want to hack FloPoCo, these scripts will give you an idea of the dependencies to install, in particular: Sollya (mandatory, used in a lot of operators), WCPG (optional, used in the FixIIR operator), and ScaLP (optional, will improve the quality of many operators).</p>
-
-<p>
-	<a href="https://digidev.digi.e-technik.uni-kassel.de/scalp/">ScaLP</a> provides a uniform interface to several ILP solver.
-The instructions provided  build ScaLP with the LPSolve back-end, which is the only backend for which installation can be fully automated.
-Better results may be obtained using other backends: SCIP, Gurobi (both freely available for academic purpose) or CPlex.
-You are therefore encouraged to download one of these, install it, then recompile ScaLP (adding the relevant arguments to its cmake command, see ScaLP documentation), then FloPoCo.
-</p>
+<h3>Versions (most recent on top)</h3>
 
 
+<h4>Bleeding edge git master version</h4>
 
-
-
-<h4>Unstable git master version</h4>
-
-<p> See <a href="install_scripts/install-plain-gitmaster-on-focal64.sh"> the install script for the plain version</a>, or <a href="install_scripts/install-full-gitmaster-on-focal64.sh"> the install script for the full version with all possible optional dependencies</a>.
-	These scripts are written for ubuntu 20.04 (focal fossa), you may adapt them to other Linux systems.
+<p> Recommended is <a href="install_scripts/install-full-gitmaster-on-focal64.sh"> the install script for the full version with all optional dependencies</a>.
+</p>	
+<p>	
+	If something goes wrong, try the <a href="install_scripts/install-plain-gitmaster-on-focal64.sh"> install script for a simpler version (fewer dependencies)</a>.
 </p>	
 
 
@@ -106,6 +65,61 @@ See the <a href="install_scripts/install-2.3.2-on-precise.sh">the install script
 
 <h4>Older versions may include operators that have later been deprecated. Look up the <a href="https://gforge.inria.fr/scm/?group_id=1030">source code repository</a></h4>
 
+<h3>More installation scripts</h3>
+<p>For Debian/Ubuntu, simply look at <a href="install_scripts/"> this directory of installation scripts </a>. Each script works for one environment, and Vagrant or Docker are your friends to set up this environment in a virtual machine.
+</p>
+
+<h3>Dependencies</h3>
+<p>For non-Debian systems, the installation scripts will give you an idea of the dependencies to install, in particular: Sollya (mandatory, used in a lot of operators), WCPG (optional, used in the FixIIR operator), and ScaLP (optional, will improve the quality of many operators).</p>
+
+<p>
+	<a href="https://digidev.digi.e-technik.uni-kassel.de/scalp/">ScaLP</a> provides a uniform interface to several ILP solver.
+The instructions provided  build ScaLP with the LPSolve back-end, which is the only backend for which installation can be fully automated.
+Better results may be obtained using other backends: SCIP, Gurobi (both freely available for academic purpose) or CPlex.
+You are therefore encouraged to download one of these, install it, then recompile ScaLP (adding the relevant arguments to its cmake command, see ScaLP documentation), then FloPoCo.
+</p>
+
+
+
+
+
+
+
+
+
+
+
+<hr/>
+<h2><a name="docker">Installation by Docker</a></h2>
+<ul>
+	<li>Install Docker on your computer. 
+		<ul>
+			<li> On Debian/Ubuntu,
+				<p>
+					<kbd>apt install docker.io <br> sudo usermod -aG docker ${USER}</kbd>
+				</p>
+			</li>
+			<li>For Windows, see <a href="https://www.docker.com/">docker.com</a>
+				</li>
+		</ul>
+	<li> Download the Dockerfile corresponding to the version you want <a href="Docker/">from this directory</a></li>  
+	<li> Place it in an otherwise empty directory</li>  
+	<li> then cd to this directory and type the following command:
+	<p><kbd>
+    docker build -t flopoco -f Dockerfile.4.1.2 .
+	</kbd></p>
+	(replace Dockerfile.4.1.2 with the one you selected)
+	</li> 
+	<li> The following command sets up a convenient alias (in linux)
+	<p><kbd>
+    alias flopoco="docker run --rm=true -v `pwd`:/flopoco_workspace flopoco"
+	</kbd></p>
+	Now if you type for instance 
+	<p><kbd>
+    flopoco FPAdd we=8 wf=23
+	</kbd></p>	</li>
+	you will obtain in the current directory a flopoco.vhdl file containing a single-precision floating-point adder.
+</ul>
 
 
 <hr/>

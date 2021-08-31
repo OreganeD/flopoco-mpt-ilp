@@ -558,6 +558,25 @@ namespace flopoco {
 		string declareFloatingPoint(double criticalPathContribution, string name, const int wE, const int wF, Signal::SignalType regType = Signal::wire, const bool ieeeFormat=false);
 
 		/**
+		 * Declares a signal with custom type on the Left Hand Side of a VHDL assignment, which was previously defined via Operator::addType()
+		 * @param name is the name of the signal
+		 * @param customType is the custom type
+		 * @param regType: the registring type of this signal. See also the Signal Class for more info
+		 * @return name
+		 */
+		string declareCustom(string name, string customType, Signal::SignalType regType = Signal::wire);
+
+		/**
+		 * Declares a signal with custom type on the Left Hand Side of a VHDL assignment, which was previously defined via Operator::addType()
+		 * @param criticalPathContribution: the delay that the signal adds to the critical path of the circuit
+		 * @param name is the name of the signal
+		 * @param customType is the custom type
+		 * @param regType: the registring type of this signal. See also the Signal Class for more info
+		 * @return name
+		 */
+		string declareCustom(double criticalPathContribution, string name, string customType, Signal::SignalType regType = Signal::wire);
+
+		/**
 		 * Initialize a newly declared signal.
 		 * Method used to share code between the declare functions
 		 * TODO should probably be refactored in Signakl

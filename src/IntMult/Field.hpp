@@ -76,6 +76,7 @@ namespace flopoco {
         bool checkPosition(unsigned int x, unsigned int y, FieldState& fieldState);
         void printField();
         void setTruncated(unsigned int range, FieldState& fieldState);
+        void setTruncated(unsigned int wOut, unsigned int prodWidth, unsigned int guardBits, unsigned int keepBits, FieldState &fieldState);
         void printField(FieldState& fieldState);
 
     protected:

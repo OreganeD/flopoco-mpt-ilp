@@ -17,7 +17,9 @@ namespace flopoco {
             bool use2xk,
             bool useSuperTiles,
             bool useKaratsuba,
-            MultiplierTileCollection& tiles):TilingStrategyGreedy(wX, wY, wOut, signedIO, bmc, prefered_multiplier, occupation_threshold, maxPrefMult, useIrregular, use2xk, useSuperTiles, useKaratsuba, tiles)
+            MultiplierTileCollection& tiles,
+            unsigned guardBits,
+            unsigned keepBits):TilingStrategyGreedy(wX, wY, wOut, signedIO, bmc, prefered_multiplier, occupation_threshold, maxPrefMult, useIrregular, use2xk, useSuperTiles, useKaratsuba, tiles, guardBits, keepBits)
     {
         //find all paired tiles
         for(unsigned int i = 0; i < tiles_.size(); i++) {
@@ -60,7 +62,8 @@ namespace flopoco {
         Field field(wX, wY, signedIO, baseState);
 
         if(truncated_) {
-            field.setTruncated(truncatedRange_, baseState);
+            //field.setTruncated(truncatedRange_, baseState);
+            field.setTruncated(wOut, prodsize_, guardBits_, keepBits_,  baseState);
         }
 
         tempState.reset(baseState);

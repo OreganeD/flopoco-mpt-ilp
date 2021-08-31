@@ -126,6 +126,16 @@ class Operator;
 		Signal(Operator* parentOp, const std::string name, const SignalType type, const int wE, const int wF, const bool ieeeFormat=false);
 
 		/**
+		 * Signal constructor.
+		 * The standard constructor for signals which are custom type.
+		 * @param parentOp  the operator containing the signal
+		 * @param name      the name of the signal
+		 * @param type      the type of the signal, @see SignalType
+		 * @param customType custom signal type that was previously defined with Operator::addType()
+		 */
+		Signal(Operator* parentOp, const std::string name, const SignalType type, const std::string customType);
+
+		/**
 		 * Signal constructor
 		 * The copy constructor
 		 */
@@ -258,6 +268,21 @@ class Operator;
 		 * Set the value of isIEEE
 		 */
 		void setIsIEEE(bool newIsIEEE = true);
+
+		/**
+		 * Reports if the signal is of a custom type
+		 */
+		bool isCustom() const;
+
+		/**
+		 * set the value of isCustom
+		 */
+		void setIsCustom(bool newIsCustom = true);
+
+		/**
+		 * returns the custom type
+		 */
+		std::string customType() const;
 
 		/**
 		 * Reports if the signal has the bus flag active
@@ -575,6 +600,8 @@ class Operator;
 		int           LSB_;                            /**< LSB. Used for fixed-point signals */
 		bool          isSigned_;                       /**< true if this a signed fixed-point signal, false otherwise */
 		bool          isBus_;                          /**< True is the signal is a bus (std_logic_vector)*/
+		bool          isCustom_;                       /**< True if the signal has custom type*/
+		std::string   customType_;                     /**< Custom signal type, only relevant if isCustom_=true */
 
 		static const vector<string> dotNodeColors;     /**< the possible colors used for the dot diagrams */
 	};

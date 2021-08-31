@@ -18,7 +18,7 @@ namespace flopoco{
 		/** Constructor:  all unsigned fixed-point number. 
 
 		*/
-		Fix2DNorm(Target* target, int msb, int lsb);
+		Fix2DNorm(OperatorPtr parentOp, Target* target, int msb, int lsb);
 
 		// destructor
 		~Fix2DNorm();

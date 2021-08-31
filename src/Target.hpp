@@ -712,6 +712,16 @@ namespace flopoco{
 		 * @return the ratio of FFs per decoder bits
 		 */
 		virtual double getFFPerDecoder(int width);
+
+        /**
+         * Returns the average required number of LUTs for the compression
+         * of one bit. The value is experimentally estimated and is
+         * dependent on the respective compressors available on the
+         * specific architecture.
+         * @param none
+         * @return the average LUTs to compress one bit
+         */
+        virtual double getBitHeapCompressionCostperBit();
 		
 		/*------------ Floorplanning Related Items -------------------*/
 		/**

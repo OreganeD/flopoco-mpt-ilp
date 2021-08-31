@@ -6,7 +6,9 @@ BASEDIR=$PWD
 git clone https://scm.gforge.inria.fr/anonscm/git/metalibm/wcpg.git && cd wcpg && sh autogen.sh && ./configure && make && sudo make install && cd $BASEDIR
 
 #git clone https://scm.gforge.inria.fr/anonscm/git/flopoco/flopoco.git 
-git clone git@gitlab.inria.fr:fdupont/flopoco.git
+#git clone git@gitlab.inria.fr:fdupont/flopoco.git
+git clone https://gitlab.inria.fr/fdupont/flopoco.git
+
 cd flopoco && mkdir build && cd build && cmake .. && make &&  cd $BASEDIR
 
 # build the html documentation in doc/web. 

@@ -35,7 +35,7 @@ BitHeap/OptimalCompressionStrategy
 TutorialOperator
 ShiftersEtc/LZOC
 ShiftersEtc/LZOC3
-ShiftersEtc/LZOCShifterSticky
+ShiftersEtc/Normalizer
 ShiftersEtc/Shifters
 ShiftReg
 FixFilters/FixSOPC
@@ -43,6 +43,7 @@ FixFilters/FixFIR
 FixFilters/FixHalfSine
 FixFilters/FixRootRaisedCosine
 FixFilters/FixIIR
+FixFilters/FixIIRShiftAdd
 IntAddSubCmp/IntAdder
 IntAddSubCmp/IntDualAddSub
 #IntAddSubCmp/BasicCompressor
@@ -93,12 +94,14 @@ IntMult/BaseMultiplierIrregularLUTXilinx
 IntMult/MultiplierTileCollection
 IntMult/BaseMultiplierDSPKaratsuba
 IntMult/TilingAndCompressionOptILP
+IntMult/IntSquarer
 Complex/FixComplexKCM
 Complex/FixComplexAdder
 Complex/FixComplexR2Butterfly
 Complex/FixFFTFullyPA
 Conversions/Posit2FP
 Conversions/FP2Fix
+Conversions/Fix2FP
 Conversions/OutputIEEE
 FPAddSub/FPAdd
 FPAddSub/FPAddDualPath
@@ -109,6 +112,7 @@ FPDivSqrt/FPSqrt
 ExpLog/FPExp
 ExpLog/FPLog
 ExpLog/FPLogIterative
+ExpLog/FPPow
 IEEE/IEEEFMA
 IEEE/IEEEAdd
 Tables/Table
@@ -132,6 +136,10 @@ Trigs/FixSinPoly
 Trigs/FixSinCos
 Trigs/FixSinCosPoly
 Trigs/FixSinCosCORDIC
+Trigs/FixAtan2
+Trigs/FixAtan2ByCORDIC
+Trigs/Fix2DNorm
+Trigs/FixAtan2ByRecipMultAtan
 PrimitiveComponents/BooleanEquation
 PrimitiveComponents/GenericLut
 PrimitiveComponents/Primitive
@@ -155,6 +163,7 @@ PrimitiveComponents/Xilinx/Xilinx_TernaryAdd_2State
 PrimitiveComponents/Xilinx/Xilinx_TernaryAdd_2State_slice
 PrimitiveComponents/Xilinx/XilinxGPC
 PrimitiveComponents/Xilinx/XilinxFourToTwoCompressor
+PrimitiveComponents/Intel/Intel_LCELL
 Tools/Plane
 Tools/Point
 TutorialOperator

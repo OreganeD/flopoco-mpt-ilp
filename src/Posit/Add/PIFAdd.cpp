@@ -4,7 +4,7 @@
 #include <Operator.hpp>
 #include <utils.hpp>
 
-#include "ShiftersEtc/LZOCShifterSticky.hpp"
+#include "ShiftersEtc/Normalizer.hpp"
 #include "ShiftersEtc/Shifters.hpp"
 
 using namespace std;
@@ -18,7 +18,7 @@ namespace flopoco{
     
     name << "PIFAdd_" <<wE<<"_"<<wF;
     setNameWithFreqAndUID(name.str());
-    setCopyrightString("test");
+    setCopyrightString("Oregane Desrentes 2019");
     
     int maxshiftsize = intlog2(wF+4);
     int width = wE + wF + 5;
@@ -87,9 +87,9 @@ namespace flopoco{
     vhdl << declare(.0, "input_shifter", wF+4) << " <= smaller_mantissa & \"00\";" << endl;
     
     ostringstream param1, inmap1, outmap1;
-    param1 << "wIn=" << wF + 4;
+    param1 << "wX=" << wF + 4;
     param1 << " maxShift=" << wF+4;
-    param1 << " wOut=" << wF + 4;
+    param1 << " wR=" << wF + 4;
     param1 << " dir=" << Shifter::Right;
     param1 << " computeSticky=true";
     param1 << " inputPadBit=true";
@@ -114,15 +114,15 @@ namespace flopoco{
     
     ostringstream param2, inmap2, outmap2;
     int wCount = intlog2(wF+6); 
-    param2 << "wIn=" << wF + 6;
-    param2 << " wOut=" << wF + 6;
-    param2 << " wCount=" << wCount; 
+    param2 << "wX=" << wF + 6;
+    param2 << " wR=" << wF + 6;
+    param2 << " maxShift=" << ((1<<wCount)-1) ; 
     
-    inmap2 << "I=>add_mantissa,OZb=>count_type";
+    inmap2 << "X=>add_mantissa,OZb=>count_type";
     
-    outmap2 << "Count=>lzCount,O=>significand";
+    outmap2 << "Count=>lzCount,R=>significand";
     
-    newInstance("LZOCShifterSticky", "align_mantissa", param2.str(), inmap2.str(), outmap2.str());
+    newInstance("Normalizer", "norm", param2.str(), inmap2.str(), outmap2.str());
     
     vhdl << declare(target->adderDelay(wE), "exponent", wE) << " <= larger_exp + 2 - lzCount;" << endl;
     

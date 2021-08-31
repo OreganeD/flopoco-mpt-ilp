@@ -19,7 +19,9 @@ namespace flopoco {
                 bool use2xk,
                 bool useSuperTiles,
                 bool useKaratsuba,
-                MultiplierTileCollection& tiles);
+                MultiplierTileCollection& tiles,
+                unsigned guardBits,
+                unsigned keepBits);
         void solve() override;
 
     private:

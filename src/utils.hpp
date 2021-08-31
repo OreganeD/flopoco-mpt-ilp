@@ -524,22 +524,6 @@ namespace flopoco{
 	 */
 	string align( int left, string s, int right );
 
-	/**
-	 *@param[in] inputDelays	map between signal names and their respective delays
-	 *@return the maximum delay of the input map
-	 */
-	double getMaxInputDelays( map<string, double> inputDelays );
-
-	map<string, double> inDelayMap(string s, double d);
-
-	/**
-	 *@param[in] inputDelays	map between signal names and their respective delays
-	 *@return prints the delays
-	 */
-	string printInputDelays( map <string, double> inputDelays);
-
-	string printMapContent( map <string, int> inputDelays);
-
 	string printVectorContent( vector< pair<string, int> > table);
 
 	string to_lowercase(const std::string& s);

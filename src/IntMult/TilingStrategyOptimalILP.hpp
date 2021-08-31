@@ -31,24 +31,40 @@ public:
         BaseMultiplierCollection* bmc,
 		base_multiplier_id_t prefered_multiplier,
 		float occupation_threshold,
-		size_t maxPrefMult,
-        MultiplierTileCollection tiles_);
+		int maxPrefMult,
+        MultiplierTileCollection tiles_,
+        unsigned guardBits,
+        unsigned keepBits,
+        mpz_class errorBudget,
+        mpz_class &centerErrConstant,
+        bool performOptimalTruncation);
 
     void solve() override;
 
 private:
-    base_multiplier_id_t small_tile_mult_;
-    size_t numUsedMults_;
-    size_t max_pref_mult_;
     float occupation_threshold_;
-    int dpX, dpY, dpS, wS;
-    unsigned prodWidth;
+    int dpX, dpY, dpS, dpC, wS, max_pref_mult_;
+    unsigned prodWidth, guardBits, keepBits;
+    mpz_class &centerErrConstant, eBudget;
+    unsigned long long  errorBudget;
     vector<BaseMultiplierCategory*> tiles;
+    bool performOptimalTruncation;
 #ifdef HAVE_SCALP
     void constructProblem();
 
-    ScaLP::Solver *solver;
+        ScaLP::Solver *solver;
 #endif
+    void computeTruncMultParams(int w, int &g, int &k, long long &errorBudget);
+
+    /**
+     * @brief Checks if a tiling for a truncated multiplier meets the error budget as required for faithfulness
+     * @param solution list of the placed tiles with their parametrization and anchor point
+     * @param guardBits the number of bits below the output LSB that we need to keep in the summation
+     * @param errorBudget maximal permissible weight of the sum of the omitted partial products (as they would appear in an array multiplier)
+     * @param constant to recenter the truncation error around 0 since it can otherwise only be negative, since there are only partial products left out. This allows a larger error, so more products can be omitted
+     * @return true when the error bound is met, otherwise false
+     */
+    bool checkTruncationError(list<TilingStrategy::mult_tile_t> &solution, unsigned int guardBits, mpz_class errorBudget, mpz_class constant);
 };
 
 }

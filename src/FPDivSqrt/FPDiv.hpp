@@ -40,11 +40,9 @@ namespace flopoco{
 		 * @param number of bits of w to input to the selection table
 		 * @param alpha digit set is {-alpha, .. alpha} 
 		 * @param radix radix used
-		 * @param wIn  table input size
-		 * @param wOut table output size 
 		 */
 
-		vector<mpz_class> selFunctionTable(double dMin, double dMax, int nbBitD, int nbBitW, int alpha, int radix, int wIn, int wOut);
+		vector<mpz_class> selFunctionTable(double dMin, double dMax, int nbBitD, int nbBitW, int alpha, int radix);
 		
 		/**
 		 * Emulate a correctly rounded division using MPFR.
@@ -62,6 +60,27 @@ namespace flopoco{
 		static OperatorPtr parseArguments(OperatorPtr parentOp, Target *target, vector<string> &args);
 		static void registerFactory();
 
+
+		
+	private:
+		/** The width of the exponent for the input X */
+		int wE;
+		/** The width of the fraction for the input X */
+		int wF;
+		/** the radix */
+		int radix;
+		/** the digit set parameter: digits will be in {-alpha... alpha} */
+		int alpha;
+		/** The number of iterations */
+		int nDigit;
+		/** prescaling parameter: 0 means no prescaling; 1 means prescaling with 1 addition; 2 means prescaling with 2 additions */
+		int prescaling;
+		
+	};
+
+
+	class SRTDivNbBitsMin : public Operator //not an operator, should be disabled in Factories/ -- just to benefit from the lousy parser
+	{
 	private:
 		static void plotPDDiagram(int delta, int t, int radix, int digitSet);
 		static bool checkDistrib(int delta, int t, int radix, int digitSet);
@@ -70,20 +89,9 @@ namespace flopoco{
 		static double estimateCost(int nbBit, int radix, int digitSet);
 		static void computeNbBit(int radix, int digitSet);
 	public:
-		static void NbBitsMinRegisterFactory();
+		static void registerFactory();
 		static OperatorPtr NbBitsMinParseArguments(OperatorPtr parentOp, Target *target, vector<string> &args);
-
-		
-	private:
-		/** The width of the exponent for the input X */
-		int wE;
-		/** The width of the fraction for the input X */
-		int wF;
-		/** The number of iterations */
-		int nDigit;
-
-
-		
 	};
+
 }
 #endif //FPDIV_HPP

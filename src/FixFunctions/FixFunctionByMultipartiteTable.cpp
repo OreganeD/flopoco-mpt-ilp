@@ -54,6 +54,11 @@ absolutely no match
  TODOs:
  compress TIV only if it saves at least one adder; in general resurrect uncompressed TIV
 
+Bugs when wIn != wOut;
+
+ ./flopoco FixFunctionByMultipartiteTable f="atan(x)/pi" signedIn=0 compressTIV=false lsbIn=-16 lsbOut=-15
+./flopoco FixFunctionByMultipartiteTable f="2/(1+x)" signedIn=0 compressTIV=true lsbIn=-10 lsbOut=-12
+
 */
 
 using namespace std;

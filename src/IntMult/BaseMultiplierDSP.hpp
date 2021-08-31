@@ -48,6 +48,9 @@ namespace flopoco {
 
         int getDSPCost() const final {return 1;}
 
+        bool signSupX() override{return true;}
+        bool signSupY() override{return true;}
+
 		Operator* generateOperator(
 				Operator *parentOp,
 				Target *target,

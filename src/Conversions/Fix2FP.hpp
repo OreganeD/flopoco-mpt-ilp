@@ -7,10 +7,6 @@
 #include <gmpxx.h>
 
 #include "Operator.hpp"
-#include "TestBenches/FPNumber.hpp"
-#include "ShiftersEtc/LZOCShifterSticky.hpp"
-#include "ShiftersEtc/LZOC.hpp"
-#include "IntAddSubCmp/IntAdder.hpp"
 
 
 namespace flopoco{
@@ -60,10 +56,11 @@ namespace flopoco{
 		int wFR;
 
 
+#if 0
 		/**The leading sign counter	*/
-		LZOCShifterSticky* lzocs;
+		LZOCShifter* lzocs;
 		/**The leading zero counter	*/
-		LZOCShifterSticky* lzcs;
+		LZOCShifter* lzcs;
 		/** The integer adder object for subtraction from the MSB the position of the leading 1, for shifting the number */
 		IntAdder* fractionConvert;
 		/** The integer adder object for adding 1 to the fraction part*/
@@ -79,7 +76,7 @@ namespace flopoco{
 		/** The integer adder object for correcting the exponent*/
 		IntAdder* expCorrect;
 
-
+#endif
 
 
 		int wF;

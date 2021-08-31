@@ -66,7 +66,7 @@ enum BitType : unsigned;
 		 *									addition tree at the end of the
 		 *									compression
 		 */
-		BitHeap(Operator* op, unsigned width, string name = "", int compressionType = COMPRESSION_TYPE);
+		BitHeap(Operator* op, unsigned width, string name = "");
 
 		/**
 		 * @brief The constructor for an signed/unsigned fixed-point bitheap
@@ -74,14 +74,8 @@ enum BitType : unsigned;
 		 * @param msb               the msb of the bitheap (maximum position at which a bit can be inserted)
 		 * @param lsb               the lsb of the bitheap (minimum position at which a bit can be inserted)
 		 * @param name              a description of the heap that will be integrated into its unique name (empty by default)
-		 * @param compressionType	the type of compression applied to the bit heap:
-		 *								0 = using only compressors (default),
-		 *								1 = using only an adder tree,
-		 *								2 = using a mix of the two, with an
-		 *									addition tree at the end of the
-		 *									compression
 		 */
-		BitHeap(Operator* op, int msb, int lsb, string name = "", int compressionType = COMPRESSION_TYPE);
+		BitHeap(Operator* op, int msb, int lsb, string name = "");
 
 
 		~BitHeap();
@@ -428,8 +422,6 @@ enum BitType : unsigned;
 
 		CompressionStrategy* compressionStrategy;   /**< The compression strategy used to compress the bitheap */
 		bool isCompressed;                          /**< Has the bitheap already been compressed, or not */
-		int compressionType;						/**< The type of compression performed:
-														 0=using only compressors, 1=using adder trees, 2=mixed, using compressors and adders*/
 
 		vector<int> bitUID;                         /**< A unique identifier for the bits in this bitheap (for each column) */
 		int guid;                                   /**< The global UID for this bit heap, useful in operators managing several bit heaps */

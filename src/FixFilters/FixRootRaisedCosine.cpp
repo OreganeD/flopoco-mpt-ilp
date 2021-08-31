@@ -28,7 +28,7 @@ namespace flopoco{
 		rescale=true; // also a FIR attribute
 		// define the coefficients
 
-		THROWERROR("WORK IN PROGRESS, sorry, ask nicely");
+		THROWERROR("Not ported to the modern FloPoCo, sorry, ask nicely");
 		buildVHDL();
 	};
 
@@ -56,23 +56,26 @@ namespace flopoco{
 		
 		if(index==-1) 
 		{ // The unit tests
-			for(int lsbIn=-1; lsbIn>=-12; lsbIn-=1) {
+			for(int lsbIn=-3; lsbIn>=-12; lsbIn-=3) {
 				for(int lsbOut = min(lsbIn,-5); lsbOut>=-18; lsbOut-=3)	{
 					for(int n = 3; n<8; n++)	{
-						paramList.push_back(make_pair("lsbIn",to_string(lsbIn)));
-						paramList.push_back(make_pair("lsbOut",to_string(lsbOut)));
-						paramList.push_back(make_pair("n",to_string(n)));
-						testStateList.push_back(paramList);
-						paramList.clear();
-					}					
+						for(double alpha=0; alpha <=1; alpha+=0.25)	{
+							paramList.push_back(make_pair("lsbIn",to_string(lsbIn)));
+							paramList.push_back(make_pair("lsbOut",to_string(lsbOut)));
+							paramList.push_back(make_pair("n",to_string(n)));
+							paramList.push_back(make_pair("alpha",to_string(alpha)));
+							testStateList.push_back(paramList);
+							paramList.clear();
+						}					
+					}
 				}
 			}
 		}
 		else     
-		{
+			{
 				// finite number of random test computed out of index
-			// TODO
-		}	
+				// TODO
+			}	
 		return testStateList;
 	}
 
@@ -83,7 +86,7 @@ namespace flopoco{
 											 "A generator of fixed-point Root-Raised Cosine filters, for inputs between -1 and 1",
 											 "FiltersEtc", // categories
 											 "",
-											 "alpha(real): roll-off factor;\
+											 "alpha(real): roll-off factor, between 0 and 1;\
 											  lsbIn(int): position of the LSB of the input, e.g. -15 for a 16-bit signed input; \
 											  lsbOut(int): position of the LSB of the output;\
                         n(int): filter order (number of taps will be 2n+1)",

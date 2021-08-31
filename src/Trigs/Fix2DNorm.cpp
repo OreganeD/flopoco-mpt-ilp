@@ -6,7 +6,7 @@
 #include "mpfr.h"
 
 #include "Fix2DNorm.hpp"
-#include "FixFunctions/GenericTable.hpp"
+//#include "FixFunctions/FixFunctionByTable.hpp"
 // #include "FixFunctions/BipartiteTable.hpp"
 // #include "FixFunctions/FixFunctionByPiecewisePoly.hpp"
 
@@ -16,8 +16,8 @@ namespace flopoco{
 
 
 
-	Fix2DNorm::Fix2DNorm(Target* target_, int msb_, int lsb_) :
-		Operator(target_), msb(msb_), lsb(lsb_)
+	Fix2DNorm::Fix2DNorm(OperatorPtr parentOp, Target* target_, int msb_, int lsb_) :
+		Operator(parentOp, target_), msb(msb_), lsb(lsb_)
 	{
 		srcFileName="Fix2DNorm";
 		setCopyrightString ( "Florent de Dinechin (2015-...)" );
@@ -45,7 +45,7 @@ namespace flopoco{
 		UserInterface::parseInt(args, "lsb", &lsb);
 		UserInterface::parseInt(args, "method", &method);
 		//select the method
-		return new Fix2DNorm(target, msb, lsb);
+		return new Fix2DNorm(parentOp, target, msb, lsb);
 			
 	}
 

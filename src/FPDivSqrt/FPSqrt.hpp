@@ -20,7 +20,7 @@ namespace flopoco{
 		 * @param[in]		wE			the the with of the exponent for the f-p number X
 		 * @param[in]		wF			the the with of the fraction for the f-p number X
 		 */
-		FPSqrt(OperatorPtr parentOp, Target* target, int wE, int wF);
+		FPSqrt(OperatorPtr parentOp, Target* target, int wE, int wF, int method=0);
 
 		/**
 		 * FPSqrt destructor
@@ -37,12 +37,12 @@ namespace flopoco{
 
 		/* Overloading the Operator method to limit testing of NaNs and negative numbers*/
 		TestCase* buildRandomTestCase(int i);
-		//	void buildStandardTestCases(TestCaseList* tcl);
-
+		
+		void buildStandardTestCases(TestCaseList* tcl);
 
 		// User-interface stuff
-		/** Factory method */
 		static OperatorPtr parseArguments(OperatorPtr parentOp, Target *target , vector<string> &args);
+		static TestList unitTest(int index);
 
 		static void registerFactory();
 
@@ -52,8 +52,8 @@ namespace flopoco{
 		int wE;
 		/** The width of the fraction for the input X */
 		int wF;
-		/** A boolean selecting between the old digit recurrence implementation, or the polynomial-based one */
-		bool useDSP;
+		/** an int that selects the method */
+		int method;
 		/** A boolean selecting between IEEE-compliant correct rounding
 			 or faithful (last-bit accurate) result  */
 		bool correctRounding;

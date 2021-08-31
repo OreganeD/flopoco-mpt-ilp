@@ -1,7 +1,9 @@
-Version 5.0-alpha0
+Version 5.0 (alpha)
 Overhaul of the pipelining framework.
 Overhaul of the BitHeap framework.
 Removing all operators that have not been ported to these new framework, they will hopefully slowly trickle back.
+Some Posit operators
+
 
 ======================================================================
 Version 4.1.3

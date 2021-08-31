@@ -23,7 +23,9 @@ namespace flopoco {
                 bool use2xk,
                 bool useSuperTiles,
                 bool useKaratsuba,
-                MultiplierTileCollection& tiles);
+                MultiplierTileCollection& tiles,
+                unsigned guardBits,
+                unsigned keepBits);
         virtual ~TilingStrategyGreedy() { }
 
         virtual void solve();
@@ -40,7 +42,10 @@ namespace flopoco {
 
         vector<BaseMultiplierCategory*> tiles_;
         bool truncated_;
-        unsigned int truncatedRange_;
+        //unsigned int truncatedRange_;
+        unsigned prodsize_;
+        unsigned guardBits_;
+        unsigned keepBits_;
 
         bool greedySolution(BaseFieldState& fieldState, list<mult_tile_t>* solution, queue<unsigned int>* path, double& cost, unsigned int& area, unsigned int& usedDSPBlocks, double cmpCost = DBL_MAX, vector<tuple<BaseMultiplierCategory*, BaseMultiplierParametrization, multiplier_coordinates_t>>* dspBlocks = nullptr);
         bool performSuperTilePass(vector<tuple<BaseMultiplierCategory*, BaseMultiplierParametrization, multiplier_coordinates_t>>* dspBlocks, list<mult_tile_t>* solution, double& cost, double cmpCost = DBL_MAX);
