@@ -37,7 +37,8 @@ public:
         unsigned keepBits,
         mpz_class errorBudget,
         mpz_class &centerErrConstant,
-        bool performOptimalTruncation);
+        bool performOptimalTruncation,
+        bool squarer);
 
     void solve() override;
 
@@ -48,7 +49,7 @@ private:
     mpz_class &centerErrConstant, eBudget;
     unsigned long long  errorBudget;
     vector<BaseMultiplierCategory*> tiles;
-    bool performOptimalTruncation;
+    bool performOptimalTruncation, squarer;
 #ifdef HAVE_SCALP
     void constructProblem();
 

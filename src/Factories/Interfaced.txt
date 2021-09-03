@@ -65,6 +65,7 @@ BaseMultiplierDSPSuperTilesXilinx
 BaseMultiplierXilinx2xk
 BaseMultiplierIrregularLUTXilinx
 BaseMultiplierDSPKaratsuba
+BaseSquarerLUT
 
 TestBench
 Wrapper

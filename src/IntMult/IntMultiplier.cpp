@@ -39,8 +39,8 @@ using namespace std;
 namespace flopoco {
 
 
-    IntMultiplier::IntMultiplier (Operator *parentOp, Target* target_, int wX_, int wY_, int wOut_, bool signedIO_, float dspOccupationThreshold, int maxDSP, bool superTiles, bool use2xk, bool useirregular, bool useLUT, bool useDSP, bool useKaratsuba, int beamRange, bool optiTrunc, bool minStages):
-		Operator ( parentOp, target_ ),wX(wX_), wY(wY_), wOut(wOut_),signedIO(signedIO_), dspOccupationThreshold(dspOccupationThreshold) {
+    IntMultiplier::IntMultiplier (Operator *parentOp, Target* target_, int wX_, int wY_, int wOut_, bool signedIO_, float dspOccupationThreshold, int maxDSP, bool superTiles, bool use2xk, bool useirregular, bool useLUT, bool useDSP, bool useKaratsuba, int beamRange, bool optiTrunc, bool minStages, bool squarer):
+		Operator ( parentOp, target_ ),wX(wX_), wY(wY_), wOut(wOut_),signedIO(signedIO_), dspOccupationThreshold(dspOccupationThreshold), squarer(squarer) {
         srcFileName = "IntMultiplier";
         setCopyrightString("Martin Kumm, Florent de Dinechin, Kinga Illyes, Bogdan Popa, Bogdan Pasca, 2012");
 
@@ -99,7 +99,7 @@ namespace flopoco {
 //		baseMultiplierCollection.print();
 
 
-		MultiplierTileCollection multiplierTileCollection(getTarget(), &baseMultiplierCollection, wX, wY, superTiles, use2xk, useirregular, useLUT, useDSP, useKaratsuba);
+		MultiplierTileCollection multiplierTileCollection(getTarget(), &baseMultiplierCollection, wX, wY, superTiles, use2xk, useirregular, useLUT, useDSP, useKaratsuba, squarer);
 
 
 		string tilingMethod = getTarget()->getTilingMethod();
@@ -191,7 +191,8 @@ namespace flopoco {
                     keepBits,
                     errorBudget,
                     centerErrConstant,
-                    optiTrunc
+                    optiTrunc,
+                    squarer
 			);
 
 		}  else if(tilingMethod.compare("optimalTilingAndCompression") == 0){
@@ -529,10 +530,10 @@ namespace flopoco {
 					if(i){
 						vhdl << declare(.0, ofname.str() + to_string(i), 41) << " <= " << "" << oname.str() + to_string(i) << "(40 downto 0)" << ";" << endl;
 						getSignalByName(ofname.str() + to_string(i))->setIsSigned();
-						bitheap->addSignal(ofname.str() + to_string(i), bitHeapOffset+parameters.getOutputWeights()[i]);
+						bitheap->addSignal(ofname.str() + to_string(i), bitHeapOffset+parameters.getOutputWeights()[i] + ((squarer && tile.first.isSquarer())?0:1));
 					} else {
 						vhdl << declare(.0, ofname.str(), 41) << " <= " << "" << oname.str() << "(40 downto 0)" << ";" << endl;
-						bitheap->addSignal(ofname.str(), bitHeapOffset+parameters.getOutputWeights()[i]);
+						bitheap->addSignal(ofname.str(), bitHeapOffset+parameters.getOutputWeights()[i] + ((squarer && tile.first.isSquarer())?0:1));
 					}
 					cout << "output (" << i+1 << "/" << parameters.getOutputWeights().size() << "): " << ofname.str() + to_string(i) << " shift " << bitHeapOffset+parameters.getOutputWeights()[i] << endl;
 				}
@@ -543,15 +544,19 @@ namespace flopoco {
 				bool xIsSigned = parameters.isSignedMultX();
 				bool yIsSigned = parameters.isSignedMultY();
 
+				if(tile.first.isSquarer()){xIsSigned=false; yIsSigned=false;}   //result of squarer tile is always unsigned
+
 				bool bothOne = (xInputLength == 1) && (yInputLength == 1);
 				bool signedCase = (bothOne and (xIsSigned != yIsSigned)) or ((not bothOne) and (xIsSigned or yIsSigned));
 
 				vhdl << tab << declareFixPoint(.0, ofname.str(), signedCase, tokeep-1, 0) << " <= " << ((signedCase) ? "" : "un") << "signed(" << oname.str() <<
 						range(toSkip + tokeep - 1, toSkip) << ");" << endl;
 
-
-				bitheap->addSignal(ofname.str(), bitHeapOffset);
-
+				if(squarer && tile.first.isSquarer() && tile.first.getTileXWordSize() == 1 && tile.first.getTileYWordSize() == 1){
+				    bitheap->subtractSignal(ofname.str(), bitHeapOffset );          //1x1 squarer for compensation of overlap
+				} else {
+				    bitheap->addSignal(ofname.str(), bitHeapOffset + ((squarer && !tile.first.isSquarer() && xPos != yPos)?1:0) );
+				}
 			}
 			i += 1;
 		}
@@ -581,7 +586,7 @@ namespace flopoco {
 		unsigned int effectiveAnchorY = (yPos < 0) ? 0 : static_cast<unsigned int>(yPos);
 
 		auto tileXSig = getInputSignal(msbZerosXIN, selectSizeX, effectiveAnchorX, lsbZerosXIn, "X");
-		auto tileYSig = getInputSignal(msbZerosYIn, selectSizeY, effectiveAnchorY, lsbZerosYIn, "Y");
+		auto tileYSig = getInputSignal(msbZerosYIn, selectSizeY, effectiveAnchorY, lsbZerosYIn, ((squarer && !tile.first.isSquarer()) ?"X":"Y"));
 
 		stringstream nameX, nameY, nameOutput;
 		nameX << "tile_" << idx << "_X";
@@ -590,7 +595,7 @@ namespace flopoco {
 		nameOutput << "tile_" << idx << "_Out";
 
 		vhdl << tab << declare(0., nameX.str(), xInputLength) << " <= " << tileXSig << ";" << endl;
-		vhdl << tab << declare(0., nameY.str(), yInputLength) << " <= " << tileYSig << ";" << endl;
+		if(!tile.first.isSquarer()) vhdl << tab << declare(0., nameY.str(), yInputLength) << " <= " << tileYSig << ";" << endl;
 
 		string multIn1SigName = nameX.str();
 		string multIn2SigName = nameY.str();
@@ -602,7 +607,7 @@ namespace flopoco {
 		nameOutput << "tile_" << idx << "_mult";
 
 		inPortMap("X", multIn1SigName);
-		inPortMap("Y", multIn2SigName);
+		if(!tile.first.isSquarer()) inPortMap("Y", multIn2SigName);
 		outPortMap("R", output_name);
 		for(unsigned i = 1; i < parameters.getOutputWeights().size(); i++){
 			outPortMap("R" + to_string(i), output_name + to_string(i));
@@ -755,7 +760,7 @@ namespace flopoco {
 		mpz_class svX = tc->getInputValue("X");
 		mpz_class svY = tc->getInputValue("Y");
 		mpz_class svR;
-
+        if(squarer) svY = svX;
 //		cerr << "X : " << svX.get_str(10) << " (" << svX.get_str(2) << ")" << endl;
 //		cerr << "Y : " << svY.get_str(10) << " (" << svY.get_str(2) << ")" << endl;
 
@@ -849,7 +854,7 @@ namespace flopoco {
 
 	OperatorPtr IntMultiplier::parseArguments(OperatorPtr parentOp, Target *target, std::vector<std::string> &args) {
 		int wX,wY, wOut, maxDSP;
-		bool signedIO,superTile, use2xk, useirregular, useLUT, useDSP, useKaratsuba, optiTrunc, minStages;
+		bool signedIO,superTile, use2xk, useirregular, useLUT, useDSP, useKaratsuba, optiTrunc, minStages, squarer;
 		double dspOccupationThreshold=0.0;
 		int beamRange = 0;
 
@@ -868,8 +873,9 @@ namespace flopoco {
         UserInterface::parseBoolean(args, "optiTrunc", &optiTrunc);
         UserInterface::parseBoolean(args, "minStages", &minStages);
 		UserInterface::parsePositiveInt(args, "beamRange", &beamRange);
+		UserInterface::parseBoolean(args, "squarer", &squarer);
 
-		return new IntMultiplier(parentOp, target, wX, wY, wOut, signedIO, dspOccupationThreshold, maxDSP, superTile, use2xk, useirregular, useLUT, useDSP, useKaratsuba, beamRange, optiTrunc, minStages);
+		return new IntMultiplier(parentOp, target, wX, wY, wOut, signedIO, dspOccupationThreshold, maxDSP, superTile, use2xk, useirregular, useLUT, useDSP, useKaratsuba, beamRange, optiTrunc, minStages, squarer);
 	}
 
 
@@ -892,7 +898,8 @@ namespace flopoco {
 						dspThreshold(real)=0.0: threshold of relative occupation ratio of a DSP multiplier to be used or not;\
                         optiTrunc(bool)=true: if true, considers the Truncation error dynamicly, instead of defining a hard border for tiling, like in th ARITH paper;\
                         minStages(bool)=true: if true, minimizes stages in combined opt. of tiling an comp., otherwise try to find a sol. with less LUTs and more stages;\
-						beamRange(int)=3: range for beam search", // This string will be parsed
+						beamRange(int)=3: range for beam search;\
+                        squarer(bool)=false: generate squarer", // This string will be parsed
 											 "", // no particular extra doc needed
 											IntMultiplier::parseArguments,
 											IntMultiplier::unitTest
@@ -947,8 +954,10 @@ namespace flopoco {
 
             for(int x = 0; x < parameters.getMultXWordSize(); x++){
                 for(int y = 0; y < parameters.getMultYWordSize(); y++){
-                    if(0 <= xPos+x && 0 <= yPos+y && xPos+x < wX && yPos+y < wY)
+                    if(0 <= xPos+x && 0 <= yPos+y && xPos+x < wX && yPos+y < wY){
                         mulArea[xPos+x][yPos+y] = mulArea[xPos+x][yPos+y] || parameters.shapeValid(x,y);
+                        if(squarer) mulArea[yPos+y][xPos+x] = mulArea[yPos+y][xPos+x] || parameters.shapeValid(x,y);
+                    }
                 }
             }
         }

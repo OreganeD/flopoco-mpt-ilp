@@ -78,6 +78,7 @@ namespace flopoco {
                     bool isSignedMultX() const {return isSignedX_;}
                     bool isSignedMultY() const {return isSignedY_;}
 					bool isFlippedXY() const {return isFlippedXY_;}
+					bool isSquarer() const {return bmCat_->isSquarer();}
 					int getShapePara() const {return shape_para_;}
 				    string getMultType() const {return bmCat_->getType();}
                     Parametrization tryDSPExpand(int m_x_pos, int m_y_pos, int wX, int wY, bool signedIO);
@@ -122,6 +123,7 @@ namespace flopoco {
             virtual bool isVariable() const { return false; }
             virtual bool isIrregular() const { return false; }
             virtual bool isKaratsuba() const { return false; }
+            virtual bool isSquarer() const { return false; }
             float efficiency() {return getArea()/cost();}
             float cost() {return getLUTCost(0, 0, 48, 48, false);}
 

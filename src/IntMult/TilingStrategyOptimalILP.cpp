@@ -20,7 +20,8 @@ TilingStrategyOptimalILP::TilingStrategyOptimalILP(
         unsigned keepBits,
         mpz_class errorBudget,
         mpz_class &centerErrConstant,
-        bool performOptimalTruncation):TilingStrategy(
+        bool performOptimalTruncation,
+        bool squarer):TilingStrategy(
 			wX_,
 			wY_,
 			wOut_,
@@ -33,7 +34,8 @@ TilingStrategyOptimalILP::TilingStrategyOptimalILP(
         keepBits{keepBits},
         eBudget{errorBudget},
         centerErrConstant{centerErrConstant},
-        performOptimalTruncation{performOptimalTruncation}
+        performOptimalTruncation{performOptimalTruncation},
+        squarer{squarer}
 	{
 	    cout << errorBudget << endl;
         mpz_class max64;
@@ -209,6 +211,7 @@ void TilingStrategyOptimalILP::constructProblem()
     cout << "   adding the constraints to problem formulation..." << endl;
     for(int y = 0; y < wY; y++){
         for(int x = 0; x < wX; x++){
+            if(squarer && x < y) continue;
             stringstream consName;
             consName << "p" << setfill('0') << setw(dpX) << x << setfill('0') << setw(dpY) << y;            //one constraint for every position in the area to be tiled
             ScaLP::Term pxyTerm;
@@ -216,6 +219,8 @@ void TilingStrategyOptimalILP::constructProblem()
                 for(int ys = 0 - tiles[s]->wY() + 1; ys <= y; ys++){					//...check if the position x,y gets covered by tile s located at position (xs, ys) = (x-wtile..x, y-htile..y)
                     for(int xs = 0 - tiles[s]->wX() + 1; xs <= x; xs++){
                         if(occupation_threshold_ == 1.0 && ((wX - xs) < (int)tiles[s]->wX() || (wY - ys) < (int)tiles[s]->wY())) break;
+                        if(squarer && tiles[s]->isSquarer() && xs != ys) continue;                 //squarers should only be placed in the diagonal
+                        if(squarer && !tiles[s]->isSquarer() && x == y && !(tiles[s]->wX() == 1 && tiles[s]->wY() == 1) ) continue;                 //regular tiles should not be placed in the diagonal
                         if(tiles[s]->shape_contribution(x, y, xs, ys, wX, wY, signedIO) == true){
                             if((wOut < (int)prodWidth) && ((xs+tiles[s]->wX()+ys+tiles[s]->wY()-2) < ((int)prodWidth-wOut-guardBits))) break;
                             if(signedIO && (wX == xs+tiles[s]->wX() && !tiles[s]->signSupX() || wY == ys+tiles[s]->wY() && !tiles[s]->signSupY() )) break; //Avoid placing tiles without signed support at the bottom and left |_ edge of the area to be tiled.
@@ -228,7 +233,7 @@ void TilingStrategyOptimalILP::constructProblem()
                                     solve_Vars[s][xs+x_neg][ys+y_neg] = tempV;
                                     obj.add(tempV, (double)tiles[s]->getLUTCost(xs, ys, wX, wY, signedIO));    //append variable to cost function
                                 }
-                                pxyTerm.add(solve_Vars[s][xs+x_neg][ys+y_neg], 1);
+                                pxyTerm.add(solve_Vars[s][xs+x_neg][ys+y_neg], (tiles[s]->isSquarer() && tiles[s]->wX() == 1)?-1:1);
                             }
                         }
                     }
@@ -242,6 +247,10 @@ void TilingStrategyOptimalILP::constructProblem()
                 ScaLP::Variable tempV = ScaLP::newBinaryVariable(nvarName.str());
                 maxEpsTerm.add(tempV, (-1LL) * (1LL << (x + y)));
                 maxEpsTerm.add(1ULL << (x + y));
+                if(squarer && x != y){                      //with a squarer the tiling is mirrored at the diagonal, so missing tiles on top also cause an error below
+                    maxEpsTerm.add(tempV, (-1LL) * (1LL << (x + y)));
+                    maxEpsTerm.add(1ULL << (x + y));
+                }
 
                 c1Constraint = pxyTerm - tempV == 0;
             } else if(performOptimalTruncation == false && (wOut < (int)prodWidth) && ((x+y) < ((int)prodWidth-wOut-guardBits))){
@@ -381,8 +390,10 @@ void TilingStrategyOptimalILP::constructProblem()
 
             for(int x = 0; x < parameters.getMultXWordSize(); x++){
                 for(int y = 0; y < parameters.getMultYWordSize(); y++){
-                    if(0 <= xPos+x && 0 <= yPos+y && xPos+x < wX && yPos+y < wY)
+                    if(0 <= xPos+x && 0 <= yPos+y && xPos+x < wX && yPos+y < wY){
                         mulArea[xPos+x][yPos+y] = mulArea[xPos+x][yPos+y] || parameters.shapeValid(x,y);
+                        if(squarer) mulArea[yPos+y][xPos+x] = mulArea[yPos+y][xPos+x] || parameters.shapeValid(x,y);
+                    }
                 }
             }
         }

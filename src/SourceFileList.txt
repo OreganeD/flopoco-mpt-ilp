@@ -95,6 +95,7 @@ IntMult/MultiplierTileCollection
 IntMult/BaseMultiplierDSPKaratsuba
 IntMult/TilingAndCompressionOptILP
 IntMult/IntSquarer
+IntMult/BaseSquarerLUT
 Complex/FixComplexKCM
 Complex/FixComplexAdder
 Complex/FixComplexR2Butterfly

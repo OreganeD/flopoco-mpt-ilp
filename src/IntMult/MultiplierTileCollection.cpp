@@ -5,11 +5,12 @@
 #include "BaseMultiplierIrregularLUTXilinx.hpp"
 #include "BaseMultiplierDSPSuperTilesXilinx.hpp"
 #include "BaseMultiplierDSPKaratsuba.hpp"
+#include "BaseSquarerLUT.h"
 
 using namespace std;
 namespace flopoco {
 
-    MultiplierTileCollection::MultiplierTileCollection(Target *target, BaseMultiplierCollection *bmc, int mult_wX, int mult_wY, bool superTile, bool use2xk, bool useirregular, bool useLUT, bool useDSP, bool useKaratsuba) {
+    MultiplierTileCollection::MultiplierTileCollection(Target *target, BaseMultiplierCollection *bmc, int mult_wX, int mult_wY, bool superTile, bool use2xk, bool useirregular, bool useLUT, bool useDSP, bool useKaratsuba, bool squarer) {
         //cout << bmc->size() << endl;
         if(useDSP) {
             addBaseTile(target, new BaseMultiplierDSP(24, 17, 1));
@@ -52,6 +53,12 @@ namespace flopoco {
             unsigned int min = std::min((mult_wX - 16) / 48, (mult_wY - 24) / 48);
             for(unsigned int i = 0; i <= min; i++) {
                 addBaseTile(target, new BaseMultiplierDSPKaratsuba(i, 16, 24));
+            }
+        }
+
+        if(squarer){
+            for(int i = 1; i <= 6; i++) {
+                addBaseTile(target, new BaseSquarerLUT(i));
             }
         }
 
