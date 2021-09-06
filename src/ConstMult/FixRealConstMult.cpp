@@ -194,6 +194,7 @@ void FixRealConstMult::emulate(TestCase* tc)
 	bool negativeInput = false;
 	int wIn=msbIn-lsbIn+1;
 	int wOut=msbOut-lsbOut+1;
+  assert(wOut > 0);
 
 	// get rid of two's complement
 	if(signedIn)	{
@@ -213,16 +214,16 @@ void FixRealConstMult::emulate(TestCase* tc)
 
 	// prepare the result
 	mpfr_t mpR;
-	mpfr_init2(mpR, 10*wOut);
+  mpfr_init2(mpR, 10*wOut);
 
 	// do the multiplication
 	mpfr_mul(mpR, mpX, mpC, GMP_RNDN);
 
-	// scale back to an integer
+  // scale back to an integer
 	mpfr_mul_2si(mpR, mpR, -lsbOut, GMP_RNDN); //Exact
 	mpz_class svRu, svRd;
 
-	mpfr_get_z(svRd.get_mpz_t(), mpR, GMP_RNDD);
+  mpfr_get_z(svRd.get_mpz_t(), mpR, GMP_RNDD);
 	mpfr_get_z(svRu.get_mpz_t(), mpR, GMP_RNDU);
 
 	//		cout << " emulate x="<< svX <<"  before=" << svRd;
@@ -241,10 +242,10 @@ void FixRealConstMult::emulate(TestCase* tc)
 		svRu = 0;
 	}
 
-	tc->addExpectedOutput("R", svRd);
+  tc->addExpectedOutput("R", svRd);
 	tc->addExpectedOutput("R", svRu);
 
-	// clean up
+  // clean up
 	mpfr_clears(mpX, mpR, NULL);
 }
 

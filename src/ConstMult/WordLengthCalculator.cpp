@@ -19,7 +19,7 @@ using namespace PAGSuite;
 namespace flopoco {
     map<pair<mpz_class, int>, vector<int> > WordLengthCalculator::optimizeTruncation()
     {
-            struct edge_info { 
+            struct edge_info {
                 pair<adder_graph_base_node_t*, adder_graph_base_node_t*> nodes; 
                 int wEdge; 
                 int64_t shift;
@@ -62,7 +62,7 @@ namespace flopoco {
                     });
                 }
                 
-            }  
+            }
 
             try {
                 ScaLP::SolverBackend* solverBackend;
@@ -71,9 +71,12 @@ namespace flopoco {
                     solverBackend = ScaLP::newSolverDynamic({target_->getILPSolver(),"Gurobi","CPLEX","SCIP","LPSolve"});
                 }
                 else
-                    solverBackend = ScaLP::newSolverDynamic({"Gurobi","CPLEX","SCIP","LPSolve"});
+                {
+                  solverBackend = ScaLP::newSolverDynamic({"Gurobi","CPLEX","SCIP","LPSolve"});
+                }
 
                 ScaLP::Solver s = ScaLP::Solver(solverBackend);
+              if(target_)
                 s.timeout = target_->getILPTimeout();
 
                 s.quiet = true;
@@ -275,18 +278,18 @@ namespace flopoco {
 
                 s.writeLP("flopoco_WLCalculator.lp");
                 ScaLP::status stat = s.solve();
-                //std::cout << "The result is " << stat << std::endl;
+                //std::cerr << "The result is " << stat << std::endl;
                 if(stat == ScaLP::status::OPTIMAL || stat == ScaLP::status::FEASIBLE || stat == ScaLP::status::TIMEOUT_FEASIBLE)
                 {
                     ScaLP::Result r = s.getResult();
 
-//                    cout << "Optimization complete, " << r.objectiveValue << " full adders can be saved" << endl;
+//                    cerr << "Optimization complete, " << r.objectiveValue << " full adders can be saved" << endl;
 
-//					std::cout << "result is: " << r << std::endl;
+//					std::cerr << "result is: " << r << std::endl;
 
                     //for(std::pair<const ScaLP::Variable, double>& p : r.values)
                     //{
-                    //    std::cout << p.first << " = " << p.second << std::endl;
+                    //    std::cerr << p.first << " = " << p.second << std::endl;
                     //}
                     //pair - constant + stage
                     //vector - inputs in the adder / nb of bits to truncate on those

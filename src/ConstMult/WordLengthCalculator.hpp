@@ -14,9 +14,7 @@ namespace flopoco {
     class WordLengthCalculator {
 
         public:
-            WordLengthCalculator(PAGSuite::adder_graph_t adder_graph, 
-                int wIn, 
-                double epsilon, Target* target= nullptr) : adder_graph_(adder_graph), wIn_(wIn), epsilon_(epsilon), target_(target){}
+            WordLengthCalculator(PAGSuite::adder_graph_t adder_graph, int wIn, double epsilon, Target* target= nullptr) : adder_graph_(adder_graph), wIn_(wIn), epsilon_(epsilon), target_(target){}
 
             ~WordLengthCalculator() {}
             map<pair<mpz_class, int>, vector<int> > optimizeTruncation();

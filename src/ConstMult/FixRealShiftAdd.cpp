@@ -85,6 +85,8 @@ namespace flopoco{
 			vhdl << tab << "R <= (others => '0');" << endl;
 			return;
 		}
+		if(msbOut < lsbOut)
+			THROWERROR("Sorry, but the combination of parameters leads to a result where not bits remain (msbOut=" << msbOut << " and lsbOut=" << lsbOut << "). Please choose your parameter wisely.");
 
 		REPORT(INFO, "Output precisions: msbOut=" << msbOut << ", lsbOut=" << lsbOut);
 
@@ -104,8 +106,9 @@ namespace flopoco{
 		REPORT(INFO, "Epsilon max=" << std::scientific << mpfr_get_d(mpEpsilonMax, GMP_RNDN));
 		cout.flags(old_settings);
 
-		//compute the different integer representations of the constant
-		int q = 4;
+    int q=4; // the search range for different integer representations
+
+    //compute the different integer representations of the constant
 		//mx = msbIn
 		//lR = lsbOut
 		int wCOut = msbIn - lsbOut + q + 1;
@@ -113,11 +116,13 @@ namespace flopoco{
 		mpfr_init2(s, 64);
 		mpfr_set_si(s, wCOut, GMP_RNDN);
 
-		cout << "coefficient word size = " << msbC + wCOut << endl;
+		REPORT(DETAILED, "coefficient word size = " << msbC + wCOut);
+		if(q >= msbC + wCOut) q=msbC + wCOut-1; //q=4 is a good value, however, it should be always less than the coefficient word size
+
 		mpfr_t mpCInt;
 		mpfr_init2(mpCInt, msbC + wCOut); //msbC-lsbOut+q+1
 
-		int noOfFullAddersBest = INT32_MAX;
+    int noOfFullAddersBest = INT32_MAX;
 		mpz_class mpzCIntBest;
 		int shiftTotalBest;
 		string adderGraphStrBest;
@@ -125,7 +130,8 @@ namespace flopoco{
 		string trunactionStrBest;
 		IntConstMultShiftAdd_TYPES::TruncationRegister truncationRegBest("");
 
-		for (int k = -(1 << q); k <= (1 << q); k++)
+
+    for (int k = -(1 << q); k <= (1 << q); k++)
 		{
 			mpfr_rnd_t roundingDirection;
 			if (k > 0)
@@ -211,17 +217,17 @@ namespace flopoco{
 
 			map<pair<mpz_class, int>, vector<int> > wordSizeMap;
 
-			WordLengthCalculator wlc = WordLengthCalculator(adderGraph, wIn, epsilonMultNormInt);
+			WordLengthCalculator wlc = WordLengthCalculator(adderGraph, wIn, epsilonMultNormInt, target);
 			wordSizeMap = wlc.optimizeTruncation();
 			REPORT(DEBUG, "Finished computing word sizes of truncated MCM");
 			if (UserInterface::verbose >= DETAILED)
 			{
 				for (auto &it : wordSizeMap)
 				{
-					std::cout << "(" << it.first.first << ", " << it.first.second << "): ";
+					std::cerr << "(" << it.first.first << ", " << it.first.second << "): ";
 					for (auto &itV : it.second)
-						std::cout << itV << " ";
-					std::cout << std::endl;
+						std::cerr << itV << " ";
+					std::cerr << std::endl;
 				}
 			}
 			IntConstMultShiftAdd_TYPES::TruncationRegister truncationReg(wordSizeMap);
@@ -234,18 +240,19 @@ namespace flopoco{
 //			IntConstMultShiftAdd_TYPES::print_aligned_word_graph(adderGraph, "", wIn, cout);
 //			IntConstMultShiftAdd_TYPES::print_aligned_word_graph(adderGraph, truncationReg, wIn, cout);
 
-			old_settings = cout.flags();
-			cout << k << " & $" << mpzCInt << "/2^" << shiftTotal << "$"
-				 << " & " << std::scientific << mpfr_get_d(mpEpsilonCoeff, GMP_RNDN)
-				 << " & " << std::scientific << mpfr_get_d(mpEpsilonMult, GMP_RNDN)
-				 << " & " << std::fixed << mpfr_get_d(mpEpsilonCoeffNorm, GMP_RNDN)
-				 << " & " << std::fixed << mpfr_get_d(mpEpsilonMultNorm, GMP_RNDN)
-				 << " & " << std::fixed << noOfFullAddersBeforeTrunc
-				 << " & " << std::fixed << noOfFullAddersAfterTrunc
-				 << " & "
-			;
-			cout.flags(old_settings);
-
+			if (UserInterface::verbose >= DETAILED)
+			{
+				old_settings = cerr.flags();
+				cerr << k << " & $" << mpzCInt << "/2^" << shiftTotal << "$"
+						 << " & " << std::scientific << mpfr_get_d(mpEpsilonCoeff, GMP_RNDN)
+						 << " & " << std::scientific << mpfr_get_d(mpEpsilonMult, GMP_RNDN)
+						 << " & " << std::fixed << mpfr_get_d(mpEpsilonCoeffNorm, GMP_RNDN)
+						 << " & " << std::fixed << mpfr_get_d(mpEpsilonMultNorm, GMP_RNDN)
+						 << " & " << std::fixed << noOfFullAddersBeforeTrunc
+						 << " & " << std::fixed << noOfFullAddersAfterTrunc
+						 << " & ";
+				cerr.flags(old_settings);
+			}
 
 			if (noOfFullAddersAfterTrunc < noOfFullAddersBest)
 			{
@@ -282,7 +289,7 @@ namespace flopoco{
 		if(output_node != nullptr)
 		{
 			IntConstMultShiftAdd_TYPES::ErrorStorage es = getAccumulatedErrorFor(output_node,truncationRegBest);
-			cout << "error is +" << es.positive_error << " / -" << es.negative_error << endl;
+			REPORT(DETAILED, "error is +" << es.positive_error << " / -" << es.negative_error);
 		}
 
 		//VHDL code generation:
@@ -305,11 +312,10 @@ namespace flopoco{
 		stringstream parameters;
 		parameters << "wIn=" << wIn << " graph=" << adderGraphStrBest;
 		parameters << " truncations=" << trunactionStrBest;
-		string inPortMaps = "x_in0=>X";
+		string inPortMaps = "X0=>X";
 		stringstream outPortMaps;
-		outPortMaps << "x_out0_c" << mpzCIntBest << "=>constMultRes";
+		outPortMaps << "R_c" << mpzCIntBest << "=>constMultRes";
 
-		cout << "outPortMaps: " << outPortMaps.str() << endl;
 		newInstance("IntConstMultShiftAdd", "IntConstMultShiftAddComponent", parameters.str(), inPortMaps,
 					outPortMaps.str());
 
@@ -328,7 +334,7 @@ namespace flopoco{
 		{
 			vhdl << tab << "R <= constMultRes(" << wConstMultRes-1 << " downto " << wConstMultRes-wOut << ");" << endl;
 		}
-	}
+  }
 
 
 	bool FixRealShiftAdd::computeAdderGraph(PAGSuite::adder_graph_t &adderGraph, string &adderGraphStr, long long int coefficient)
