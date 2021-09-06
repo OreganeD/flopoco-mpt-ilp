@@ -314,10 +314,9 @@ namespace flopoco{
 		parameters << " truncations=" << trunactionStrBest;
 		string inPortMaps = "X0=>X";
 		stringstream outPortMaps;
-		outPortMaps << "R_c" << mpzCIntBest << "=>constMultRes";
+		outPortMaps << "R_c" << (mpzCIntBest < 0 ? "m" : "") << abs(mpzCIntBest) << "=>constMultRes";
 
-		newInstance("IntConstMultShiftAdd", "IntConstMultShiftAddComponent", parameters.str(), inPortMaps,
-					outPortMaps.str());
+		newInstance("IntConstMultShiftAdd", "IntConstMultShiftAddComponent", parameters.str(), inPortMaps, outPortMaps.str());
 
 		bool doProperRounding=true;
 		if(doProperRounding)
