@@ -62,6 +62,9 @@ protected:
 	bool signedOutput; /**< computed: true if the constant is negative or the input is signed */
 
 	void constStringToSollya();
+
+  static void constStringToMpfr(string constStr, mpfr_t* mpC);
+  static int msbOfC(mpfr_t mpC);
 };
 
 }

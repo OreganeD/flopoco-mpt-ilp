@@ -68,6 +68,8 @@ namespace flopoco{
 		srcFileName = "FixRealShiftAdd";
 		setNameWithFreqAndUID("FixRealShiftAdd");
 
+		if(!signedIn_)
+		  THROWERROR("Unsigned implementation of FixRealShiftAdd currently not supported (limitation of IntConstMultShiftAdd), sorry.");
 
 		constStringToSollya();
 
@@ -271,8 +273,11 @@ namespace flopoco{
 		REPORT(INFO, "  adder graph " << adderGraphStrBest);
 		REPORT(INFO, "  truncations:" << trunactionStrBest);
 
-		IntConstMultShiftAdd_TYPES::print_aligned_word_graph(adderGraphBest, "", wIn, cout);
-		IntConstMultShiftAdd_TYPES::print_aligned_word_graph(adderGraphBest, truncationRegBest, wIn, cout);
+    if (UserInterface::verbose >= DETAILED)
+    {
+      IntConstMultShiftAdd_TYPES::print_aligned_word_graph(adderGraphBest, "", wIn, cerr);
+      IntConstMultShiftAdd_TYPES::print_aligned_word_graph(adderGraphBest, truncationRegBest, wIn, cerr);
+    }
 
 		output_node_t* output_node= nullptr;
 		for(adder_graph_base_node_t *node : adderGraphBest.nodes_list)
@@ -298,6 +303,7 @@ namespace flopoco{
 		mpfr_t tmp;
 		mpfr_init2(tmp, 100);
 		mpfr_set_z(tmp, mpzCIntBest.get_mpz_t(), GMP_RNDN);
+    mpfr_abs(tmp, tmp, GMP_RNDN);
 		mpfr_log2(tmp, tmp, GMP_RNDN);
 		mpfr_ceil(tmp, tmp);
 		long wC = mpfr_get_si(tmp, GMP_RNDN);
@@ -321,13 +327,25 @@ namespace flopoco{
 		bool doProperRounding=true;
 		if(doProperRounding)
 		{
-			stringstream one;
-			for (int i = 0; i < wOut; i++)
-				one << "0";
-			one << "1";
-			vhdl << tab << "tmp <= std_logic_vector(signed(constMultRes(" << wConstMultRes - 1 << " downto "
-				 << wConstMultRes - wOut - 1 << ")) + \"" << one.str() << "\");" << endl;
-			vhdl << tab << "R <= tmp(" << wOut << " downto " << 1 << ");" << endl;
+			if(wConstMultRes <= wOut)
+      {
+        stringstream one;
+        for (int i = 0; i < wOut-wConstMultRes; i++)
+          one << "0";
+        one << "1";
+        //case that no truncation is performed, addition can be done by concatenation:
+        vhdl << tab << "tmp <= std_logic_vector(signed(constMultRes(" << wConstMultRes - 1 << " downto " << 0 << ")) & \"" << one.str() << "\");" << endl;
+      }
+      else
+      {
+        stringstream one;
+        for (int i = 0; i < wOut; i++)
+          one << "0";
+        one << "1";
+        vhdl << tab << "tmp <= std_logic_vector(signed(constMultRes(" << wConstMultRes - 1 << " downto " << wConstMultRes - wOut - 1 << ")) + \"" << one.str() << "\");" << endl;
+      }
+      vhdl << tab << "R <= tmp(" << wOut << " downto " << 1 << ");" << endl;
+
 		}
 		else
 		{

@@ -27,7 +27,10 @@ FixRealConstMult::FixRealConstMult(OperatorPtr parentOp, Target *target, bool si
 {
 	constStringToSollya(); //necessary to update variables for emulate and setting of msbC
 
-	msbOut = msbIn_ + msbC;
+  REPORT(DEBUG, "Constant evaluates to " << mpfr_get_d(mpC, GMP_RNDN));
+  REPORT(DEBUG, "MSB of constant is " << msbC);
+
+  msbOut = msbIn_ + msbC;
 	int wIn = msbIn_ - lsbIn_ + 1;
 	int wOut = msbOut - lsbOut_ + 1;
 
@@ -94,39 +97,47 @@ FixRealConstMult::FixRealConstMult(Operator* parentOp, Target* target) : Operato
 
 }
 
+void FixRealConstMult::constStringToMpfr(string constStr, mpfr_t* mpC)
+{
+  // Convert the input string into a sollya evaluation tree
+  sollya_obj_t sollyiaObj;
+  sollyiaObj = sollya_lib_parse_string(constStr.c_str());
+  /* If  parse error throw an exception */
+  if (sollya_lib_obj_is_error(sollyiaObj))
+  {
+    ostringstream error;
+    error << "Unable to parse string " << constStr << " as a numeric constant" << endl;
+    throw error.str();
+  }
+
+  sollya_lib_get_constant(*mpC, sollyiaObj);
+}
+
+int FixRealConstMult::msbOfC(mpfr_t mpC)
+{
+  //compute the logarithm only of the constants
+  mpfr_t log2C;
+  mpfr_init2(log2C, 100); // should be enough for anybody
+  mpfr_log2(log2C, mpC, GMP_RNDN);
+  int msbC = mpfr_get_si(log2C, GMP_RNDU);
+  mpfr_clears(log2C, NULL);
+  return msbC;
+}
+
 void FixRealConstMult::constStringToSollya()
 {
-	// Convert the input string into a sollya evaluation tree
-	sollya_obj_t sollyiaObj;
-	sollyiaObj = sollya_lib_parse_string(constant.c_str());
-	/* If  parse error throw an exception */
-	if (sollya_lib_obj_is_error(sollyiaObj))
-	{
-		ostringstream error;
-		error << srcFileName << ": Unable to parse string " <<
-			  constant << " as a numeric constant" << endl;
-		throw error.str();
-	}
-
 	mpfr_init2(mpC, 10000);
-	mpfr_init2(absC, 10000);
-
-	sollya_lib_get_constant(mpC, sollyiaObj);
+	constStringToMpfr(constant, &mpC);
 
 	//if negative constant, then set negativeConstant
 	negativeConstant = (mpfr_cmp_si(mpC, 0) < 0 ? true : false);
 
 	signedOutput = negativeConstant || signedIn;
+
+	mpfr_init2(absC, 10000);
 	mpfr_abs(absC, mpC, GMP_RNDN);
 
-	REPORT(DEBUG, "Constant evaluates to " << mpfr_get_d(mpC, GMP_RNDN));
-
-	//compute the logarithm only of the constants
-	mpfr_t log2C;
-	mpfr_init2(log2C, 100); // should be enough for anybody
-	mpfr_log2(log2C, absC, GMP_RNDN);
-	msbC = mpfr_get_si(log2C, GMP_RNDU);
-	mpfr_clears(log2C, NULL);
+	msbC = msbOfC(absC);
 }
 
 TestList FixRealConstMult::unitTest(int index)
@@ -139,36 +150,58 @@ TestList FixRealConstMult::unitTest(int index)
 	{ // The unit tests
 
 		vector<string> constantList; // The list of constants we want to test
-		constantList.push_back("\"0\"");
-		constantList.push_back("\"0.125\"");
-		constantList.push_back("\"-0.125\"");
-		constantList.push_back("\"4\"");
-		constantList.push_back("\"-4\"");
-		constantList.push_back("\"log(2)\"");
-		constantList.push_back("-\"log(2)\"");
-		constantList.push_back("\"0.00001\"");
-		constantList.push_back("\"-0.00001\"");
-		constantList.push_back("\"0.0000001\"");
-		constantList.push_back("\"-0.0000001\"");
-		constantList.push_back("\"123456\"");
-		constantList.push_back("\"-123456\"");
+		constantList.push_back("0");
+		constantList.push_back("0.125");
+		constantList.push_back("-0.125");
+		constantList.push_back("4");
+		constantList.push_back("-4");
+		constantList.push_back("log(2)");
+		constantList.push_back("-log(2)");
+		constantList.push_back("0.00001");
+		constantList.push_back("-0.00001");
+		constantList.push_back("0.0000001");
+		constantList.push_back("-0.0000001");
+		constantList.push_back("123456");
+		constantList.push_back("-123456");
 
-		for(int signedIn=1; signedIn>=0; signedIn--) {
+//    for(int signedIn=1; signedIn>=0; signedIn--) {
+    for(int signedIn=1; signedIn>=1; signedIn--) { //currently, no support for unsigned input 
 			string signedInStr = to_string(signedIn);
-			for(int wIn=3; wIn<16; wIn+=4) { // test various input widths
+			for(int wIn=3; wIn<16; wIn+=8) { // test various input widths
 				for(int lsbIn=-1; lsbIn<2; lsbIn++) { // test various lsbIns
 					string lsbInStr = to_string(lsbIn);
-					string msbInStr = to_string(lsbIn+wIn);
+					int msbIn = lsbIn+wIn;
+					string msbInStr = to_string(msbIn);
 					for(int lsbOut=-1; lsbOut<2; lsbOut++) { // test various lsbIns
 						string lsbOutStr = to_string(lsbOut);
 						for(auto c:constantList) { // test various constants
-							paramList.push_back(make_pair("lsbIn",  lsbInStr));
-							paramList.push_back(make_pair("lsbOut", lsbOutStr));
-							paramList.push_back(make_pair("msbIn",  msbInStr));
-							paramList.push_back(make_pair("signedIn", signedInStr));
-							paramList.push_back(make_pair("constant", c));
-							testStateList.push_back(paramList);
-							paramList.clear();
+              //compute output format, to see if parameter combination makes sense:
+              mpfr_t mpC;
+              mpfr_init2(mpC, 10000);
+              constStringToMpfr(c, &mpC);
+
+              mpfr_t absC;
+              mpfr_init2(absC, 10000);
+              mpfr_abs(absC, mpC, GMP_RNDN);
+
+              int msbC = msbOfC(absC);
+
+						  int msbOut = msbIn + msbC;
+              if(msbOut >= lsbOut) //only add when output format is useful
+              {
+                paramList.push_back(make_pair("lsbIn",  lsbInStr));
+                paramList.push_back(make_pair("lsbOut", lsbOutStr));
+                paramList.push_back(make_pair("msbIn",  msbInStr));
+                paramList.push_back(make_pair("signedIn", signedInStr));
+                string cWithQuotes = "\"" + c + "\"";
+                paramList.push_back(make_pair("constant", cWithQuotes));
+                testStateList.push_back(paramList);
+                paramList.clear();
+              }
+              else
+              {
+                cerr << "skipping test with msbOut=" << msbOut << ", lsbOut=" << lsbOut << endl;
+              }
 						}
 					}
 				}
@@ -191,6 +224,7 @@ void FixRealConstMult::emulate(TestCase* tc)
 {
 	// Get I/O values
 	mpz_class svX = tc->getInputValue("X");
+
 	bool negativeInput = false;
 	int wIn=msbIn-lsbIn+1;
 	int wOut=msbOut-lsbOut+1;
