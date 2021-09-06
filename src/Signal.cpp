@@ -186,7 +186,7 @@ namespace flopoco{
 		criticalPathContribution_ = originalSignal->getCriticalPathContribution();
 		numberOfPossibleValues_ = originalSignal->getNumberOfPossibleValues();
 		incompleteDeclaration_ = originalSignal->incompleteDeclaration_;
-		hasBeenScheduled_ = false;
+		hasBeenScheduled_ = originalSignal->hasBeenScheduled_; //copy hasBeenScheduled_; can be true in the original signal, e.g., for functional registers
 		hasBeenDrawn_ = false;
 
 		// Some of the following parameters are only used in some contexts but it doesn't hurt to copy them all
@@ -634,7 +634,7 @@ namespace flopoco{
 		/* Some checks */
 		if ((int) r.size() > width())	{
 			std::ostringstream o;
-			o << "Error in " <<  __FILE__ << "@" << __LINE__ << ": value (" << r << ") is larger than signal " << getName();
+			o << "Error in " <<  __FILE__ << "@" << __LINE__ << ": value (" << r << ") is larger than signal " << getName() << " (of width " << width() << ")";
 			throw o.str();
 		}
 
