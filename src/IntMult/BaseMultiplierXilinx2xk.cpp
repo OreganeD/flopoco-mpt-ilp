@@ -69,8 +69,8 @@ void BaseMultiplierXilinx2xk::registerFactory()
 						xIsSigned(bool)=0: input X is signed;\
 						yIsSigned(bool)=0: input Y is signed;",
                        "",
-                       BaseMultiplierXilinx2xk::parseArguments,
-                       BaseMultiplierXilinx2xk::unitTest
+                       BaseMultiplierXilinx2xk::parseArguments
+//                       ,BaseMultiplierXilinx2xk::unitTest
     ) ;
 }
 
@@ -209,7 +209,7 @@ BaseMultiplierXilinx2xkOp::BaseMultiplierXilinx2xkOp(Operator *parentOp, Target*
         inPortMap("i0",in2 + of(1));
         inPortMap("i2",in2 + of(0));
 
-        if(!in1_signed && !in2_signed || in1_signed && !in2_signed) {
+        if((!in1_signed && !in2_signed) || (in1_signed && !in2_signed)) {
             if(i==0 || i==needed_luts)
                 inPortMapCst("i1","'0'"); //connect 0 at LSB position
             else
