@@ -14,6 +14,7 @@
  */
 
 #include "FixRealConstMult.hpp"
+#include <cassert>
 
 using namespace std;
 

@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <sstream>
+#include <cassert>
 
 //#include "FloPoCo.hpp"
 #include "PrimitiveComponents/GenericLut.hpp"
