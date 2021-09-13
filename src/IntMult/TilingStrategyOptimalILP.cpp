@@ -181,7 +181,24 @@ void TilingStrategyOptimalILP::constructProblem()
 {
     cout << "constructing problem formulation..." << endl;
     wS = tiles.size();
+/*
+    for (int i = 0; i < wS; i++) {
+        //cout << tiles[i]->getType() << " weight=" << tiles[i]->getParametrisation().getTilingWeight() << endl;
+        tiles.push_back( new BaseMultiplierCategory(*tiles[i]));
+        tiles[tiles.size()-1]->setTilingWeight(-1);
+        if(!tiles[i]->isSquarer()){
+            tiles.push_back( new BaseMultiplierCategory(*tiles[i]));
+            tiles[tiles.size()-1]->setTilingWeight(+2);
+            tiles.push_back( new BaseMultiplierCategory(*tiles[i]));
+            tiles[tiles.size()-1]->setTilingWeight(-2);
+        }
+    }*/
 
+    for (auto const& i : tiles) {
+        std::cout << i->getType() << " weight=" << i->getParametrisation().getTilingWeight()  << endl;
+        //BaseMultiplierCategory temp(tiles[0]);
+        //tiles.push_back(new (tiles[0]));
+    }
 
     //Assemble cost function, declare problem variables
     cout << "   assembling cost function, declaring problem variables..." << endl;
@@ -220,7 +237,7 @@ void TilingStrategyOptimalILP::constructProblem()
                     for(int xs = 0 - tiles[s]->wX() + 1; xs <= x; xs++){
                         if(occupation_threshold_ == 1.0 && ((wX - xs) < (int)tiles[s]->wX() || (wY - ys) < (int)tiles[s]->wY())) break;
                         if(squarer && tiles[s]->isSquarer() && xs != ys) continue;                 //squarers should only be placed in the diagonal
-                        if(squarer && !tiles[s]->isSquarer() && x == y && !(tiles[s]->wX() == 1 && tiles[s]->wY() == 1) ) continue;                 //regular tiles should not be placed in the diagonal
+                        //if(squarer && !tiles[s]->isSquarer() && x == y && !(tiles[s]->wX() == 1 && tiles[s]->wY() == 1) ) continue;                 //regular tiles should not be placed in the diagonal
                         if(tiles[s]->shape_contribution(x, y, xs, ys, wX, wY, signedIO) == true){
                             if((wOut < (int)prodWidth) && ((xs+tiles[s]->wX()+ys+tiles[s]->wY()-2) < ((int)prodWidth-wOut-guardBits))) break;
                             if(signedIO && (wX == xs+tiles[s]->wX() && !tiles[s]->signSupX() || wY == ys+tiles[s]->wY() && !tiles[s]->signSupY() )) break; //Avoid placing tiles without signed support at the bottom and left |_ edge of the area to be tiled.
@@ -233,7 +250,23 @@ void TilingStrategyOptimalILP::constructProblem()
                                     solve_Vars[s][xs+x_neg][ys+y_neg] = tempV;
                                     obj.add(tempV, (double)tiles[s]->getLUTCost(xs, ys, wX, wY, signedIO));    //append variable to cost function
                                 }
-                                pxyTerm.add(solve_Vars[s][xs+x_neg][ys+y_neg], (tiles[s]->isSquarer() && tiles[s]->wX() == 1)?-1:1);
+
+                                pxyTerm.add(solve_Vars[s][xs+x_neg][ys+y_neg], tiles[s]->getParametrisation().getTilingWeight());
+                                if(!tiles[s]->isSquarer() && xs <= ys+(int)tiles[s]->wY()-1 && tiles[s]->shapeValid(y-xs,x-ys) && x != y || tiles[s]->isSquarer() && x != y){
+                                    pxyTerm.add(solve_Vars[s][xs+x_neg][ys+y_neg], tiles[s]->getParametrisation().getTilingWeight());          //the symmetric position for the current eq. below the diagonal is realizes by the tile
+                                }
+                                /*
+                                if(!tiles[s]->isSquarer() && xs <= ys+(int)tiles[s]->wY()-1 || tiles[s]->isSquarer() && x == y ){
+                                    pxyTerm.add(solve_Vars[s][xs+x_neg][ys+y_neg], 1);          //the tile protrudes over the diagonal
+                                    //if(!tiles[s]->isSquarer()) cout << "tile " << s << " at (" << xs << "," << ys << ") overlaps over the diagonal down to (" << xs << "," << ys+tiles[s]->wY() << ") in eq for (" << x << "," << y << ")" << endl;
+                                    if(!tiles[s]->isSquarer() && tiles[s]->shapeValid(y-xs,x-ys) && x != y){
+                                        pxyTerm.add(solve_Vars[s][xs+x_neg][ys+y_neg], 1);          //the symmetric position for the current eq. below the diagonal is realizes by the tile
+                                        //if(!tiles[s]->isSquarer()) cout << "tile " << s << " at (" << xs << "," << ys << ") overlaps over the diagonal down to (" << xs << "," << ys+tiles[s]->wY() << ") in eq for (" << x << "," << y << ") second" << endl;
+                                    }
+                                } else {
+                                    pxyTerm.add(solve_Vars[s][xs+x_neg][ys+y_neg], 2);          //
+                                    //if(!tiles[s]->isSquarer()) cout << "tile " << s << " at (" << xs << "," << ys << ") does not overlap over the diagonal down to (" << xs << "," << ys+tiles[s]->wY() << ") in eq for (" << x << "," << y << ")" << endl;
+                                }*/
                             }
                         }
                     }
@@ -263,7 +296,7 @@ void TilingStrategyOptimalILP::constructProblem()
                     cout << "NO keepBit at" << x << "," << y << endl;
                 }
             } else {
-                c1Constraint = pxyTerm == (bool)1;
+                c1Constraint = pxyTerm == ((x == y)?1.0:2.0);
             }
 
             c1Constraint.name = consName.str();

@@ -85,6 +85,9 @@ namespace flopoco {
                     Parametrization setSignStatus(int m_x_pos, int m_y_pos, int wX, int wY, bool signedIO);
                     Parametrization shrinkFitDSP(int m_x_pos, int m_y_pos, int wX, int wY);
                     vector<int> getOutputWeights(){return output_weights;}
+                    bool crossesSquarerDiagonal(int anchor_x, int anchor_y) const;
+                    void setTilingWeight(int);
+                    int getTilingWeight(void);
 
             private:
 					Parametrization(
@@ -95,7 +98,8 @@ namespace flopoco {
 							bool isSignedY=false,
 							bool isFlippedXY=false,
 							int shape_para=-1,
-                            vector<int> output_weights = vector<int>()
+                            vector<int> output_weights = vector<int>(),
+                            int tilingWeight=1
 						):wX_{wX},
 						wY_{wY},
 						isSignedX_{isSignedX},
@@ -103,7 +107,8 @@ namespace flopoco {
 						isFlippedXY_{isFlippedXY},
 						shape_para_{shape_para},
 						bmCat_{multCategory},
-                        output_weights{output_weights}{}
+                        output_weights{output_weights},
+                        tilingWeight{tilingWeight}{cout << "Tiling weight=" << this->tilingWeight << endl;}
 
 					unsigned int wX_;
 					unsigned int wY_;
@@ -113,6 +118,7 @@ namespace flopoco {
 					int shape_para_;
 					BaseMultiplierCategory const * bmCat_;
                     vector<int> output_weights;
+                    int tilingWeight = 1;
 				friend BaseMultiplierCategory;
 			};
 
@@ -152,6 +158,7 @@ namespace flopoco {
             int wY_DSPexpanded(int m_x_pos, int m_y_pos, int wX, int wY, bool signedIO);
             virtual int isSuperTile(int rx1, int ry1, int lx1, int ly1, int rx2, int ry2, int lx2, int ly2) {return 0;}
             void setTarget(Target* target){ this->target = target;}
+            void setTilingWeight(int weight) { tile_param.tilingWeight = weight;}
 
 	    protected:
             Target* target = NULL;

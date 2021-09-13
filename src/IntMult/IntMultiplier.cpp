@@ -552,10 +552,11 @@ namespace flopoco {
 				vhdl << tab << declareFixPoint(.0, ofname.str(), signedCase, tokeep-1, 0) << " <= " << ((signedCase) ? "" : "un") << "signed(" << oname.str() <<
 						range(toSkip + tokeep - 1, toSkip) << ");" << endl;
 
-				if(squarer && tile.first.isSquarer() && tile.first.getTileXWordSize() == 1 && tile.first.getTileYWordSize() == 1){
-				    bitheap->subtractSignal(ofname.str(), bitHeapOffset );          //1x1 squarer for compensation of overlap
+				//squarers can have tile counted twice to exploit the symmetries, and hence might require a left shift by one bit or have tiles to be considered negative to compensate for overlap.
+				if(tile.first.getTilingWeight() == 1 || tile.first.getTilingWeight() == 2){
+				    bitheap->addSignal(ofname.str(), bitHeapOffset + ((tile.first.getTilingWeight() == 2)?1:0) );
 				} else {
-				    bitheap->addSignal(ofname.str(), bitHeapOffset + ((squarer && !tile.first.isSquarer() && xPos != yPos)?1:0) );
+				    bitheap->subtractSignal(ofname.str(), bitHeapOffset + ((tile.first.getTilingWeight() == -2)?1:0) );
 				}
 			}
 			i += 1;

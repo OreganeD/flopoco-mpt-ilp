@@ -27,6 +27,26 @@ namespace flopoco {
 		return bmCat_->getRelativeResultMSBWeight(*this);
 	}
 
+	bool BaseMultiplierCategory::Parametrization::crossesSquarerDiagonal(int anchor_x, int anchor_y) const
+	{
+	    if(anchor_y + (int) this->wY_ - 1 < anchor_x) return false;
+	    bool below_diagonal = false;
+	    for(int y = 0; y < this->wY_; y++){
+	        for(int x = 0; x < this->wX_; x++){
+	            if(anchor_x <= anchor_y + y && this->shapeValid(x,y) ) below_diagonal = true;
+	        }
+	    }
+	    return below_diagonal;
+	}
+
+	void BaseMultiplierCategory::Parametrization::setTilingWeight(int weight){
+	    tilingWeight = weight;
+	}
+
+	int BaseMultiplierCategory::Parametrization::getTilingWeight(void){
+	    return tilingWeight;
+	}
+
 	BaseMultiplierCategory::Parametrization BaseMultiplierCategory::parametrize(
 			int wX,
 			int wY,
@@ -158,7 +178,7 @@ float BaseMultiplierCategory::shape_utilisation(int shape_x, int shape_y, int wX
         if(signedIO && (wY-m_y_pos-tile_height)== 0){
             isSignedY = true;
         }
-        return Parametrization(tile_width, tile_height, bmCat_, isSignedX, isSignedY, false, shape_para_,  output_weights);
+        return Parametrization(tile_width, tile_height, bmCat_, isSignedX, isSignedY, false, shape_para_,  output_weights, tilingWeight);
     }
 
     BaseMultiplierCategory::Parametrization BaseMultiplierCategory::Parametrization::shrinkFitDSP(int m_x_pos, int m_y_pos, int wX, int wY) {
@@ -173,7 +193,7 @@ float BaseMultiplierCategory::shape_utilisation(int shape_x, int shape_y, int wX
             //cout << "tile overlaps at the bottom by " << -(wY-m_y_pos-tile_height) << endl;
             tile_height = tile_height + (wY-m_y_pos-tile_height);
         }
-        return Parametrization(tile_width, tile_height, bmCat_, isSignedX_, isSignedY_, false, shape_para_,  output_weights);
+        return Parametrization(tile_width, tile_height, bmCat_, isSignedX_, isSignedY_, false, shape_para_,  output_weights, tilingWeight);
     }
 
     BaseMultiplierCategory::Parametrization BaseMultiplierCategory::Parametrization::tryDSPExpand(int m_x_pos, int m_y_pos, int wX, int wY, bool signedIO) {
@@ -193,7 +213,8 @@ float BaseMultiplierCategory::shape_utilisation(int shape_x, int shape_y, int wX
         if(signedIO && (wY-m_y_pos-tile_height)== 0){
             isSignedY = true;
         }
-        return Parametrization(tile_width, tile_height, bmCat_, isSignedX, isSignedY, false, shape_para_,  output_weights);
+        cout << "Tiling weight=" << tilingWeight << endl;
+        return Parametrization(tile_width, tile_height, bmCat_, isSignedX, isSignedY, false, shape_para_,  output_weights, tilingWeight);
     }
 
 	int BaseMultiplierCategory::wX_DSPexpanded(int m_x_pos, int m_y_pos, int wX, int wY, bool signedIO) {
