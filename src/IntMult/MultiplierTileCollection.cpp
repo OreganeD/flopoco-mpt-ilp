@@ -5,7 +5,7 @@
 #include "BaseMultiplierIrregularLUTXilinx.hpp"
 #include "BaseMultiplierDSPSuperTilesXilinx.hpp"
 #include "BaseMultiplierDSPKaratsuba.hpp"
-#include "BaseSquarerLUT.h"
+#include "BaseSquarerLUT.hpp"
 
 using namespace std;
 namespace flopoco {
