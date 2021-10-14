@@ -1,0 +1,11 @@
+pages:
+  stage: deploy
+  script:
+    - rm -R public/
+    - mkdir public
+    - cp -R doc/web/* public/
+  artifacts:
+    paths:
+      - public
+  only:
+    - master
