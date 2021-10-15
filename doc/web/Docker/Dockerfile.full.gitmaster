@@ -1,8 +1,5 @@
 FROM ubuntu:focal
-ENV TZ=Europe/Paris
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 RUN apt update
-RUN apt install -y tzdata
 RUN yes | apt install wget sudo
 RUN wget https://fdupont.gitlabpages.inria.fr/flopoco/install_scripts/install-full-gitmaster-on-focal64.sh
 RUN yes | sh install-full-gitmaster-on-focal64.sh
