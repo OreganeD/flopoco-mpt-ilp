@@ -108,7 +108,7 @@ namespace flopoco {
 						shape_para_{shape_para},
 						bmCat_{multCategory},
                         output_weights{output_weights},
-                        tilingWeight{tilingWeight}{cout << "Tiling weight=" << this->tilingWeight << endl;}
+                        tilingWeight{tilingWeight}{}
 
 					unsigned int wX_;
 					unsigned int wY_;
@@ -135,7 +135,7 @@ namespace flopoco {
 
 			virtual bool shapeValid(Parametrization const & param, unsigned x, unsigned y) const;
             virtual bool shapeValid(int x, int y);
-            bool shape_contribution(int x, int y, int shape_x, int shape_y, int wX, int wY, bool signedIO);
+            bool shape_contribution(int x, int y, int shape_x, int shape_y, int wX, int wY, bool signedIO, bool squarer=false);
             virtual float shape_utilisation(int shape_x, int shape_y, int wX, int wY, bool signedIO);
 
             virtual int getRelativeResultLSBWeight(Parametrization const & param) const;

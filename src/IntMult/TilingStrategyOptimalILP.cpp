@@ -233,14 +233,15 @@ void TilingStrategyOptimalILP::constructProblem()
             consName << "p" << setfill('0') << setw(dpX) << x << setfill('0') << setw(dpY) << y;            //one constraint for every position in the area to be tiled
             ScaLP::Term pxyTerm;
             for(int s = 0; s < wS; s++){					//for every available tile...
-                for(int ys = 0 - tiles[s]->wY() + 1; ys <= y; ys++){					//...check if the position x,y gets covered by tile s located at position (xs, ys) = (x-wtile..x, y-htile..y)
-                    for(int xs = 0 - tiles[s]->wX() + 1; xs <= x; xs++){
+                int diff = (squarer)?std::abs(int(tiles[s]->wX()-tiles[s]->wY())):0;
+                for(int ys = 0 - tiles[s]->wY() + 1; ys <= y + diff; ys++){					//...check if the position x,y gets covered by tile s located at position (xs, ys) = (x-wtile..x, y-htile..y)
+                    for(int xs = 0 - tiles[s]->wX() + 1; xs <= x + diff; xs++){
                         if(occupation_threshold_ == 1.0 && ((wX - xs) < (int)tiles[s]->wX() || (wY - ys) < (int)tiles[s]->wY())) break;
                         if(squarer && tiles[s]->isSquarer() && xs != ys) continue;                 //squarers should only be placed in the diagonal
-                        //if(squarer && !tiles[s]->isSquarer() && x == y && !(tiles[s]->wX() == 1 && tiles[s]->wY() == 1) ) continue;                 //regular tiles should not be placed in the diagonal
-                        if(tiles[s]->shape_contribution(x, y, xs, ys, wX, wY, signedIO) == true){
+                        if(tiles[s]->shape_contribution(x, y, xs, ys, wX, wY, signedIO, squarer)){
                             if((wOut < (int)prodWidth) && ((xs+tiles[s]->wX()+ys+tiles[s]->wY()-2) < ((int)prodWidth-wOut-guardBits))) break;
                             if(signedIO && (wX == xs+tiles[s]->wX() && !tiles[s]->signSupX() || wY == ys+tiles[s]->wY() && !tiles[s]->signSupY() )) break; //Avoid placing tiles without signed support at the bottom and left |_ edge of the area to be tiled.
+                            //if(signedIO && (wX < xs+tiles[s]->wX() || wY < ys+tiles[s]->wY() )) break; //Avoid protrusion of tiles in singed case at the bottom and left |_ edge of the area to be tiled.
                             if(tiles[s]->shape_utilisation(xs, ys, wX, wY, signedIO) >=  occupation_threshold_ ){
                                 if(solve_Vars[s][xs+x_neg][ys+y_neg] == nullptr){
                                     stringstream nvarName;
@@ -251,22 +252,11 @@ void TilingStrategyOptimalILP::constructProblem()
                                     obj.add(tempV, (double)tiles[s]->getLUTCost(xs, ys, wX, wY, signedIO));    //append variable to cost function
                                 }
 
-                                pxyTerm.add(solve_Vars[s][xs+x_neg][ys+y_neg], tiles[s]->getParametrisation().getTilingWeight());
-                                if(!tiles[s]->isSquarer() && xs <= ys+(int)tiles[s]->wY()-1 && tiles[s]->shapeValid(y-xs,x-ys) && x != y || tiles[s]->isSquarer() && x != y){
-                                    pxyTerm.add(solve_Vars[s][xs+x_neg][ys+y_neg], tiles[s]->getParametrisation().getTilingWeight());          //the symmetric position for the current eq. below the diagonal is realizes by the tile
+                                if(!squarer || tiles[s]->shape_contribution(x, y, xs, ys, wX, wY, signedIO, false))
+                                    pxyTerm.add(solve_Vars[s][xs+x_neg][ys+y_neg], tiles[s]->getParametrisation().getTilingWeight());          //add decision variable to eq for position (x,y) when the respective tile s at (xs,ys) covers this position
+                                if(!tiles[s]->isSquarer() && xs <= ys+(int)tiles[s]->wY()-1 && tiles[s]->shapeValid(y-xs,x-ys) && x != y || tiles[s]->isSquarer() && x != y){   //consideration of symmetries for squarers
+                                    pxyTerm.add(solve_Vars[s][xs+x_neg][ys+y_neg], tiles[s]->getParametrisation().getTilingWeight());          //in squarers the symmetric position for the current eq. below the diagonal is covered by the tile s
                                 }
-                                /*
-                                if(!tiles[s]->isSquarer() && xs <= ys+(int)tiles[s]->wY()-1 || tiles[s]->isSquarer() && x == y ){
-                                    pxyTerm.add(solve_Vars[s][xs+x_neg][ys+y_neg], 1);          //the tile protrudes over the diagonal
-                                    //if(!tiles[s]->isSquarer()) cout << "tile " << s << " at (" << xs << "," << ys << ") overlaps over the diagonal down to (" << xs << "," << ys+tiles[s]->wY() << ") in eq for (" << x << "," << y << ")" << endl;
-                                    if(!tiles[s]->isSquarer() && tiles[s]->shapeValid(y-xs,x-ys) && x != y){
-                                        pxyTerm.add(solve_Vars[s][xs+x_neg][ys+y_neg], 1);          //the symmetric position for the current eq. below the diagonal is realizes by the tile
-                                        //if(!tiles[s]->isSquarer()) cout << "tile " << s << " at (" << xs << "," << ys << ") overlaps over the diagonal down to (" << xs << "," << ys+tiles[s]->wY() << ") in eq for (" << x << "," << y << ") second" << endl;
-                                    }
-                                } else {
-                                    pxyTerm.add(solve_Vars[s][xs+x_neg][ys+y_neg], 2);          //
-                                    //if(!tiles[s]->isSquarer()) cout << "tile " << s << " at (" << xs << "," << ys << ") does not overlap over the diagonal down to (" << xs << "," << ys+tiles[s]->wY() << ") in eq for (" << x << "," << y << ")" << endl;
-                                }*/
                             }
                         }
                     }
@@ -296,7 +286,7 @@ void TilingStrategyOptimalILP::constructProblem()
                     cout << "NO keepBit at" << x << "," << y << endl;
                 }
             } else {
-                c1Constraint = pxyTerm == ((x == y)?1.0:2.0);
+                c1Constraint = pxyTerm == ((!squarer || x == y)?1.0:2.0);
             }
 
             c1Constraint.name = consName.str();
