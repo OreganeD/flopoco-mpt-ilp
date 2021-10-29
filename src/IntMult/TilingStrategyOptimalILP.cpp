@@ -275,7 +275,7 @@ void TilingStrategyOptimalILP::constructProblem()
                     maxEpsTerm.add(1ULL << (x + y));
                 }
 
-                c1Constraint = pxyTerm - tempV == 0;
+                c1Constraint = pxyTerm - ((squarer && x != y)?2:1) * tempV == 0;
             } else if(performOptimalTruncation == false && (wOut < (int)prodWidth) && ((x+y) < ((int)prodWidth-wOut-guardBits))){
                 //c1Constraint = pxyTerm <= (bool)1;
             } else if(performOptimalTruncation == false && (wOut < (int)prodWidth) && ((x+y) == ((int)prodWidth-wOut-guardBits))){
