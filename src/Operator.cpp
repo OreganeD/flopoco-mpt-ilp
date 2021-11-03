@@ -1393,7 +1393,10 @@ namespace flopoco{
 				if(actual->incompleteDeclaration())		{
 					//copy the details from the output port
 					actual->copySignalParameters(op->getSignalByName(formalName));
-					actual->setIncompleteDeclaration(false); //mark the signal as completely declared
+					//the port has not been scheduled yet
+					//override the copied value
+					actual->setHasBeenScheduled(false);
+ 					actual->setIncompleteDeclaration(false); //mark the signal as completely declared
 					if(op->isShared()){ // shared instance:  directly connect the inputs to the actual output in the dependency graph
 						REPORT(DEBUG, "instance():  Actual parameter "<< actual->getUniqueName()  << " of shared instance " << op->getName());
 						// relink the critical path info for the pipeline to work.
