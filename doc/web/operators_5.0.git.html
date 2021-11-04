@@ -267,7 +267,7 @@
 </dl>
 <dl>
 <dt class="operatorname">IEEEAdd</dt>
-<dd class="operatordescription">A floating-point adder with a new, more compact single-path architecture.</dd>
+<dd class="operatordescription">A single-path floating-point adder.</dd>
 <dd><em>Parameters:</em> <dl>
 <dt> <code class="parametername">wE</code>  (<code class="parametertype">int</code>) </dt><dd>exponent size in bits</dd>
 <dt> <code class="parametername">wF</code>  (<code class="parametertype">int</code>) </dt><dd>mantissa size in bits</dd>
@@ -385,7 +385,7 @@
 <dt> <code class="parametername">constant</code>  (<code class="parametertype">string</code>) </dt><dd>constant given in arbitrary-precision decimal, or as a Sollya expression, e.g "log(2)"</dd>
 <span class="optionalparam"> <dt> <code class="parametername">targetUlpError</code>  (<code class="parametertype">real</code>)   (optional, default value is 1.0)</dt><dd>required precision on last bit. Should be strictly greater than 0.5 and lesser than 1</dd> </span>
 </dl></dd>
-<dd>This variant of Ken Chapman's Multiplier is briefly described in <a href="bib/flopoco.html#DinIstoMas2014-SOPCJR">this article</a>.<br> Special constants, such as 0 or powers of two, are handled efficiently.</dd>
+<dd>This variant of shift-and-add multiplier is briefly described in <a href="bib/flopoco.html#deDinechinEtAl2019-Arith-KCMvsSA">this article</a>.<br> Special constants, such as 0 or powers of two, are handled efficiently.</dd>
 </dl>
 <dl>
 <dt class="operatorname">FixRealConstMult</dt>
