@@ -572,7 +572,7 @@ namespace flopoco{
 
 	void IEEEAdd::registerFactory(){
 		UserInterface::add("IEEEAdd", // name
-											 "A floating-point adder with a new, more compact single-path architecture.",
+											 "A single-path floating-point adder.",
 											 "BasicFloatingPoint", // categories
 											 "",
 											 "wE(int): exponent size in bits; \
