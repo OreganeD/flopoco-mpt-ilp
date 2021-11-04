@@ -380,41 +380,37 @@ namespace flopoco {
     }
 
     void IntMultiplier::computeTruncMultParamsMPZ(unsigned wFull, unsigned wOut, unsigned &g, unsigned &k, mpz_class &errorBudget, mpz_class &constant){
-        // first loop iterates over the columns, right to left
-        unsigned w = wFull - wOut; //weight of the LSB of the result, relative to the LSB of a non-truncated multiplier
-        mpz_class colweight;//, max64;
-        mpz_pow_ui(errorBudget.get_mpz_t(), mpz_class(2).get_mpz_t(), w-1);
-        if(w == 0) return;
-        unsigned col = 0, height;
-        mpz_class weightedSumOfTruncatedBits = 0;   //actual error
-        bool loop=true;
-        while(loop){
-            col++;                                                          //bitheap column
-            //height = (col > (wFull/2))?wFull-col:col;                       //number of partial products in column (square multiplier)
-            height = widthOfDiagonalOfRect(wX, wY, col, wFull);             //number of partial products in column
-            mpz_pow_ui(colweight.get_mpz_t(), mpz_class(2).get_mpz_t(), col-1);
-            weightedSumOfTruncatedBits += mpz_class(height) * colweight;
-            constant = errorBudget - colweight;
-            //cout << "col=" << col << " height=" << height << " wstb=" << weightedSumOfTruncatedBits << " errorBudget=" << errorBudget << " C=" << C << endl;
-            loop = (weightedSumOfTruncatedBits < errorBudget + constant);
-        } // when we exit the loop, we have found g
-        g = w-(col-1);
-        // Now add back bits in rigthtmost column, one by one
-        k = 0;
-        while(weightedSumOfTruncatedBits >= errorBudget + constant) {
-            weightedSumOfTruncatedBits -= colweight;
-            k++;
+        unsigned l_P = wFull - wOut, l_ext = 0, t = 0;
+        mpz_class colweight = 2, dlow = 0, wlext = 1, wlextpe = 2;
+        mpz_pow_ui(errorBudget.get_mpz_t(), mpz_class(2).get_mpz_t(), l_P-1); //tiling error budget
+        if(l_P == 0) return;
+        constant = errorBudget - wlextpe;                                       //2^(l_P-1) - 2^(l_ext+1)
+        //Try to remove whole diagonals + one partial product from the next diagonal, without violating the error bound.
+        while( (t+1)*wlextpe + (dlow + widthOfDiagonalOfRect(wX,wY,l_ext+1,wFull)*wlext ) < errorBudget + constant ){
+            dlow += widthOfDiagonalOfRect(wX,wY,l_ext+1,wFull) * wlext;
+            l_ext++;
+            wlext = wlextpe;
+            mpz_pow_ui(wlextpe.get_mpz_t(), mpz_class(2).get_mpz_t(), l_ext+1);
+            constant = errorBudget - wlextpe;
+        }
+        mpz_pow_ui(wlext.get_mpz_t(), mpz_class(2).get_mpz_t(), l_ext);
+        constant = errorBudget - wlext;
+
+        //Try to remove partial products from the next diagonal, until it would violate the error bound.
+        while( (t+1)*wlext + dlow < errorBudget + constant && t < widthOfDiagonalOfRect(wX,wY,l_ext+1,wFull)){
+            t += 1;
         }
 
-/*        unsigned long long max64u = UINT64_MAX;
-        mpz_import(max64.get_mpz_t(), 1, -1, sizeof max64u, 0, 0, &max64u);
-        if(errorBudget <= max64 && constant <= max64){
-            mpz_export(&errorBudget, 0, -1, sizeof errorBudget, 0, 0, errorBudget.get_mpz_t());
-            mpz_export(&constant, 0, -1, sizeof constant, 0, 0, errorBudget.get_mpz_t());
-        } else {
-            cout << "WARNING: errorBudget or constant exceeds the number range of uint64, use optiTrunc=0 or results will be faulty!" << endl;
-        }*/
+        //If there is only a err. recent. const. bit in a bh-column and no p.p. bits, check if this bit can also be omitted to get a shorter bh.
+        if(t == widthOfDiagonalOfRect(wX,wY,l_ext+1,wFull) && (dlow + widthOfDiagonalOfRect(wX,wY,l_ext+1,wFull)*wlext ) < errorBudget + constant - wlext){
+            constant = constant - wlext;
+            l_ext++; t = 0;
+        }
 
+        g = l_P - l_ext;
+        k = widthOfDiagonalOfRect(wX,wY,l_ext+1,wFull) - t;
+        printf("w=%2i, l_ext=%i, t=%i, g=%i, k=%i, ", wX, l_ext, t, g, k);
+        cout << "errorBudget=" << errorBudget << ", C=" << constant << endl;
     }
 
     unsigned int IntMultiplier::widthOfDiagonalOfRect(unsigned wX, unsigned wY, unsigned col, unsigned wFull){
@@ -945,7 +941,7 @@ namespace flopoco {
 	}
 
     mpz_class IntMultiplier::checkTruncationError(list<TilingStrategy::mult_tile_t> &solution, unsigned guardBits, const mpz_class& errorBudget, const mpz_class& constant) const{
-        std::vector<std::vector<bool>> mulArea(wX, std::vector<bool>(wY,false));
+        std::vector<std::vector<int>> mulAreaI(wX, std::vector<int>(wY,0));
 
         for(auto & tile : solution) {
             auto &parameters = tile.first;
@@ -953,11 +949,19 @@ namespace flopoco {
             int xPos = anchor.first;
             int yPos = anchor.second;
 
-            for(int x = 0; x < parameters.getMultXWordSize(); x++){
-                for(int y = 0; y < parameters.getMultYWordSize(); y++){
-                    if(0 <= xPos+x && 0 <= yPos+y && xPos+x < wX && yPos+y < wY){
-                        mulArea[xPos+x][yPos+y] = mulArea[xPos+x][yPos+y] || parameters.shapeValid(x,y);
-                        if(squarer) mulArea[yPos+y][xPos+x] = mulArea[yPos+y][xPos+x] || parameters.shapeValid(x,y);
+            for(int x = (0 <= xPos)?xPos:0; x < ((xPos + parameters.getTileXWordSize() < wX)?xPos + parameters.getTileXWordSize():wX); x++){
+                for(int y = (0 <= yPos)?yPos:0; y < ((yPos + parameters.getTileYWordSize() < wY)?yPos + parameters.getTileYWordSize():wY); y++){
+                    if( parameters.shapeValid(x-xPos,y-yPos) || parameters.isSquarer() ){
+                        if(1 < std::abs(parameters.getTilingWeight())){
+                            mulAreaI[x][y] = mulAreaI[x][y] + ((0 <= parameters.getTilingWeight())?1:(-1));
+                            mulAreaI[y][x] = mulAreaI[y][x] + ((0 <= parameters.getTilingWeight())?1:(-1));
+                        } else {
+                            mulAreaI[x][y] = mulAreaI[x][y] + parameters.getTilingWeight();
+                            if(mulAreaI[x][y] > 1 && mulAreaI[y][x] == 0){
+                                mulAreaI[x][y]--;
+                                mulAreaI[y][x]++;
+                            }
+                        }
                     }
                 }
             }
@@ -967,9 +971,9 @@ namespace flopoco {
         truncError = mpz_class(0);
         for(int y = 0; y < wY; y++){
             for(int x = wX-1; 0 <= x; x--){
-                if(!mulArea[x][y])
+                if(!(mulAreaI[x][y] == 1))
                     truncError += (mpz_class(1)<<(x+y));
-                cout << (mulArea[x][y] ? 1 : 0);
+                cout << ((mulAreaI[x][y] == 1) ? 1 : 0);
             }
             cout << endl;
         }
@@ -983,32 +987,45 @@ namespace flopoco {
 	}
 
     int IntMultiplier::calcBitHeapLSB(list<TilingStrategy::mult_tile_t> &solution, unsigned guardBits, const mpz_class& errorBudget, const mpz_class& constant, const mpz_class& actualTruncError){
-        int lsbs[solution.size()], msbs[solution.size()], prunableBits[solution.size()], weight=0, nBits = 0, i=0;;
-        for(auto & tile : solution) {
-            auto &parameters = tile.first;
-            auto &anchor = tile.second;
-            int xPos = anchor.first;
-            int yPos = anchor.second;
-            lsbs[i] = xPos + yPos + parameters.getRelativeResultLSBWeight();
-            msbs[i] = lsbs[i] + parameters.getOutWordSize();
-            prunableBits[i]=0;
-            cout << "Tile " << i << " " << parameters.getMultType() << " at (" << xPos << "," << yPos << ") has an LSB of" << lsbs[i] << endl;
-            i++;
-        }
-        double error = 0;
+	    int weight=0, nBits = 0;
+	    std::vector<std::vector<int>> mulAreaI(wX, std::vector<int>(wY,0));
+
+	    for(auto & tile : solution) {
+	        auto &parameters = tile.first;
+	        auto &anchor = tile.second;
+	        int xPos = anchor.first;
+	        int yPos = anchor.second;
+
+	        for(int x = (0 <= xPos)?xPos:0; x < ((xPos + parameters.getTileXWordSize() < wX)?xPos + parameters.getTileXWordSize():wX); x++){
+	            for(int y = (0 <= yPos)?yPos:0; y < ((yPos + parameters.getTileYWordSize() < wY)?yPos + parameters.getTileYWordSize():wY); y++){
+	                if( parameters.shapeValid(x-xPos,y-yPos) || parameters.isSquarer() ){
+	                    if(1 < std::abs(parameters.getTilingWeight())){
+	                        mulAreaI[x][y] = mulAreaI[x][y] + ((0 <= parameters.getTilingWeight())?1:(-1));
+	                        mulAreaI[y][x] = mulAreaI[y][x] + ((0 <= parameters.getTilingWeight())?1:(-1));
+	                    } else {
+	                        mulAreaI[x][y] = mulAreaI[x][y] + parameters.getTilingWeight();
+	                        if(mulAreaI[x][y] > 1 && mulAreaI[y][x] == 0){
+	                            mulAreaI[x][y]--;
+	                            mulAreaI[y][x]++;
+	                        }
+	                    }
+	                }
+	            }
+	        }
+	    }
+
+        double error;
         do{
+            nBits = 0;
+            error = 0;
             cout << " min weight=" << weight << endl;
-            for(i = 0; i < solution.size(); i++){
-                if(lsbs[i] <= weight && weight < msbs[i]) {
-                    prunableBits[i]++;
-                    if(weight < lsbs[i]+(msbs[i]-lsbs[i])/2 ){
-                        error += prunableBits[i]*pow(2,weight);
-                    } else {
-                        error += ((msbs[i]-lsbs[i])-prunableBits[i])*pow(2,weight);
-                    }
-                    cout << "trying to prune " << prunableBits[i] << " bits in tile " << i << " with weight " << weight << " error is "  << error << " additional permissible error is "  << errorBudget + constant - actualTruncError << endl;
+            for(int x = 0; x <= weight; x++){
+                for(int y = 0; x+y <= weight; y++){
+                    error += (mulAreaI[x][y] == 1)?pow(2.0, weight):0;
+                    nBits += (mulAreaI[x][y] == 1)?1:0;
                 }
             }
+            cout << "trying to prune " << nBits << " bits with weight " << weight << " error is "  << error << " additional permissible error is " << errorBudget + constant - actualTruncError << endl;
             weight++;
         } while(actualTruncError + error < errorBudget + constant || 0 == error);
         weight--;

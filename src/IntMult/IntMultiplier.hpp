@@ -161,7 +161,7 @@ namespace flopoco {
          * @param constant to recenter the truncation error around 0 since it can otherwise only be negative, since there are only partial products left out. This allows a larger error, so more products can be omitted
          * @return none
          */
-        static int calcBitHeapLSB(list<TilingStrategy::mult_tile_t> &solution, unsigned guardBits, const mpz_class& errorBudget, const mpz_class& constant, const mpz_class& actualTruncError);
+        int calcBitHeapLSB(list<TilingStrategy::mult_tile_t> &solution, unsigned guardBits, const mpz_class& errorBudget, const mpz_class& constant, const mpz_class& actualTruncError);
 
         /**
          * @brief calculate the width of the diagonal of a rectangle, that is equivalent to the number of partial product bits in the hypothetical resulting bitheap of a Bough-Wooley-Multiplier

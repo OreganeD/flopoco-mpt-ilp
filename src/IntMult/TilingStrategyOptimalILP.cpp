@@ -279,8 +279,10 @@ void TilingStrategyOptimalILP::constructProblem()
             } else if(performOptimalTruncation == false && (wOut < (int)prodWidth) && ((x+y) < ((int)prodWidth-wOut-guardBits))){
                 //c1Constraint = pxyTerm <= (bool)1;
             } else if(performOptimalTruncation == false && (wOut < (int)prodWidth) && ((x+y) == ((int)prodWidth-wOut-guardBits))){
+                cout << "keepBit to place: " << keepBits << endl;
                 if((keepBits)?keepBits--:0){
-                    c1Constraint = pxyTerm == (bool)1;
+                    c1Constraint = pxyTerm == ((squarer && x != y)?2:1);
+                    if(squarer && x != y && keepBits) keepBits--;           //consider symmetric bit in squarer
                     cout << "keepBit at" << x << "," << y << endl;
                 } else {
                     cout << "NO keepBit at" << x << "," << y << endl;
