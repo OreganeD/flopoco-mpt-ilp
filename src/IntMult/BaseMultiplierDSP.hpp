@@ -45,7 +45,7 @@ namespace flopoco {
                 "BaseMultiplierDSP"
         }{}
 
-
+        double getLUTCost(int x_anchor, int y_anchor, int wMultX, int wMultY, bool signedIO);
         int getDSPCost() const final {return 1;}
 
         bool signSupX() override{return true;}
