@@ -254,7 +254,7 @@ void TilingStrategyOptimalILP::constructProblem()
 
                                 if(!squarer || tiles[s]->shape_contribution(x, y, xs, ys, wX, wY, signedIO, false))
                                     pxyTerm.add(solve_Vars[s][xs+x_neg][ys+y_neg], tiles[s]->getParametrisation().getTilingWeight());          //add decision variable to eq for position (x,y) when the respective tile s at (xs,ys) covers this position
-                                if(!tiles[s]->isSquarer() && xs <= ys+(int)tiles[s]->wY()-1 && tiles[s]->shapeValid(y-xs,x-ys) && x != y || tiles[s]->isSquarer() && x != y){   //consideration of symmetries for squarers
+                                if(squarer && !tiles[s]->isSquarer() && xs <= ys+(int)tiles[s]->wY()-1 && tiles[s]->shapeValid(y-xs,x-ys) && x != y || tiles[s]->isSquarer() && x != y){   //consideration of symmetries for squarers
                                     pxyTerm.add(solve_Vars[s][xs+x_neg][ys+y_neg], tiles[s]->getParametrisation().getTilingWeight());          //in squarers the symmetric position for the current eq. below the diagonal is covered by the tile s
                                 }
                             }
