@@ -115,6 +115,7 @@ ExpLog/FPLogIterative
 ExpLog/FPPow
 IEEE/IEEEFMA
 IEEE/IEEEAdd
+IEEE/IEEEFloatFormat
 Table
 DualTable
 FixConstant

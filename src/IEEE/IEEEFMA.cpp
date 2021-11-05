@@ -20,6 +20,7 @@
 // TODO opt: clean up exptentative/expupdate
 
 #include "IEEEFMA.hpp"
+#include "IEEEFloatFormat.h"
 
 #include <iostream>
 #include <sstream>
@@ -1016,29 +1017,12 @@ namespace flopoco{
 		if(index == -1)
 		{
 			// The unit tests
-			paramList.push_back(make_pair("wE","5"));
-			paramList.push_back(make_pair("wF","10"));
-			testStateList.push_back(paramList);
-
-			paramList.clear();
-			paramList.push_back(make_pair("wE","8"));
-			paramList.push_back(make_pair("wF","23"));
-			testStateList.push_back(paramList);
-
-			paramList.clear();
-			paramList.push_back(make_pair("wE","11"));
-			paramList.push_back(make_pair("wF","52"));
-			testStateList.push_back(paramList);
-
-			paramList.clear();
-			paramList.push_back(make_pair("wE","15"));
-			paramList.push_back(make_pair("wF","112"));
-			testStateList.push_back(paramList);
-
-			paramList.clear();
-			paramList.push_back(make_pair("wE","19"));
-			paramList.push_back(make_pair("wF","236"));
-			testStateList.push_back(paramList);
+			for (auto format : IEEEFloatFormat::getStandardFormats()) {
+				paramList.clear();
+				paramList.push_back(make_pair("wE", to_string(format.wE)));
+				paramList.push_back(make_pair("wF", to_string(format.wF)));
+				testStateList.push_back(paramList);
+			}
 		}
 		else
 		{
