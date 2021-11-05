@@ -1,0 +1,7 @@
+# tantative clang-format config to match current code style
+---
+IndentWidth: 8
+UseTab: Always
+NamespaceIndentation: All
+AccessModifierOffset: -8
+BreakBeforeBraces: Linux
