@@ -1002,8 +1002,50 @@ namespace flopoco{
 											 "wE(int): exponent size in bits; \
 			wF(int): mantissa size in bits;",
 											 "",
-											 IEEEFMA::parseArguments
+											 IEEEFMA::parseArguments,
+											 IEEEFMA::unitTest
 											 ) ;
+	}
+
+	TestList IEEEFMA::unitTest(int index)
+	{
+		// the static list of mandatory tests
+		TestList testStateList;
+		vector<pair<string,string>> paramList;
+
+		if(index == -1)
+		{
+			// The unit tests
+			paramList.push_back(make_pair("wE","5"));
+			paramList.push_back(make_pair("wF","10"));
+			testStateList.push_back(paramList);
+
+			paramList.clear();
+			paramList.push_back(make_pair("wE","8"));
+			paramList.push_back(make_pair("wF","23"));
+			testStateList.push_back(paramList);
+
+			paramList.clear();
+			paramList.push_back(make_pair("wE","11"));
+			paramList.push_back(make_pair("wF","52"));
+			testStateList.push_back(paramList);
+
+			paramList.clear();
+			paramList.push_back(make_pair("wE","15"));
+			paramList.push_back(make_pair("wF","112"));
+			testStateList.push_back(paramList);
+
+			paramList.clear();
+			paramList.push_back(make_pair("wE","19"));
+			paramList.push_back(make_pair("wF","236"));
+			testStateList.push_back(paramList);
+		}
+		else
+		{
+			// finite number of random test computed out of index
+		}
+
+		return testStateList;
 	}
 
 
