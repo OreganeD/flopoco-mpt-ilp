@@ -245,43 +245,26 @@ namespace flopoco{
 	{
 		/* Get I/O values */
 		mpz_class svX = tc->getInputValue("X");
-		mpz_class sgnX = (svX >> (wFI+wEI));
-		mpz_class expX = (svX >> wFI) & ((mpz_class(1)<<wEI)-1);
-		mpz_class fracX = svX & ((mpz_class(1)<<wFI)-1);
 		mpfr_t x;
 		mpfr_init2(x, 1+wFI);
 	
-		if (wEI!=11 || wFI!=52)
-			throw string("InputIEEE::emulate(): only double-precision inputs supported");
-		else {
-			union {double d; uint32_t i[2];} xx;
-#if 1 // little-endian
-			mpz_class t;
-			t = (svX >> 32);
-			xx.i[1] = t.get_ui();
-			t = svX - (mpz_class(xx.i[1])<<32);
-			xx.i[0] = t.get_ui() ;
-#else //big-endian
-			t = (svX >> 32);
-			xx.i[0] = t.get_ui();
-			t = svX - (mpz_class(xx.i[0])<<32);
-			xx.i[1] = t.get_ui() ;
-#endif
-			//cout << "Double input to emulate: " << xx.d << endl;
+		/* Convert input to MPFR */
+		IEEENumber num(wEI, wFI, svX);
+		num.getMPFR(x);
 
-			mpfr_set_d(x, xx.d, GMP_RNDN);
+		//cout << "Double input to emulate: " << xx.d << endl;
 
-			mpfr_t r;
-			mpfr_init2(r, 1+wFO); 
-			mpfr_set(r, x, GMP_RNDN);
-			FPNumber  fpr(wEO, wFO, r);
+		/* Round to output precision */
+		mpfr_t r;
+		mpfr_init2(r, 1+wFO);
+		mpfr_set(r, x, GMP_RNDN);
+		FPNumber  fpr(wEO, wFO, r);
 
-			/* Set outputs */
-			mpz_class svr= fpr.getSignalValue();
-			tc->addExpectedOutput("R", svr);
+		/* Set outputs */
+		mpz_class svr = fpr.getSignalValue();
+		tc->addExpectedOutput("R", svr);
 
-			mpfr_clears(x, r, NULL);
-		}
+		mpfr_clears(x, r, NULL);
 	}
 
 	void InputIEEE::buildStandardTestCases(TestCaseList* tcl){
