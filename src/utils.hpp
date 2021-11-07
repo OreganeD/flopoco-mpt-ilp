@@ -542,6 +542,17 @@ namespace flopoco{
 
 	/** A helper function that will convert a signal name into its lowercase version */
 	string toLower(const string& str);
+
+	/** A helper class to set and restore mpfr emin/emax */
+	class MPFRSetExp {
+	public:
+		MPFRSetExp(mpfr_exp_t emin, mpfr_exp_t emax);
+		~MPFRSetExp();
+
+	private:
+		mpfr_exp_t orig_emin;
+		mpfr_exp_t orig_emax;
+	};
 }
 
 

@@ -846,5 +846,18 @@ namespace flopoco{
 		  s << std::tolower(elem,loc);
 		return s.str();
 	}
+
+	MPFRSetExp::MPFRSetExp(mpfr_exp_t emin, mpfr_exp_t emax) {
+		orig_emin = mpfr_get_emin();
+		mpfr_set_emin(emin);
+
+		orig_emax = mpfr_get_emax();
+		mpfr_set_emax(emax);
+	}
+
+	MPFRSetExp::~MPFRSetExp() {
+		mpfr_set_emin(orig_emin);
+		mpfr_set_emax(orig_emax);
+	}
 	
 }
