@@ -18,8 +18,8 @@ namespace flopoco{
 		/**
 		 * @brief The InputIEEE constructor
 		 * @param[in]		target		the target device
-		 * @param[in]		wE			the the width of the exponent for the f-p number X
-		 * @param[in]		wF			the the width of the fraction for the f-p number X
+		 * @param[in]		wE		the width of the exponent for the f-p number X
+		 * @param[in]		wF		the width of the fraction for the f-p number X
 		 */
 		InputIEEE(OperatorPtr parentOp, Target* target, int wEI, int wFI, int wEO, int wFO, bool flushToZero=true);
 
