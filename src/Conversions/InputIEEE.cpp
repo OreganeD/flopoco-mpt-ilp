@@ -28,6 +28,7 @@
 #include "utils.hpp"
 #include "Operator.hpp"
 #include "InputIEEE.hpp"
+#include "IEEE/IEEEFloatFormat.h"
 
 using namespace std;
 
@@ -236,15 +237,21 @@ namespace flopoco{
 	InputIEEE::~InputIEEE() {
 	}
 
-
-
-
-
-
 	void InputIEEE::emulate(TestCase * tc)
 	{
 		/* Get I/O values */
 		mpz_class svX = tc->getInputValue("X");
+		mpz_class sgnX = (svX >> (wFI+wEI));
+		mpz_class expX = (svX >> wFI) & ((mpz_class(1)<<wEI)-1);
+		mpz_class fracX = svX & ((mpz_class(1)<<wFI)-1);
+
+		/** Special: even when wEI<wEO, subnormal numbers are flushed to zero */
+		if (wEI < wEO && expX == mpz_class(0)) {
+			mpz_class svR = sgnX << (wEO + wFO);
+			tc->addExpectedOutput("R", svR);
+			return;
+		}
+
 		mpfr_t x;
 		mpfr_init2(x, 1+wFI);
 	
@@ -273,26 +280,28 @@ namespace flopoco{
 
 		tc = new TestCase(this); 
 		tc->addComment("a typical normal number: 1.0");
-		x = ((mpz_class(1) << 10)-1) << 52 ;
+		IEEENumber one(wEI, wFI, 1.0);
+		x = one.getSignalValue();
 		tc->addInput("X", x);
 		emulate(tc);
 		tcl->add(tc);
 
 		tc = new TestCase(this); 
 		tc->addComment("another one: -1.0");
-		x += (mpz_class(1) << 63);
+		IEEENumber negative_one(wEI, wFI, -1.0);
+		x = negative_one.getSignalValue();
 		tc->addInput("X", x);
 		emulate(tc);
 		tcl->add(tc);
 
 		tc = new TestCase(this);
 		tc->addComment("a subnormal that is converted to a normal number");
-		x = mpz_class(1) << 51;
+		x = mpz_class(1) << (wFI - 1);
 		tc->addInput("X", x);
 		emulate(tc);
-		tcl->add(tc);	
+		tcl->add(tc);
 
-		if(wFO==52 && wEO==11) {
+		if(wFI==52 && wEI==11 && wFO==52 && wEO==11) {
 			tc = new TestCase(this);
 			tc->addComment("the same, but defined explicitely (to check emulate())");
 			x = mpz_class(1) << 51;
@@ -304,42 +313,42 @@ namespace flopoco{
 
 		tc = new TestCase(this);
 		tc->addComment("the same, negative");
-		x += (mpz_class(1) << 63);
+		x += (mpz_class(1) << (wEI+wFI));
 		tc->addInput("X", x);
 		emulate(tc);
 		tcl->add(tc);
 
 		tc = new TestCase(this);
 		tc->addComment("a subnormal that is flushed to zero");
-		x = mpz_class(1) << 50;
+		x = mpz_class(1) << (wFI - 2);
 		tc->addInput("X", x);
 		emulate(tc);
 		tcl->add(tc);
 
 		tc = new TestCase(this);
 		tc->addComment("the same, negative");
-		x += (mpz_class(1) << 63);
+		x += (mpz_class(1) << (wEI+wFI));
 		tc->addInput("X", x);
 		emulate(tc);
 		tcl->add(tc);
 
 		tc = new TestCase(this);
 		tc->addComment("another subnormal that is flushed to zero");
-		x = mpz_class(1) << 49;
+		x = mpz_class(1) << (wFI - 3);
 		tc->addInput("X", x);
 		emulate(tc);
 		tcl->add(tc);
 
 		tc = new TestCase(this);
 		tc->addComment("the same, negative");
-		x += (mpz_class(1) << 63);
+		x += (mpz_class(1) << (wEI+wFI));
 		tc->addInput("X", x);
 		emulate(tc);
 		tcl->add(tc);
 
 		tc = new TestCase(this);
-		tc->addComment("The largest finite number. ");
-		x = (((mpz_class(1) << 11)-1) << 52) -1 ;
+		tc->addComment("The largest finite number");
+		x = (((mpz_class(1) << wEI)-1) << wFI) -1;
 		tc->addInput("X", x);
 		emulate(tc);
 		tcl->add(tc);
@@ -363,33 +372,35 @@ namespace flopoco{
 
 		tc = new TestCase(this);
 		tc->addComment("the same, negative");
-		x += (mpz_class(1) << 63);
+		x += (mpz_class(1) << (wEI+wFI));
 		tc->addInput("X", x);
 		emulate(tc);
 		tcl->add(tc);
 
 		tc = new TestCase(this);
 		tc->addComment("Plus infty");
-		x = ((mpz_class(1) << 11)-1) << 52 ;
+		IEEENumber plus_inf(wEI, wFI, IEEENumber::plusInfty);
+		x = plus_inf.getSignalValue();
 		tc->addInput("X", x);
 		emulate(tc);
 		tcl->add(tc);
 
 		tc = new TestCase(this);
 		tc->addComment("Minus infty");
-		x += (mpz_class(1) << 63);
+		IEEENumber minus_inf(wEI, wFI, IEEENumber::minusInfty);
+		x = minus_inf.getSignalValue();
 		tc->addInput("X", x);
 		emulate(tc);
 		tcl->add(tc);
 
 		tc = new TestCase(this);
 		tc->addComment("NaN");
-		x = (((mpz_class(1) << 11)-1) << 52 ) + 12;
+		IEEENumber nan(wEI, wFI, IEEENumber::NaN);
+		x = nan.getSignalValue();
 		tc->addInput("X", x);
 		emulate(tc);
 		tcl->add(tc);
 	}
-
 	
 	OperatorPtr InputIEEE::parseArguments(OperatorPtr parentOp, Target *target, vector<string> &args) {
 		int wEIn, wFIn, wEOut, wFOut;
@@ -402,7 +413,34 @@ namespace flopoco{
 		return new InputIEEE(parentOp, target, wEIn, wFIn, wEOut, wFOut, flushToZero);
 	}
 
-	
+	TestList InputIEEE::unitTest(int index)
+	{
+		// the static list of mandatory tests
+		TestList testStateList;
+		vector<pair<string,string>> paramList;
+
+		if(index == -1)
+		{
+			// The unit tests
+			for (auto formatIn : IEEEFloatFormat::getStandardFormats()) {
+				for (auto formatOut : IEEEFloatFormat::getStandardFormats()) {
+					paramList.clear();
+					paramList.push_back(make_pair("wEIn", to_string(formatIn.wE)));
+					paramList.push_back(make_pair("wFIn", to_string(formatIn.wF)));
+					paramList.push_back(make_pair("wEOut", to_string(formatOut.wE)));
+					paramList.push_back(make_pair("wFOut", to_string(formatOut.wF)));
+					testStateList.push_back(paramList);
+				}
+			}
+		}
+		else
+		{
+			// finite number of random test computed out of index
+		}
+
+		return testStateList;
+	}
+
 	void InputIEEE::registerFactory(){
 		UserInterface::add("InputIEEE", // name
 											 "Conversion from IEEE-754-like to FloPoCo floating-point formats. Subnormals are all flushed to zero at the moment.",
@@ -413,7 +451,8 @@ namespace flopoco{
                         wEOut(int): output exponent size in bits;\
                         wFOut(int): output mantissa size in bits",
 											 "", // htmldoc
-											 InputIEEE::parseArguments
+											 InputIEEE::parseArguments,
+											 InputIEEE::unitTest
 											 ) ;
 	}
 }

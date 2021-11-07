@@ -1,4 +1,4 @@
-# tantative clang-format config to match current code style
+# tentative clang-format config to match current code style
 ---
 IndentWidth: 8
 UseTab: Always
