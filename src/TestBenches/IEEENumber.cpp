@@ -38,6 +38,9 @@ namespace flopoco{
 	IEEENumber::IEEENumber(int wE, int wF, double x)
 		: wE(wE), wF(wF)
 	{
+		// set mpfr emin/emax
+		MPFRSetExp set_exp = MPFRSetExp::setupIEEE(wE, wF);
+
 		mpfr_t mp;
 		mpfr_init2(mp, 1+wF);
 		int ternaryRoundInfo = mpfr_set_d(mp, x, MPFR_RNDN);
@@ -120,13 +123,8 @@ namespace flopoco{
 		if (1+wF < mpfr_get_prec(mp_))
 			throw std::string("IEEENumber::setMPFR  the constructor with mpfr initialization demands for this mp nuber a precision smaller than 1+wF to avoid any rounding.");			
 #endif
-		// emin and emax are specified for a mantissa in (0.5, 1)
-		// The formula should evaluate to -1073 for doubles, see MPFR doc;
-		int emin = -(1<<(wE-1)) - wF + 3; // -1024 - 52 + 3 
-		// The formula should evaluate mpfr_t mp to 1024 for doubles, see MPFR doc;
-		int emax = (1<<(wE-1));
-		// the change is global, use RTTI to restore state
-		MPFRSetExp set_exp(emin, emax);
+		// set mpfr emin/emax
+		MPFRSetExp set_exp = MPFRSetExp::setupIEEE(wE, wF);
 
 		mpfr_init2(mp, 1+wF);
 		mpfr_set(mp, mp_, MPFR_RNDN);

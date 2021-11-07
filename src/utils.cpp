@@ -855,6 +855,15 @@ namespace flopoco{
 		mpfr_set_emax(emax);
 	}
 
+	MPFRSetExp MPFRSetExp::setupIEEE(int wE, int wF) {
+		// emin and emax are specified for a mantissa in (0.5, 1)
+		// The formula should evaluate to -1073 for doubles, see MPFR doc;
+		int emin = -(1<<(wE-1)) - wF + 3; // -1024 - 52 + 3 
+		// The formula should evaluate mpfr_t mp to 1024 for doubles, see MPFR doc;
+		int emax = (1<<(wE-1));
+		return MPFRSetExp(emin, emax);
+	}
+
 	MPFRSetExp::~MPFRSetExp() {
 		mpfr_set_emin(orig_emin);
 		mpfr_set_emax(orig_emax);

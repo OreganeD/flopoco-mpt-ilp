@@ -549,6 +549,9 @@ namespace flopoco{
 		MPFRSetExp(mpfr_exp_t emin, mpfr_exp_t emax);
 		~MPFRSetExp();
 
+		/** Setup mpfr emin/emax for IEEE floating point format */
+		static MPFRSetExp setupIEEE(int wE, int wF);
+
 	private:
 		mpfr_exp_t orig_emin;
 		mpfr_exp_t orig_emax;

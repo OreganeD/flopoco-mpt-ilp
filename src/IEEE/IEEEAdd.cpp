@@ -350,6 +350,9 @@ namespace flopoco{
 			ieeex.getMPFR(x);
 			ieeey.getMPFR(y);
 
+			// set mpfr emin/emax
+			MPFRSetExp set_exp = MPFRSetExp::setupIEEE(wE, wF);
+
 			// Here now we compute in r the MPFR correctly rounded result,
 			// except in the cases of over/underflow.
 			// These cases will be handled by IEEE number.
@@ -367,7 +370,7 @@ namespace flopoco{
 			mpz_class svR = ieeer.getSignalValue();
 			tc->addExpectedOutput("R", svR);
 
-		// clean up
+			// clean up
 			mpfr_clears(x, y, r, NULL);
 	}
 

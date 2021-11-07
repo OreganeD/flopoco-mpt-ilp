@@ -479,11 +479,8 @@ namespace flopoco{
 		fpC.getMPFR(c);
 
 		mpfr_set_default_prec (wF+1);
-		mpfr_exp_t emin = -(1<<(wE-1)) + 3 -wF; // in the MPFR doc, they suggest 1073 for double precision
-		// 1073=-1024+3-52
-		mpfr_exp_t emax = 1<<(wE-1); // in the MPFR doc, they suggest 1024 for double precision
-		// the change is global, use RTTI to restore state
-		MPFRSetExp set_exp(emin, emax);
+		// set mpfr emin/emax
+		MPFRSetExp set_exp = MPFRSetExp::setupIEEE(wE, wF);
 
 
 		if (1==svnegateAB) { 
