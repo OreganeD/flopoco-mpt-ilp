@@ -356,7 +356,7 @@ namespace flopoco{
 		if (wEI>wEO && wFI>wFO) {
 			tc = new TestCase(this);
 			tc->addComment("a number whose rounding will trigger an overflow");
-			x =  overflowThreshold << wFI; // maximal exponent
+			x = mpz_class(overflowThreshold) << wFI; // maximal exponent
 			x += ((mpz_class(1) << wFI)-1); // largest mantissa
 			tc->addInput("X", x);
 			emulate(tc);
