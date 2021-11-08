@@ -1286,7 +1286,7 @@ namespace flopoco{
 				if(bitheap->bits[count].size() > 0)
 					bitheap->getOp()->vhdl << "(0) <= " << bitheap->bits[count][0]->getName() << ";" << endl;
 				else
-					bitheap->getOp()->vhdl << " <= \'0\';" << endl;
+					bitheap->getOp()->vhdl << " <= \"0\";" << endl;
 
 				chunksDone.insert(chunksDone.begin(), join("tmp_bitheapResult_bh", bitheap->guid, "_", count));
 			}else{
