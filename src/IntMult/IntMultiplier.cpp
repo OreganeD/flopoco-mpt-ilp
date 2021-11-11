@@ -381,32 +381,27 @@ namespace flopoco {
 
     void IntMultiplier::computeTruncMultParamsMPZ(unsigned wFull, unsigned wOut, unsigned &g, unsigned &k, mpz_class &errorBudget, mpz_class &constant){
         unsigned l_P = wFull - wOut, l_ext = 0, t = 0;
-        mpz_class colweight = 2, dlow = 0, wlext = 1, wlextpe = 2;
+        mpz_class colweight = 2, dlow = 0, wlext = 1, wlextpe = 2, wlp;
         mpz_pow_ui(errorBudget.get_mpz_t(), mpz_class(2).get_mpz_t(), l_P-1); //tiling error budget
+        mpz_pow_ui(wlp.get_mpz_t(), mpz_class(2).get_mpz_t(), l_P); //2^l_P
         if(l_P == 0) return;
-        constant = errorBudget - wlextpe;                                       //2^(l_P-1) - 2^(l_ext+1)
-        //Try to remove whole diagonals + one partial product from the next diagonal, without violating the error bound.
-        while( (t+1)*wlextpe + (dlow + widthOfDiagonalOfRect(wX,wY,l_ext+1,wFull)*wlext ) < errorBudget + constant ){
+        //Try to remove whole diagonals without violating the error bound.
+        while( (t+1)*wlextpe + (dlow + widthOfDiagonalOfRect(wX,wY,l_ext+1,wFull)*wlext ) < wlp ){
             dlow += widthOfDiagonalOfRect(wX,wY,l_ext+1,wFull) * wlext;
             l_ext++;
             wlext = wlextpe;
             mpz_pow_ui(wlextpe.get_mpz_t(), mpz_class(2).get_mpz_t(), l_ext+1);
-            constant = errorBudget - wlextpe;
+            //printf("l_ext=%2i, dlow=%i, wlext=%i, wlextpe=%i, C=%i\n", l_ext, dlow.get_ui(), wlext.get_ui(), wlextpe.get_ui(), constant.get_ui());
         }
-        mpz_pow_ui(wlext.get_mpz_t(), mpz_class(2).get_mpz_t(), l_ext);
-        constant = errorBudget - wlext;
+
+        //printf("l_ext=%2i, dlow=%i, wlext=%i, wlextpe=%i, C=%i, \n ", l_ext, dlow.get_ui(), wlext.get_ui(), wlextpe.get_ui(), constant.get_ui());
 
         //Try to remove partial products from the next diagonal, until it would violate the error bound.
-        while( (t+1)*wlext + dlow < errorBudget + constant && t < widthOfDiagonalOfRect(wX,wY,l_ext+1,wFull)){
+        while( (t+2)*wlext + dlow < wlp && t < widthOfDiagonalOfRect(wX,wY,l_ext+1,wFull)){
             t += 1;
         }
 
-        //If there is only a err. recent. const. bit in a bh-column and no p.p. bits, check if this bit can also be omitted to get a shorter bh.
-        if(t == widthOfDiagonalOfRect(wX,wY,l_ext+1,wFull) && (dlow + widthOfDiagonalOfRect(wX,wY,l_ext+1,wFull)*wlext ) < errorBudget + constant - wlext){
-            constant = constant - wlext;
-            l_ext++; t = 0;
-        }
-
+        constant = errorBudget - wlext;                                         //2^(l_P-1) - 2^(l_ext+1)
         g = l_P - l_ext;
         k = widthOfDiagonalOfRect(wX,wY,l_ext+1,wFull) - t;
         printf("w=%2i, l_ext=%i, t=%i, g=%i, k=%i, ", wX, l_ext, t, g, k);
