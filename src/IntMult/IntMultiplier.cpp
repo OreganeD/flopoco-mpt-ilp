@@ -982,7 +982,7 @@ namespace flopoco {
 	}
 
     int IntMultiplier::calcBitHeapLSB(list<TilingStrategy::mult_tile_t> &solution, unsigned guardBits, const mpz_class& errorBudget, const mpz_class& constant, const mpz_class& actualTruncError){
-	    int weight=0, nBits = 0;
+	    int col=0, nBits = 0;
 	    std::vector<std::vector<int>> mulAreaI(wX, std::vector<int>(wY,0));
 
 	    for(auto & tile : solution) {
@@ -1009,23 +1009,24 @@ namespace flopoco {
 	        }
 	    }
 
-        double error;
+        mpz_class error, weight;
         do{
             nBits = 0;
             error = 0;
-            cout << " min weight=" << weight << endl;
-            for(int x = 0; x <= weight; x++){
-                for(int y = 0; x+y <= weight; y++){
-                    error += (mulAreaI[x][y] == 1)?pow(2.0, weight):0;
+            cout << " min weight=" << col << endl;
+            mpz_pow_ui(weight.get_mpz_t(), mpz_class(2).get_mpz_t(), col);
+            for(int x = 0; x <= col && x < wX; x++){
+                for(int y = 0; x+y <= col && y < wY; y++){
+                    error += (mulAreaI[x][y] == 1)?weight:0;
                     nBits += (mulAreaI[x][y] == 1)?1:0;
                 }
             }
-            cout << "trying to prune " << nBits << " bits with weight " << weight << " error is "  << error << " additional permissible error is " << errorBudget + constant - actualTruncError << endl;
-            weight++;
+            cout << "trying to prune " << nBits << " bits with weight " << col << " error is "  << error << " additional permissible error is " << errorBudget + constant - actualTruncError << endl;
+            col++;
         } while(actualTruncError + error < errorBudget + constant || 0 == error);
-        weight--;
-        cout << "min req weight is=" << weight << endl;
-        return weight;
+        col--;
+        cout << "min req weight is=" << col << endl;
+        return col;
     }
 
 }
