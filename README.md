@@ -2,8 +2,7 @@
 
 FloPoCo is a generator of Floating-Point (but not only) Cores for FPGAs.
 
-webpage: https://flopoco.gitlabpages.inria.fr/flopoco/
-(waiting for flopoco.org to work, some day)
+webpage: http://flopoco.org
 
 Copyright © INSA-Lyon, HS-Fulda, ENS-Lyon, INRIA, CNRS, UCBL, 2008-2020
 All rights reserved
