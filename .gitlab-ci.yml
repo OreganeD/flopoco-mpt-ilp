@@ -1,9 +1,3 @@
-image: ubuntu:latest
-
-before_script:
-  - apt-get update
-  - apt-get install -qq bibtex2html
-
 pages:
   stage: deploy
   script:
