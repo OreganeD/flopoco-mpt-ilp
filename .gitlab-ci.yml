@@ -8,6 +8,7 @@ pages:
     paths:
       - public
   only:
-    - master
+    refs:
+      - master
     changes:
-      -doc/web/**/*
+      - doc/web/**/*
