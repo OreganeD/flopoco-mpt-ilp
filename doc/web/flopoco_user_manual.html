@@ -77,7 +77,13 @@ This helps understanding the algorithms used by FloPoCo, but typically prevents 
 The
 <code>longacc2fp</code> utility converts the fixed-point output of the LongAcc operator (see below) to human-readable form.</p>
 
-<p></p>
+<h3>TestBenches</h3>
+
+<p>Don't trust FloPoCo, test its operators: the provided TestBench operator builds a VHDL test bench for the operator preceding it. These test benches are generated out of the mathematical specification of the operator, and can be trusted. For instance
+<p><code>./flopoco FPAdd wE=7 wF=21 TestBench n=10000</code></p>
+will generate a testbench with a selection of regression and corner-case tests and 10000 random tests. It also prints on the terminal how to run this test.
+
+</p>
 
 <hr/>
 <h2>Floating-point format</h2>
