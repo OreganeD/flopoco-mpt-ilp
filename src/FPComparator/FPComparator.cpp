@@ -25,6 +25,9 @@ namespace flopoco{
 		addOutput("XgtY");
 		addOutput("XleY");
 		addOutput("XgeY");
+
+		REPORT(0, "This operator is work in progress");
+		
 	}
 	
 
