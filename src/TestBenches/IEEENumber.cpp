@@ -56,56 +56,56 @@ namespace flopoco{
 		case plusInfty: 
 			sign = 0;
 			exponent = (mpz_class(1) << wE) -1;
-			mantissa = 0;
+			fraction = 0;
 			break;
 		case minusInfty: 
 			sign = 1;
 			exponent = (mpz_class(1) << wE) -1;
-			mantissa = 0;
+			fraction = 0;
 			break;
 		case plusZero: 
 			sign = 0;
 			exponent = 0;
-			mantissa = 0;
+			fraction = 0;
 			break;
 		case minusZero: 
 			sign = 1;
 			exponent = 0;
-			mantissa = 0;
+			fraction = 0;
 			break;
 		case NaN: 
 			sign = getLargeRandom(1);
 			exponent = (mpz_class(1) << wE) -1;
-			mantissa = getLargeRandom(wF);
-			if(mantissa==0) mantissa++; // we want a NaN, not an infinity
+			fraction = getLargeRandom(wF);
+			if(fraction==0) fraction++; // we want a NaN, not an infinity
 			break;
 		case smallestSubNormal:
 			sign = 0;
 			exponent = 0;
-			mantissa = mpz_class(1);
+			fraction = mpz_class(1);
 			break;
 		case greatestSubNormal:
 			sign = 0;
 			exponent = 0;
-			mantissa = (mpz_class(1) << wF) -1;
+			fraction = (mpz_class(1) << wF) -1;
 			break;
 		case minusGreatestSubNormal:
 			sign = 1;
 			exponent = 0;
-			mantissa = (mpz_class(1) << wF) -1;
+			fraction = (mpz_class(1) << wF) -1;
 			break;
 		case smallestNormal:
 			sign = 0;
 			exponent = mpz_class(1);
-			mantissa = 0;
+			fraction = 0;
 			break;
 		case greatestNormal:
 			sign = 0;
 			exponent = (mpz_class(1) << wE) -2;
-			mantissa = (mpz_class(1) << wF) -1;
+			fraction = (mpz_class(1) << wF) -1;
 			break;
 		}
-		//		cout << "exponent=" << exponent << " mantissa=" << mantissa << endl;
+		//		cout << "exponent=" << exponent << " fraction=" << fraction << endl;
 	}
 
 
@@ -133,7 +133,7 @@ namespace flopoco{
 		if (mpfr_nan_p(mp))	{
 				sign = 0;
 				exponent = (1<<wE)-1;
-				mantissa = (1<<wF)-1; // qNaN
+				fraction = (1<<wF)-1; // qNaN
 			}
 		else {
 			// all the other values are signed
@@ -142,14 +142,14 @@ namespace flopoco{
 			/* Inf */
 			if (mpfr_inf_p(mp))	{
 				exponent = (1<<wE)-1;
-				mantissa = 0;
+				fraction = 0;
 			}
 			else {
 
 				/* Zero */
 				if (mpfr_zero_p(mp)) {
 					exponent = 0;
-					mantissa = 0;
+					fraction = 0;
 				}
 				else{
 
@@ -166,31 +166,31 @@ namespace flopoco{
 					if(exp + ((1<<(wE-1))-1) <=0) {			// subnormal
 						// TODO manage double rounding to subnormals
 						exponent=0;
-						/* Extract mantissa */
+						/* Extract fraction */
 						mpfr_mul_2si(mp, mp, wF-1+((1<<(wE-1))-1), MPFR_RNDN);
-						mpfr_get_z(mantissa.get_mpz_t(), mp,  MPFR_RNDN);
-						//cout << "subnormal! " << wF + (exp + ((1<<(wE-1))-1)) << " mantissa=" << mantissa << endl;						
+						mpfr_get_z(fraction.get_mpz_t(), mp,  MPFR_RNDN);
+						//cout << "subnormal! " << wF + (exp + ((1<<(wE-1))-1)) << " fraction=" << fraction << endl;						
 					}
 					else { // Normal number
-						/* Extract mantissa */
+						/* Extract fraction */
 						mpfr_div_2si(mp, mp, exp, MPFR_RNDN); // exact operation
 						mpfr_sub_ui(mp, mp, 1, MPFR_RNDN);    // exact operation
 						mpfr_mul_2si(mp, mp, wF, MPFR_RNDN);  // exact operation
-						mpfr_get_z(mantissa.get_mpz_t(), mp,  MPFR_RNDN); // exact operation
+						mpfr_get_z(fraction.get_mpz_t(), mp,  MPFR_RNDN); // exact operation
 						
 			
-						// Due to rounding, the mantissa might overflow (i.e. become bigger
+						// Due to rounding, the fraction might overflow (i.e. become bigger
 						// then we expect). 
-						if (mantissa == mpz_class(1) << wF)
+						if (fraction == mpz_class(1) << wF)
 							{
 								exp++;
-								mantissa = 0;
+								fraction = 0;
 							}
 
-						if (mantissa >= mpz_class(1) << wF)
-							throw std::string("Mantissa is too big after conversion to VHDL signal.");
-						if (mantissa < 0)
-							throw std::string("Mantissa is negative after conversion to VHDL signal.");
+						if (fraction >= mpz_class(1) << wF)
+							throw std::string("Fraction is too big after conversion to VHDL signal.");
+						if (fraction < 0)
+							throw std::string("Fraction is negative after conversion to VHDL signal.");
 			
 						/* Bias  exponent */
 						exponent = exp + ((1<<(wE-1))-1);
@@ -199,7 +199,7 @@ namespace flopoco{
 						if (exponent >= (1<<wE))
 							{
 								exponent = (1<<wE) -1;
-								mantissa = 0;
+								fraction = 0;
 							}
 					}
 				}
@@ -218,9 +218,9 @@ namespace flopoco{
 			throw std::string("IEEENumber::getSignal: sign is invalid.");
 		if ((exponent < 0) || (exponent >= (1<<wE)))
 			throw std::string("IEEENumber::getSignal: exponent is invalid.");
-		if ((mantissa < 0) || (mantissa >= (mpz_class(1)<<wF)))
-			throw std::string("IEEENumber::getSignal: mantissa is invalid.");
-		return ((( sign << wE) + exponent) << wF) + mantissa;
+		if ((fraction < 0) || (fraction >= (mpz_class(1)<<wF)))
+			throw std::string("IEEENumber::getSignal: fraction is invalid.");
+		return ((( sign << wE) + exponent) << wF) + fraction;
 	}
 
 
@@ -229,21 +229,21 @@ namespace flopoco{
 	{
 
 		/* NaN */
-		if ( (exponent==((1<<wE)-1)) && mantissa!=0 )
+		if ( (exponent==((1<<wE)-1)) && fraction!=0 )
 			{
 				mpfr_set_nan(mp);
 				return;
 			}
 
 		/* Infinity */
-		if ((exponent==((1<<wE)-1)) && mantissa==0)	{
+		if ((exponent==((1<<wE)-1)) && fraction==0)	{
 			mpfr_set_inf(mp, (sign == 1) ? -1 : 1);
 			return;
 		}
 
 		/* Zero and subnormal numbers */
 		if (exponent==0)	{
-			mpfr_set_z(mp, mantissa.get_mpz_t(), MPFR_RNDN);
+			mpfr_set_z(mp, fraction.get_mpz_t(), MPFR_RNDN);
 			mpfr_div_2si(mp, mp, wF + ((1<<(wE-1))-2), MPFR_RNDN);
 			// Sign 
 			if (sign == 1)
@@ -252,11 +252,11 @@ namespace flopoco{
 		} // TODO Check it works with signed zeroes
 	
 		/* „Normal” numbers
-		 * mp = (-1) * (1 + (mantissa / 2^wF)) * 2^unbiased_exp
+		 * mp = (-1) * (1 + (fraction / 2^wF)) * 2^unbiased_exp
 		 * unbiased_exp = exp - (1<<(wE-1)) + 1
 		 */
 		mpfr_set_prec(mp, wF+1);
-		mpfr_set_z(mp, mantissa.get_mpz_t(), MPFR_RNDN);
+		mpfr_set_z(mp, fraction.get_mpz_t(), MPFR_RNDN);
 		mpfr_div_2si(mp, mp, wF, MPFR_RNDN);
 		mpfr_add_ui(mp, mp, 1, MPFR_RNDN);
 	
@@ -275,7 +275,7 @@ namespace flopoco{
 	IEEENumber& IEEENumber::operator=(mpz_class s)
 	{
 		//		cerr << "s=" << s << endl;
-		mantissa = s & ((mpz_class(1) << wF) - 1); s = s >> wF;
+		fraction = s & ((mpz_class(1) << wF) - 1); s = s >> wF;
 		exponent = s & ((mpz_class(1) << wE) - 1); s = s >> wE;
 		sign = s & mpz_class(1); s = s >> 1;
 

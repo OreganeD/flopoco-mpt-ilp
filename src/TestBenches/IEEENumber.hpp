@@ -74,9 +74,9 @@ namespace flopoco{
 		/**
 		 * Retrieves the significant.
 		 * @return Returns an mpz_class, representing the
-		 * VHDL signal of the mantissa, without leading 1.
+		 * VHDL signal of the significand fraction, without leading 1.
 		 */
-		mpz_class getMantissaSignalValue();
+		mpz_class getFractionSignalValue();
 
 
 		/**
@@ -140,7 +140,7 @@ namespace flopoco{
 		/** The width of the exponent */
 		int wE;
 
-		/** The width of the significant (without leading zero) */
+		/** The width of the significand fraction */
 		int wF;
 
 		/** The value of the sign field */
@@ -150,7 +150,7 @@ namespace flopoco{
 		mpz_class exponent;
 
 		/** The value of the mantissa field  */
-		mpz_class mantissa;
+		mpz_class fraction;
 
 	};
 

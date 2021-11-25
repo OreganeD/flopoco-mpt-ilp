@@ -54,64 +54,60 @@ namespace flopoco{
 			exception = 2;
 			sign = 0;
 			exponent = getLargeRandom(wE);
-			mantissa = getLargeRandom(wF);
+			fraction = getLargeRandom(wF);
 			break;
 		case minusInfty: 
 			exception = 2;
 			sign = 1;
 			exponent = getLargeRandom(wE);
-			mantissa = getLargeRandom(wF);
+			fraction = getLargeRandom(wF);
 			break;
 		case plusDirtyZero: 
 			exception = 0;
 			sign = 0;
 			exponent = getLargeRandom(wE);
-			mantissa = getLargeRandom(wF);
+			fraction = getLargeRandom(wF);
 			break;
 		case minusDirtyZero: 
 			exception = 0;
 			sign = 1;
 			exponent = getLargeRandom(wE);
-			mantissa = getLargeRandom(wF);
+			fraction = getLargeRandom(wF);
 			break;
 		case NaN: 
 			exception = 3;
 			sign = getLargeRandom(1);
 			exponent = getLargeRandom(wE);
-			mantissa = getLargeRandom(wF);
+			fraction = getLargeRandom(wF);
 			break;
 		case largestPositive: 
 			exception = 1;
 			sign = 0;
 			exponent = (1<<wE)-1;
-			mantissa = (1<<wF)-1;
+			fraction = (1<<wF)-1;
 			break;
 		case smallestPositive: 
 			exception = 1;
 			sign = 0;
 			exponent = 0;
-			mantissa = 0;
+			fraction = 0;
 			break;
 		case largestNegative: 
 			exception = 1;
 			sign = 1;
 			exponent = (1<<wE)-1;
-			mantissa = (1<<wF)-1;
+			fraction = (1<<wF)-1;
 			break;
 		case smallestNegative: 
 			exception = 1;
 			sign = 1;
 			exponent = 0;
-			mantissa = 0;
+			fraction = 0;
 			break;
 		}
 	}
 
 
-	mpz_class FPNumber::getMantissaSignalValue()
-	{
-		return mantissa;
-	}
 
 	mpz_class FPNumber::getExceptionSignalValue() { return exception; }
 
@@ -123,7 +119,12 @@ namespace flopoco{
 
 	mpz_class FPNumber::getFractionSignalValue()
 	{
-		return mantissa + (mpz_class(1)<<wF);
+		return fraction;
+	}
+	
+	mpz_class FPNumber::getSignificandSignalValue()
+	{
+		return fraction + (mpz_class(1)<<wF);
 	}
 
 
@@ -151,11 +152,11 @@ namespace flopoco{
 		}
 	
 		/* „Normal” numbers
-		 * mp = (-1) * (1 + (mantissa / 2^wF)) * 2^unbiased_exp
+		 * mp = (-1) * (1 + (fraction / 2^wF)) * 2^unbiased_exp
 		 * unbiased_exp = exp - (1<<(wE-1)) + 1
 		 */
 		mpfr_set_prec(mp, wF+2);
-		mpfr_set_z(mp, mantissa.get_mpz_t(), GMP_RNDN);
+		mpfr_set_z(mp, fraction.get_mpz_t(), GMP_RNDN);
 		mpfr_div_2si(mp, mp, wF, GMP_RNDN);
 		mpfr_add_ui(mp, mp, 1, GMP_RNDN);
 	
@@ -180,7 +181,7 @@ namespace flopoco{
 				exception = 3;
 				sign = 0;
 				exponent = 0;
-				mantissa = 0;
+				fraction = 0;
 				return *this;
 			}
 
@@ -190,7 +191,7 @@ namespace flopoco{
 				exception = 2;
 				sign = mpfr_sgn(mp) > 0 ? 0 : 1;
 				exponent = 0;
-				mantissa = 0;
+				fraction = 0;
 				return *this;
 			}
 
@@ -200,7 +201,7 @@ namespace flopoco{
 				exception = 0;
 				sign = mpfr_signbit(mp) == 0 ? 0 : 1;
 				exponent = 0;
-				mantissa = 0;
+				fraction = 0;
 				return *this;
 			}
 
@@ -215,25 +216,25 @@ namespace flopoco{
 		 */
 		mp_exp_t exp = mpfr_get_exp(mp)-1;
 
-		/* Extract mantissa */
+		/* Extract fraction */
 		mpfr_div_2si(mp, mp, exp, GMP_RNDN);
 		mpfr_sub_ui(mp, mp, 1, GMP_RNDN);
 		mpfr_mul_2si(mp, mp, wF, GMP_RNDN);
-		mpfr_get_z(mantissa.get_mpz_t(), mp,  GMP_RNDN);
+		mpfr_get_z(fraction.get_mpz_t(), mp,  GMP_RNDN);
 
 
-		// Due to rounding, the mantissa might overflow (i.e. become bigger
+		// Due to rounding, the fraction might overflow (i.e. become bigger
 		// then we expect).
-		if (mantissa == mpz_class(1) << wF)
+		if (fraction == mpz_class(1) << wF)
 			{
 				exp++;
-				mantissa = 0;
+				fraction = 0;
 			}
 
-		if (mantissa >= mpz_class(1) << wF)
-			throw std::string("Mantissa is too big after conversion to VHDL signal.");
-		if (mantissa < 0)
-			throw std::string("Mantissa is negative after conversion to VHDL signal.");
+		if (fraction >= mpz_class(1) << wF)
+			throw std::string("Fraction is too big after conversion to VHDL signal.");
+		if (fraction < 0)
+			throw std::string("Fraction is negative after conversion to VHDL signal.");
 
 		/* Bias and store exponent */
 		exp += ((1<<(wE-1))-1);
@@ -244,7 +245,7 @@ namespace flopoco{
 			{
 				exception = 0;
 				exponent = 0;
-				mantissa = 0;
+				fraction = 0;
 			}
 
 		/* Handle overflow */
@@ -252,7 +253,7 @@ namespace flopoco{
 			{
 				exception = 2;
 				exponent = 0;
-				mantissa = 0;
+				fraction = 0;
 			}
 
 		mpfr_clear(mp);
@@ -262,7 +263,7 @@ namespace flopoco{
 
 	FPNumber& FPNumber::operator=(mpz_class s)
 	{
-		mantissa = s & ((mpz_class(1) << wF) - 1); s = s >> wF;
+		fraction = s & ((mpz_class(1) << wF) - 1); s = s >> wF;
 		exponent = s & ((mpz_class(1) << wE) - 1); s = s >> wE;
 		sign = s & mpz_class(1); s = s >> 1;
 		exception = s & mpz_class(3); s = s >> 2;
@@ -283,9 +284,9 @@ namespace flopoco{
 			throw std::string("FPNumber::getSignal: exception is invalid.");
 		if ((exponent < 0) || (exponent >= (1<<wE)))
 			throw std::string("FPNumber::getSignal: exponent is invalid.");
-		if ((mantissa < 0) || (mantissa >= (mpz_class(1)<<wF)))
-			throw std::string("FPNumber::getSignal: mantissa is invalid.");
-		return (((((exception << 1) + sign) << wE) + exponent) << wF) + mantissa;
+		if ((fraction < 0) || (fraction >= (mpz_class(1)<<wF)))
+			throw std::string("FPNumber::getSignal: fraction is invalid.");
+		return (((((exception << 1) + sign) << wE) + exponent) << wF) + fraction;
 	}
 
 	FPNumber& FPNumber::operator=(FPNumber fp)
@@ -338,7 +339,7 @@ namespace flopoco{
 					{
 						exception = 1;
 						exponent = (mpz_class(1) << wE) - 1;
-						mantissa = (mpz_class(1) << wF) - 1;
+						fraction = (mpz_class(1) << wF) - 1;
 					}
 				else /* before -inf comes -NaN */
 					exception = 3;
@@ -351,18 +352,18 @@ namespace flopoco{
 					{
 						exception = 1;
 						exponent = 0;
-						mantissa = 0;
+						fraction = 0;
 					}
 			}
 		else /* other numbers */
 			{
-				/* Combine exception, exponent & mantissa, for nice trick */
-				mpz_class tz = (((exception << wE) + exponent) << wF) + mantissa;
+				/* Combine exception, exponent & fraction, for nice trick */
+				mpz_class tz = (((exception << wE) + exponent) << wF) + fraction;
 				if (sign == 0)
 					tz--;
 				else
 					tz++;
-				mantissa = tz & ((mpz_class(1) << wF) - 1); tz = tz >> wF;
+				fraction = tz & ((mpz_class(1) << wF) - 1); tz = tz >> wF;
 				exponent = tz & ((mpz_class(1) << wE) - 1); tz = tz >> wE;
 				exception = tz & mpz_class(3);
 			}

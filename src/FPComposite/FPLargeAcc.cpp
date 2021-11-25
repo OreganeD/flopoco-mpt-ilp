@@ -551,9 +551,9 @@ namespace flopoco{
 		if (keepBits<0)
 			return 0;
 		else if (wFX_>keepBits)
-			return (X.getFractionSignalValue()/mpz_class(intpow2(wFX_-keepBits)));
+			return (X.getSignificandSignalValue()/mpz_class(intpow2(wFX_-keepBits)));
 		else
-			return (X.getFractionSignalValue()*mpz_class(intpow2(keepBits-wFX_)));
+			return (X.getSignificandSignalValue()*mpz_class(intpow2(keepBits-wFX_)));
 	}
 
 	mpz_class FPLargeAcc::sInt2C2(mpz_class X, int width)
