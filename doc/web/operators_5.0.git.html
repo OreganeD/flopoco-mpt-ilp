@@ -221,6 +221,15 @@
 </dl>
 <h3>Basic floating-point operators</h3>
 <dl>
+<dt class="operatorname">FPComparator</dt>
+<dd class="operatordescription">An IEEE-like floating-point comparator.</dd>
+<dd><em>Parameters:</em> <dl>
+<dt> <code class="parametername">wE</code>  (<code class="parametertype">int</code>) </dt><dd>exponent size in bits</dd>
+<dt> <code class="parametername">wF</code>  (<code class="parametertype">int</code>) </dt><dd>mantissa size in bits</dd>
+</dl></dd>
+<dd>Outputs 4 mutually exclusive signals: unordered (when one input is NaN), XltY (less than, strictly), XeqY (equal), XsgtY (greater than, strictly). Also two derived signals XleY (less or equal)  and XgeY (greater or equal). unordered is set iff at least one of the inputs is NaN. The other ones behave as expected on two non-NaN values, with the IEEE 754 conventions: +0=-0;  infinities of the same sign compare equal. </dd>
+</dl>
+<dl>
 <dt class="operatorname">FPAdd</dt>
 <dd class="operatordescription">A correctly rounded floating-point adder.</dd>
 <dd><em>Parameters:</em> <dl>
@@ -612,6 +621,16 @@
 <dt> <code class="parametername">wEOut</code>  (<code class="parametertype">int</code>) </dt><dd>output exponent size in bits</dd>
 <dt> <code class="parametername">wFOut</code>  (<code class="parametertype">int</code>) </dt><dd>output mantissa size in bits</dd>
 <span class="optionalparam"> <dt> <code class="parametername">onlyPositiveZeroes</code>  (<code class="parametertype">bool</code>)   (optional, default value is false)</dt><dd>when true, normalize +0 and -0 to +0</dd> </span>
+</dl></dd>
+</dl>
+<dl>
+<dt class="operatorname">InputIEEE</dt>
+<dd class="operatordescription">Conversion from IEEE-754-like to FloPoCo floating-point formats. Subnormals are all flushed to zero at the moment.</dd>
+<dd><em>Parameters:</em> <dl>
+<dt> <code class="parametername">wEIn</code>  (<code class="parametertype">int</code>) </dt><dd>input exponent size in bits</dd>
+<dt> <code class="parametername">wFIn</code>  (<code class="parametertype">int</code>) </dt><dd>input mantissa size in bits</dd>
+<dt> <code class="parametername">wEOut</code>  (<code class="parametertype">int</code>) </dt><dd>output exponent size in bits</dd>
+<dt> <code class="parametername">wFOut</code>  (<code class="parametertype">int</code>) </dt><dd>output mantissa size in bits</dd>
 </dl></dd>
 </dl>
 <dl>

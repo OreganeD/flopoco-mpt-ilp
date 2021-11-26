@@ -27,7 +27,92 @@ namespace flopoco{
 		addOutput("XgeY");
 
 		REPORT(0, "This operator is work in progress");
+
+		vhdl << tab << declare("excX",2) << " <= X"<<range(wE+wF+2, wE+wF+1) <<";"<<endl;
+		vhdl << tab << declare("excY",2) << " <= Y"<<range(wE+wF+2, wE+wF+1) <<";"<<endl;
+		vhdl << tab << declare("signX") << " <= X"<<of(wE+wF) <<";"<<endl;
+		vhdl << tab << declare("signY") << " <= Y"<<of(wE+wF) <<";"<<endl;
+		vhdl << tab << declare("ExpFracX",wE+wF) << " <= X"<<range(wE+wF-1, 0)<<";"<<endl;
+		vhdl << tab << declare("ExpFracY",wE+wF) << " <= Y"<<range(wE+wF-1, 0)<<";"<<endl;
 		
+		addComment("Comparing (as integers) excX & ExpFracX with excY & ExpFracY would almost work ");
+		addComment(" since indeed inf>normal>0	");
+		addComment("However we wouldn't capture infinity equality in cases when the infinities have different ExpFracs (who knows)...	 ");
+		addComment("Besides, expliciting the isXXX bits will help factoring code with a comparator for IEEE format (some day)");
+		vhdl << tab << declare("isZeroX") << " <= '1' when excX=\"00\" else '0' ;"<<endl;
+		vhdl << tab << declare("isZeroY") << " <= '1' when excY=\"00\" else '0' ;"<<endl;
+		vhdl << tab << declare("isNormalX") << " <= '1' when excX=\"01\" else '0' ;"<<endl;
+		vhdl << tab << declare("isNormalY") << " <= '1' when excY=\"01\" else '0' ;"<<endl;
+		vhdl << tab << declare("isInfX") << " <= '1' when excX=\"10\" else '0' ;"<<endl;
+		vhdl << tab << declare("isInfY") << " <= '1' when excY=\"10\" else '0' ;"<<endl;
+		vhdl << tab << declare("isNaNX") << " <= '1' when excX=\"11\" else '0' ;"<<endl;
+		vhdl << tab << declare("isNaNY") << " <= '1' when excY=\"11\" else '0' ;"<<endl;
+		addComment("Just for readability of the formulae below");
+		vhdl << tab << declare("negativeX") << " <= signX ;"<<endl;
+		vhdl << tab << declare("positiveX") << " <= not signX ;"<<endl;
+		vhdl << tab << declare("negativeY") << " <= signY ;"<<endl;
+		vhdl << tab << declare("positiveY") << " <= not signY ;"<<endl;
+		
+		addComment("expfrac comparisons ");
+		vhdl << tab << declare("addltOp1",wE+wF+1) << " <= '0'  & ExpFracX;"<<endl;
+		vhdl << tab << declare("addltOp2",wE+wF+1) << " <= '1'  & not ExpFracY;"<<endl;
+		newInstance("IntAdder", "addlt", join("wIn=", (wE+wF+1)), "X=>addltOp1,Y=>addltOp2", "R=>addltR", "Cin=>'1'");
+
+		addComment("result of X-Y negative iff X<Y");
+		vhdl<< tab << declare("ExpFracXltExpFracY")  << " <= addltR"<<of(wE+wF)<<";"<<endl;
+		vhdl << tab << declare("addgtOp1",wE+wF+1) << " <= '0'  & ExpFracY;"<<endl;
+		vhdl << tab << declare("addgtOp2",wE+wF+1) << " <= '1'  & not ExpFracX;"<<endl;
+		newInstance("IntAdder", "addgt", join("wIn=", (wE+wF+1)), "X=>addgtOp1,Y=>addgtOp2", "R=>addgtR", "Cin=>'1'");
+
+		addComment("result of Y-X negative iff X>Y ");
+		vhdl<< tab << declare("ExpFracXgtExpFracY")  << " <= addgtR"<<of(wE+wF)<<";"<<endl;
+
+		addComment("Let us trust the synthesis tools on this reduction");
+		vhdl<< tab << declare(getTarget()->adderDelay(wE+wF), "ExpFracXeqExpFracY")  << " <= '1' when ExpFracX = ExpFracY else '0';"<<endl;
+
+		addComment("-- and now the logic");
+		vhdl<< tab << declare("sameSign")  << " <= not (signX xor signY) ;" << endl;
+
+		vhdl<< tab << declare("XeqYNum")  << " <= " << endl;
+		vhdl << tab << tab << "   (isZeroX and isZeroY) -- explicitely stated by IEEE 754" << endl;
+		vhdl << tab << tab << "or (isInfX and isInfY and sameSign)  -- bizarre but also explicitely stated by IEEE 754" << endl;
+		vhdl << tab << tab << "or (isNormalX and isNormalY and sameSign and ExpFracXeqExpFracY)" << endl;
+		vhdl << tab << ";" << endl;
+
+		vhdl<< tab << declare("XltYNum")  << " <=     -- case enumeration on Y" << endl; 
+		vhdl << tab << tab << "   ( (not (isInfX and positiveX)) and (isInfY  and positiveY)) " << endl;
+		vhdl << tab << tab << "or ((negativeX or isZeroX) and (isNormalY and positiveY)) " << endl;
+		vhdl << tab << tab << "or ((negativeX and not isZeroX) and isZeroY) " << endl;
+		vhdl << tab << tab << "or (isNormalX and isNormalY and positiveX and positiveY and ExpFracXltExpFracY)" << endl;
+		vhdl << tab << tab << "or (isNormalX and isNormalY and negativeX and negativeY and ExpFracXgtExpFracY)" << endl;
+		vhdl << tab << tab << "or ((isInfX and negativeX) and (not (isInfY and negativeY))) " << endl;
+		vhdl << tab << ";" << endl;
+
+		vhdl<< tab << declare("XgtYNum")  << " <=     -- case enumeration on X" << endl; 
+		vhdl << tab << tab << "   ( (not (isInfY and positiveY)) and (isInfX  and positiveX)) " << endl;
+		vhdl << tab << tab << "or ((negativeY or isZeroY) and (isNormalX and positiveX)) " << endl;
+		vhdl << tab << tab << "or ((negativeY and not isZeroY) and isZeroX) " << endl;
+		vhdl << tab << tab << "or (isNormalX and isNormalY and positiveY and positiveX and ExpFracXgtExpFracY)" << endl;
+		vhdl << tab << tab << "or (isNormalX and isNormalY and negativeY and negativeX and ExpFracXltExpFracY)" << endl;
+		vhdl << tab << tab << "or ((isInfY and negativeY) and (not (isInfX and negativeX))) " << endl;
+		vhdl << tab << ";" << endl;
+
+		// We leave all the logicDelay here, it should be enough 
+		vhdl << tab << declare(getTarget()->logicDelay(), "unorderedR") << " <=  isNaNX or isNaNY;" << endl; 
+		
+		vhdl<< tab << declare(getTarget()->logicDelay(), "XltYR")  << " <= XltYNum and not unorderedR;" << endl;
+		vhdl<< tab << declare(getTarget()->logicDelay(), "XeqYR")  << " <= XeqYNum and not unorderedR;" << endl;
+		vhdl<< tab << declare(getTarget()->logicDelay(), "XgtYR")  << " <= XgtYNum and not unorderedR;" << endl;
+		vhdl<< tab << declare(getTarget()->logicDelay(), "XleYR")  << " <= (XeqYNum or XltYNum)  and not unorderedR;" << endl;
+		vhdl<< tab << declare(getTarget()->logicDelay(), "XgeYR")  << " <= (XeqYNum or XgtYNum)  and not unorderedR;" << endl;
+
+		// Transferring to output		
+		vhdl << tab << "unordered <= unorderedR;"<<endl;
+		vhdl << tab << "XltY <= XltYR;"<<endl;
+		vhdl << tab << "XeqY <= XeqYR;"<<endl;
+		vhdl << tab << "XgtY <= XgtYR;"<<endl;
+		vhdl << tab << "XleY <= XleYR;"<<endl;
+		vhdl << tab << "XgeY <= XgeYR;"<<endl;
 	}
 	
 
@@ -107,6 +192,12 @@ namespace flopoco{
 		tcl->add(tc);
 			
 		tc = new TestCase(this);
+		tc->addFPInput("X", 0.0);
+		tc->addFPInput("Y", 0.0);
+		emulate(tc);
+		tcl->add(tc);
+
+		tc = new TestCase(this);
 		tc->addFPInput("X", FPNumber::minusDirtyZero);
 		tc->addFPInput("Y", FPNumber::minusDirtyZero);
 		emulate(tc);
@@ -155,10 +246,11 @@ namespace flopoco{
 		int wE, wF;
 		UserInterface::parseStrictlyPositiveInt(args, "wE", &wE); 
 		UserInterface::parseStrictlyPositiveInt(args, "wF", &wF);
-
 		return new FPComparator(parentOp, target, wE, wF);
 	}
 
+
+	
 	TestList FPComparator::unitTest(int index)
 	{
 		// the static list of mandatory tests
@@ -171,8 +263,7 @@ namespace flopoco{
 			for(int wF=5; wF<53; wF+=1) {
 				int wE = 6+(wF/10);
 				while(wE>wF)
-					wE -= 2;
-				
+					wE -= 2;				
 				paramList.push_back(make_pair("wF",to_string(wF)));
 				paramList.push_back(make_pair("wE",to_string(wE)));
 				testStateList.push_back(paramList);
@@ -188,6 +279,7 @@ namespace flopoco{
 		return testStateList;
 	}
 
+	
 	void FPComparator::registerFactory(){
 		UserInterface::add("FPComparator", // name
 			"An IEEE-like floating-point comparator.",
