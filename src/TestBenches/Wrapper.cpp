@@ -56,7 +56,8 @@ namespace flopoco{
 				inPortMap (s->getName(), idext);
 			}else if(s->type() == Signal::out){
 				//copy the output
-				addOutput(s->getName(), s->width(), s->isBus());
+				// REPORT(0, "Signal " << s->getName() << " isbus: " << s->isBus())
+				addOutput(s->getName(), s->width(), s->getNumberOfPossibleValues(), s->isBus());
 				//connect the output
 				idext = "o_" + s->getName();
 				outPortMap (s->getName(), idext);
