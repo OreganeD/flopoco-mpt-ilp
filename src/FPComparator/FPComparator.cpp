@@ -25,7 +25,7 @@ namespace flopoco{
 		addOutput("XgtY");
 		addOutput("XleY");
 		addOutput("XgeY");
-		addOutput("XneY");
+		//		addOutput("XneY"); This one doesn't exist in IEEE, it was a mistake to add it
 
 		vhdl << tab << declare("excX",2) << " <= X"<<range(wE+wF+2, wE+wF+1) <<";"<<endl;
 		vhdl << tab << declare("excY",2) << " <= Y"<<range(wE+wF+2, wE+wF+1) <<";"<<endl;
@@ -104,7 +104,7 @@ namespace flopoco{
 		vhdl<< tab << declare(getTarget()->logicDelay(), "XgtYR")  << " <= XgtYNum and not unorderedR;" << endl;
 		vhdl<< tab << declare(getTarget()->logicDelay(), "XleYR")  << " <= (XeqYNum or XltYNum)  and not unorderedR;" << endl;
 		vhdl<< tab << declare(getTarget()->logicDelay(), "XgeYR")  << " <= (XeqYNum or XgtYNum)  and not unorderedR;" << endl;
-		vhdl<< tab << declare(getTarget()->logicDelay(), "XneYR")  << " <= (not XeqYNum)  and not unorderedR;" << endl;
+		//		vhdl<< tab << declare(getTarget()->logicDelay(), "XneYR")  << " <= (not XeqYNum)  and not unorderedR;" << endl;
 
 		// Transferring to output		
 		vhdl << tab << "unordered <= unorderedR;"<<endl;
@@ -113,7 +113,7 @@ namespace flopoco{
 		vhdl << tab << "XgtY <= XgtYR;"<<endl;
 		vhdl << tab << "XleY <= XleYR;"<<endl;
 		vhdl << tab << "XgeY <= XgeYR;"<<endl;
-		vhdl << tab << "XneY <= XneYR;"<<endl;
+		//		vhdl << tab << "XneY <= XneYR;"<<endl;
 	}
 	
 
@@ -146,14 +146,14 @@ namespace flopoco{
 		bool XgtY = (cmp>0) and not unordered;
 		bool XgeY = (cmp>=0) and not unordered;
 		bool XleY = (cmp<=0) and not unordered;
-		bool XneY = (cmp!=0) and not unordered;
+		//		bool XneY = (cmp!=0) and not unordered;
 		tc->addExpectedOutput("unordered", unordered);
 		tc->addExpectedOutput("XltY", XltY);
 		tc->addExpectedOutput("XeqY", XeqY);
 		tc->addExpectedOutput("XgtY", XgtY);
 		tc->addExpectedOutput("XleY", XleY);
 		tc->addExpectedOutput("XgeY", XgeY);
-		tc->addExpectedOutput("XneY", XneY);
+		//		tc->addExpectedOutput("XneY", XneY);
 		// clean up
 		mpfr_clears(x, y, NULL);
 	}
@@ -290,7 +290,7 @@ namespace flopoco{
 			"", //seeAlso
 			"wE(int): exponent size in bits; \
 			wF(int): mantissa size in bits;",
-			"Outputs 4 mutually exclusive signals: unordered (when one input is NaN), XltY (less than, strictly), XeqY (equal), XsgtY (greater than, strictly). Also three derived signals XleY (less or equal), XgeY (greater or equal), and XneY (not equal). unordered is set iff at least one of the inputs is NaN. The other ones behave as expected on two non-NaN values, with the IEEE 754 conventions: +0 = -0; +infinity = +infinity; -infinity = -infinity; ",
+			"Outputs 4 mutually exclusive signals: unordered (when one input is NaN), XltY (less than, strictly), XeqY (equal), XsgtY (greater than, strictly). Also two derived signals XleY (less or equal) and XgeY (greater or equal). unordered is set iff at least one of the inputs is NaN. The other ones behave as expected on two non-NaN values, with the IEEE 754 conventions: +0 = -0; +infinity = +infinity; -infinity = -infinity; ",
 			FPComparator::parseArguments,
 			FPComparator::unitTest
 			) ;
