@@ -227,7 +227,7 @@
 <dt> <code class="parametername">wE</code>  (<code class="parametertype">int</code>) </dt><dd>exponent size in bits</dd>
 <dt> <code class="parametername">wF</code>  (<code class="parametertype">int</code>) </dt><dd>mantissa size in bits</dd>
 </dl></dd>
-<dd>Outputs 4 mutually exclusive signals: unordered (when one input is NaN), XltY (less than, strictly), XeqY (equal), XsgtY (greater than, strictly). Also three derived signals XleY (less or equal), XgeY (greater or equal), and XneY (not equal). unordered is set iff at least one of the inputs is NaN. The other ones behave as expected on two non-NaN values, with the IEEE 754 conventions: +0=-0;  infinities of the same sign compare equal. </dd>
+<dd>Outputs 4 mutually exclusive signals: unordered (when one input is NaN), XltY (less than, strictly), XeqY (equal), XsgtY (greater than, strictly). Also two derived signals XleY (less or equal) and XgeY (greater or equal). unordered is set iff at least one of the inputs is NaN. The other ones behave as expected on two non-NaN values, with the IEEE 754 conventions: +0 = -0; +infinity = +infinity; -infinity = -infinity; </dd>
 </dl>
 <dl>
 <dt class="operatorname">FPAdd</dt>
