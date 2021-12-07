@@ -125,6 +125,17 @@ namespace flopoco {
          */
         void computeTruncMultParams(unsigned wFull, unsigned wOut, unsigned &g, unsigned &k, unsigned long long &errorBudget, unsigned long long &constant);
 
+        /**
+         * @brief Compute several parameters for a faithfully rounding truncated multiplier
+         * @details Compute guard-bits, keep-bits, the error re-centering constant and the error budget as shown in A. Boettcher, M. Kumm, F. de Dinechin "Resource optimal truncated multipliers for FPGAs"
+         * @param wFull width of result of a non-truncated multiplier with the same input widths
+         * @param wOut requested output width of the result vector of the truncated multiplier
+         * @param g the number of bits below the output LSB that we need to keep in the summation
+         * @param k number of bits to keep in in the column with weight w-g
+         * @param errorBudget maximal permissible weight of the sum of the omitted partial products (as they would appear in an array multiplier)
+         * @param constant to recenter the truncation error around 0 since it can otherwise only be negative, since there are only partial products left out. This allows a larger error, so more products can be omitted
+         * @return none
+         */
         void computeTruncMultParamsMPZ(unsigned wFull, unsigned wOut, unsigned &g, unsigned &k, mpz_class &errorBudget, mpz_class &constant);
 
 		/**
@@ -159,6 +170,7 @@ namespace flopoco {
          * @param guardBits the number of bits below the output LSB that we need to keep in the summation
          * @param errorBudget maximal permissible weight of the sum of the omitted partial products (as they would appear in an array multiplier)
          * @param constant to recenter the truncation error around 0 since it can otherwise only be negative, since there are only partial products left out. This allows a larger error, so more products can be omitted
+         * @param actualTruncError the truncation error as previously determined by counting the untiled positions
          * @return none
          */
         int calcBitHeapLSB(list<TilingStrategy::mult_tile_t> &solution, unsigned guardBits, const mpz_class& errorBudget, const mpz_class& constant, const mpz_class& actualTruncError);
