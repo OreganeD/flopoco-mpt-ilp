@@ -19,7 +19,8 @@ namespace flopoco {
 
 			cerr << "multiplier of type " << parametrization.getMultType() << " placed at (" << coordinates.first << "," << coordinates.second <<
 					") of size (" << parametrization.getTileXWordSize() << ", " << parametrization.getTileYWordSize() << ")" <<
-					" and signedness (" << parametrization.isSignedMultX() << ", " << parametrization.isSignedMultY()  << ")" << endl;
+					" and signedness (" << parametrization.isSignedMultX() << ", " << parametrization.isSignedMultY()  << ")" <<
+					" rel. bh weight=" << parametrization.getTilingWeight() << endl;
 		}
 
 	}

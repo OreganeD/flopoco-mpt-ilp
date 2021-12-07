@@ -20,7 +20,8 @@ TilingStrategyOptimalILP::TilingStrategyOptimalILP(
         unsigned keepBits,
         mpz_class errorBudget,
         mpz_class &centerErrConstant,
-        bool performOptimalTruncation):TilingStrategy(
+        bool performOptimalTruncation,
+        bool squarer):TilingStrategy(
 			wX_,
 			wY_,
 			wOut_,
@@ -33,7 +34,8 @@ TilingStrategyOptimalILP::TilingStrategyOptimalILP(
         keepBits{keepBits},
         eBudget{errorBudget},
         centerErrConstant{centerErrConstant},
-        performOptimalTruncation{performOptimalTruncation}
+        performOptimalTruncation{performOptimalTruncation},
+        squarer{squarer}
 	{
 	    cout << errorBudget << endl;
         mpz_class max64;
@@ -179,7 +181,24 @@ void TilingStrategyOptimalILP::constructProblem()
 {
     cout << "constructing problem formulation..." << endl;
     wS = tiles.size();
+/*
+    for (int i = 0; i < wS; i++) {
+        //cout << tiles[i]->getType() << " weight=" << tiles[i]->getParametrisation().getTilingWeight() << endl;
+        tiles.push_back( new BaseMultiplierCategory(*tiles[i]));
+        tiles[tiles.size()-1]->setTilingWeight(-1);
+        if(!tiles[i]->isSquarer()){
+            tiles.push_back( new BaseMultiplierCategory(*tiles[i]));
+            tiles[tiles.size()-1]->setTilingWeight(+2);
+            tiles.push_back( new BaseMultiplierCategory(*tiles[i]));
+            tiles[tiles.size()-1]->setTilingWeight(-2);
+        }
+    }*/
 
+    for (auto const& i : tiles) {
+        std::cout << i->getType() << " weight=" << i->getParametrisation().getTilingWeight()  << endl;
+        //BaseMultiplierCategory temp(tiles[0]);
+        //tiles.push_back(new (tiles[0]));
+    }
 
     //Assemble cost function, declare problem variables
     cout << "   assembling cost function, declaring problem variables..." << endl;
@@ -209,16 +228,20 @@ void TilingStrategyOptimalILP::constructProblem()
     cout << "   adding the constraints to problem formulation..." << endl;
     for(int y = 0; y < wY; y++){
         for(int x = 0; x < wX; x++){
+            if(squarer && x < y) continue;
             stringstream consName;
             consName << "p" << setfill('0') << setw(dpX) << x << setfill('0') << setw(dpY) << y;            //one constraint for every position in the area to be tiled
             ScaLP::Term pxyTerm;
             for(int s = 0; s < wS; s++){					//for every available tile...
-                for(int ys = 0 - tiles[s]->wY() + 1; ys <= y; ys++){					//...check if the position x,y gets covered by tile s located at position (xs, ys) = (x-wtile..x, y-htile..y)
-                    for(int xs = 0 - tiles[s]->wX() + 1; xs <= x; xs++){
+                int diff = (squarer)?std::abs(int(tiles[s]->wX()-tiles[s]->wY())):0;
+                for(int ys = 0 - tiles[s]->wY() + 1; ys <= y + diff; ys++){					//...check if the position x,y gets covered by tile s located at position (xs, ys) = (x-wtile..x, y-htile..y)
+                    for(int xs = 0 - tiles[s]->wX() + 1; xs <= x + diff; xs++){
                         if(occupation_threshold_ == 1.0 && ((wX - xs) < (int)tiles[s]->wX() || (wY - ys) < (int)tiles[s]->wY())) break;
-                        if(tiles[s]->shape_contribution(x, y, xs, ys, wX, wY, signedIO) == true){
+                        if(squarer && tiles[s]->isSquarer() && xs != ys) continue;                 //squarers should only be placed in the diagonal
+                        if(tiles[s]->shape_contribution(x, y, xs, ys, wX, wY, signedIO, squarer)){
                             if((wOut < (int)prodWidth) && ((xs+tiles[s]->wX()+ys+tiles[s]->wY()-2) < ((int)prodWidth-wOut-guardBits))) break;
                             if(signedIO && (wX == xs+tiles[s]->wX() && !tiles[s]->signSupX() || wY == ys+tiles[s]->wY() && !tiles[s]->signSupY() )) break; //Avoid placing tiles without signed support at the bottom and left |_ edge of the area to be tiled.
+                            //if(signedIO && (wX < xs+tiles[s]->wX() || wY < ys+tiles[s]->wY() )) break; //Avoid protrusion of tiles in singed case at the bottom and left |_ edge of the area to be tiled.
                             if(tiles[s]->shape_utilisation(xs, ys, wX, wY, signedIO) >=  occupation_threshold_ ){
                                 if(solve_Vars[s][xs+x_neg][ys+y_neg] == nullptr){
                                     stringstream nvarName;
@@ -228,7 +251,12 @@ void TilingStrategyOptimalILP::constructProblem()
                                     solve_Vars[s][xs+x_neg][ys+y_neg] = tempV;
                                     obj.add(tempV, (double)tiles[s]->getLUTCost(xs, ys, wX, wY, signedIO));    //append variable to cost function
                                 }
-                                pxyTerm.add(solve_Vars[s][xs+x_neg][ys+y_neg], 1);
+
+                                if(!squarer || tiles[s]->shape_contribution(x, y, xs, ys, wX, wY, signedIO, false))
+                                    pxyTerm.add(solve_Vars[s][xs+x_neg][ys+y_neg], tiles[s]->getParametrisation().getTilingWeight());          //add decision variable to eq for position (x,y) when the respective tile s at (xs,ys) covers this position
+                                if(squarer && !tiles[s]->isSquarer() && xs <= ys+(int)tiles[s]->wY()-1 && tiles[s]->shapeValid(y-xs,x-ys) && x != y || tiles[s]->isSquarer() && x != y){   //consideration of symmetries for squarers
+                                    pxyTerm.add(solve_Vars[s][xs+x_neg][ys+y_neg], tiles[s]->getParametrisation().getTilingWeight());          //in squarers the symmetric position for the current eq. below the diagonal is covered by the tile s
+                                }
                             }
                         }
                     }
@@ -242,19 +270,25 @@ void TilingStrategyOptimalILP::constructProblem()
                 ScaLP::Variable tempV = ScaLP::newBinaryVariable(nvarName.str());
                 maxEpsTerm.add(tempV, (-1LL) * (1LL << (x + y)));
                 maxEpsTerm.add(1ULL << (x + y));
+                if(squarer && x != y){                      //with a squarer the tiling is mirrored at the diagonal, so missing tiles on top also cause an error below
+                    maxEpsTerm.add(tempV, (-1LL) * (1LL << (x + y)));
+                    maxEpsTerm.add(1ULL << (x + y));
+                }
 
-                c1Constraint = pxyTerm - tempV == 0;
+                c1Constraint = pxyTerm - ((squarer && x != y)?2:1) * tempV == 0;
             } else if(performOptimalTruncation == false && (wOut < (int)prodWidth) && ((x+y) < ((int)prodWidth-wOut-guardBits))){
                 //c1Constraint = pxyTerm <= (bool)1;
             } else if(performOptimalTruncation == false && (wOut < (int)prodWidth) && ((x+y) == ((int)prodWidth-wOut-guardBits))){
+                cout << "keepBit to place: " << keepBits << endl;
                 if((keepBits)?keepBits--:0){
-                    c1Constraint = pxyTerm == (bool)1;
+                    c1Constraint = pxyTerm == ((squarer && x != y)?2:1);
+                    if(squarer && x != y && keepBits) keepBits--;           //consider symmetric bit in squarer
                     cout << "keepBit at" << x << "," << y << endl;
                 } else {
                     cout << "NO keepBit at" << x << "," << y << endl;
                 }
             } else {
-                c1Constraint = pxyTerm == (bool)1;
+                c1Constraint = pxyTerm == ((!squarer || x == y)?1.0:2.0);
             }
 
             c1Constraint.name = consName.str();
@@ -381,8 +415,10 @@ void TilingStrategyOptimalILP::constructProblem()
 
             for(int x = 0; x < parameters.getMultXWordSize(); x++){
                 for(int y = 0; y < parameters.getMultYWordSize(); y++){
-                    if(0 <= xPos+x && 0 <= yPos+y && xPos+x < wX && yPos+y < wY)
+                    if(0 <= xPos+x && 0 <= yPos+y && xPos+x < wX && yPos+y < wY){
                         mulArea[xPos+x][yPos+y] = mulArea[xPos+x][yPos+y] || parameters.shapeValid(x,y);
+                        if(squarer) mulArea[yPos+y][xPos+x] = mulArea[yPos+y][xPos+x] || parameters.shapeValid(x,y);
+                    }
                 }
             }
         }

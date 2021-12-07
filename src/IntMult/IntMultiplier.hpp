@@ -28,7 +28,7 @@ namespace flopoco {
 		 * @param[in] signedIO       false=unsigned, true=signed
 		 * @param[in] texOutput      true=generate a tek file with the found tiling solution
 		 **/
-		IntMultiplier(Operator *parentOp, Target* target, int wX, int wY, int wOut=0, bool signedIO = false, float dspOccupationThreshold=0.0, int maxDSP=-1, bool superTiles=false, bool use2xk=false, bool useirregular=false, bool useLUT=true, bool useDSP=true, bool useKaratsuba=false, int beamRange=0, bool optiTrunc=true, bool minStages=true);
+		IntMultiplier(Operator *parentOp, Target* target, int wX, int wY, int wOut=0, bool signedIO = false, float dspOccupationThreshold=0.0, int maxDSP=-1, bool superTiles=false, bool use2xk=false, bool useirregular=false, bool useLUT=true, bool useDSP=true, bool useKaratsuba=false, int beamRange=0, bool optiTrunc=true, bool minStages=true, bool squarer=false);
 
 		/**
 		 * The emulate function.
@@ -67,6 +67,7 @@ namespace flopoco {
 		float dspOccupationThreshold;   /**< threshold of relative occupation ratio of a DSP multiplier to be used or not */
 		int maxDSP;            /**< limit the number of DSP-Blocks used in multiplier */
 		BitHeap *bitHeap;
+		bool squarer;          /**< generate squarer */
 
 	private:
 //		Operator* parentOp;  			/**< For a virtual multiplier, adding bits to some external BitHeap,
@@ -160,7 +161,7 @@ namespace flopoco {
          * @param constant to recenter the truncation error around 0 since it can otherwise only be negative, since there are only partial products left out. This allows a larger error, so more products can be omitted
          * @return none
          */
-        static int calcBitHeapLSB(list<TilingStrategy::mult_tile_t> &solution, unsigned guardBits, const mpz_class& errorBudget, const mpz_class& constant, const mpz_class& actualTruncError);
+        int calcBitHeapLSB(list<TilingStrategy::mult_tile_t> &solution, unsigned guardBits, const mpz_class& errorBudget, const mpz_class& constant, const mpz_class& actualTruncError);
 
         /**
          * @brief calculate the width of the diagonal of a rectangle, that is equivalent to the number of partial product bits in the hypothetical resulting bitheap of a Bough-Wooley-Multiplier

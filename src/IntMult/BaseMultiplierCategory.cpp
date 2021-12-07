@@ -27,6 +27,26 @@ namespace flopoco {
 		return bmCat_->getRelativeResultMSBWeight(*this);
 	}
 
+	bool BaseMultiplierCategory::Parametrization::crossesSquarerDiagonal(int anchor_x, int anchor_y) const
+	{
+	    if(anchor_y + (int) this->wY_ - 1 < anchor_x) return false;
+	    bool below_diagonal = false;
+	    for(int y = 0; y < this->wY_; y++){
+	        for(int x = 0; x < this->wX_; x++){
+	            if(anchor_x <= anchor_y + y && this->shapeValid(x,y) ) below_diagonal = true;
+	        }
+	    }
+	    return below_diagonal;
+	}
+
+	void BaseMultiplierCategory::Parametrization::setTilingWeight(int weight){
+	    tilingWeight = weight;
+	}
+
+	int BaseMultiplierCategory::Parametrization::getTilingWeight(void){
+	    return tilingWeight;
+	}
+
 	BaseMultiplierCategory::Parametrization BaseMultiplierCategory::parametrize(
 			int wX,
 			int wY,
@@ -109,12 +129,16 @@ int BaseMultiplierCategory::getRelativeResultMSBWeight(Parametrization const & p
 }
 
 // determines if a position (x,y) is coverd by a tile (s), relative to the tiles origin position(shape_x,shape_y)
-bool BaseMultiplierCategory::shape_contribution(int x, int y, int shape_x, int shape_y, int wX, int wY, bool signedIO){
+bool BaseMultiplierCategory::shape_contribution(int x, int y, int shape_x, int shape_y, int wX, int wY, bool signedIO, bool squarer){
 	if(getDSPCost() == 1){
 		int sign_x = (signedIO && wX-(int)tile_param.wX_-1 == shape_x)?1:0;      //The Xilinx DSP-Blocks can process one bit more if signed
 		int sign_y = (signedIO && wY-(int)tile_param.wY_-1 == shape_y)?1:0;
 		return ( 0 <= x-shape_x && x-shape_x < (int)tile_param.wX_+sign_x && 0 <= y-shape_y && y-shape_y < (int)tile_param.wY_+sign_y );
 	} else {
+	    if(squarer && shape_x <= shape_y+(int)tile_param.wY_-1 && x != y){      //handling of symmetries at the diagonal for squarers
+	        if(shape_x+(int)tile_param.wX_-1 < shape_y) return false;           //Avoid redundant decision variables that correspond to tiles completely below the diagonal
+	        if(shapeValid(y-shape_x, x-shape_y)) return true;             //check position mirrored at bottom-left to top-right diagonal
+	    }
 		return shapeValid(x-shape_x, y-shape_y);
 	}
 }
@@ -158,7 +182,7 @@ float BaseMultiplierCategory::shape_utilisation(int shape_x, int shape_y, int wX
         if(signedIO && (wY-m_y_pos-tile_height)== 0){
             isSignedY = true;
         }
-        return Parametrization(tile_width, tile_height, bmCat_, isSignedX, isSignedY, false, shape_para_,  output_weights);
+        return Parametrization(tile_width, tile_height, bmCat_, isSignedX, isSignedY, false, shape_para_,  output_weights, tilingWeight);
     }
 
     BaseMultiplierCategory::Parametrization BaseMultiplierCategory::Parametrization::shrinkFitDSP(int m_x_pos, int m_y_pos, int wX, int wY) {
@@ -173,7 +197,7 @@ float BaseMultiplierCategory::shape_utilisation(int shape_x, int shape_y, int wX
             //cout << "tile overlaps at the bottom by " << -(wY-m_y_pos-tile_height) << endl;
             tile_height = tile_height + (wY-m_y_pos-tile_height);
         }
-        return Parametrization(tile_width, tile_height, bmCat_, isSignedX_, isSignedY_, false, shape_para_,  output_weights);
+        return Parametrization(tile_width, tile_height, bmCat_, isSignedX_, isSignedY_, false, shape_para_,  output_weights, tilingWeight);
     }
 
     BaseMultiplierCategory::Parametrization BaseMultiplierCategory::Parametrization::tryDSPExpand(int m_x_pos, int m_y_pos, int wX, int wY, bool signedIO) {
@@ -193,7 +217,8 @@ float BaseMultiplierCategory::shape_utilisation(int shape_x, int shape_y, int wX
         if(signedIO && (wY-m_y_pos-tile_height)== 0){
             isSignedY = true;
         }
-        return Parametrization(tile_width, tile_height, bmCat_, isSignedX, isSignedY, false, shape_para_,  output_weights);
+
+        return Parametrization(tile_width, tile_height, bmCat_, isSignedX, isSignedY, false, shape_para_,  output_weights, tilingWeight);
     }
 
 	int BaseMultiplierCategory::wX_DSPexpanded(int m_x_pos, int m_y_pos, int wX, int wY, bool signedIO) {
