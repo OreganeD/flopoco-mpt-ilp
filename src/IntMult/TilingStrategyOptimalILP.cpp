@@ -27,8 +27,8 @@ TilingStrategyOptimalILP::TilingStrategyOptimalILP(
 			wOut_,
 			signedIO_,
 			bmc),
-		max_pref_mult_ {maxPrefMult},
 		occupation_threshold_{occupation_threshold},
+		max_pref_mult_ {maxPrefMult},
 		tiles{mtc_.MultTileCollection},
         guardBits{guardBits},
         keepBits{keepBits},
@@ -45,7 +45,7 @@ TilingStrategyOptimalILP::TilingStrategyOptimalILP(
             mpz_export(&this->errorBudget, 0, -1, sizeof this->errorBudget, 0, 0, errorBudget.get_mpz_t());
         } else {
             if(performOptimalTruncation)
-            cout << "WARNING: errorBudget or constant exceeds the number range of uint64, switching to optiTrunc=0" << endl;
+                cout << "WARNING: errorBudget or constant exceeds the number range of uint64, switching to optiTrunc=0" << endl;
             this->errorBudget = 0;
             this->performOptimalTruncation = false;
         }
@@ -209,7 +209,6 @@ void TilingStrategyOptimalILP::constructProblem()
 
     vector<vector<vector<ScaLP::Variable>>> solve_Vars(wS, vector<vector<ScaLP::Variable>>(wX+x_neg, vector<ScaLP::Variable>(wY+y_neg)));
     ScaLP::Term maxEpsTerm;
-    __uint64_t sumOfPosEps = 0;
     // add the Constraints
     cout << "   adding the constraints to problem formulation..." << endl;
     for(int y = 0; y < wY; y++){
@@ -226,7 +225,7 @@ void TilingStrategyOptimalILP::constructProblem()
                         if(squarer && tiles[s]->isSquarer() && xs != ys) continue;                 //squarers should only be placed in the diagonal
                         if(tiles[s]->shape_contribution(x, y, xs, ys, wX, wY, signedIO, squarer)){
                             if((wOut < (int)prodWidth) && ((xs+tiles[s]->wX()+ys+tiles[s]->wY()-2) < ((int)prodWidth-wOut-guardBits))) break;
-                            if(signedIO && (wX == xs+tiles[s]->wX() && !tiles[s]->signSupX() || wY == ys+tiles[s]->wY() && !tiles[s]->signSupY() )) break; //Avoid placing tiles without signed support at the bottom and left |_ edge of the area to be tiled.
+                            if(signedIO && ((wX == xs+(int)tiles[s]->wX() && !tiles[s]->signSupX()) || (wY == ys+(int)tiles[s]->wY() && !tiles[s]->signSupY()) )) break; //Avoid placing tiles without signed support at the bottom and left |_ edge of the area to be tiled.
                             if(tiles[s]->shape_utilisation(xs, ys, wX, wY, signedIO) >=  occupation_threshold_ ){
                                 if(solve_Vars[s][xs+x_neg][ys+y_neg] == nullptr){
                                     stringstream nvarName;
@@ -239,7 +238,7 @@ void TilingStrategyOptimalILP::constructProblem()
 
                                 if(!squarer || tiles[s]->shape_contribution(x, y, xs, ys, wX, wY, signedIO, false))
                                     pxyTerm.add(solve_Vars[s][xs+x_neg][ys+y_neg], tiles[s]->getParametrisation().getTilingWeight());          //add decision variable to eq for position (x,y) when the respective tile s at (xs,ys) covers this position
-                                if(squarer && !tiles[s]->isSquarer() && xs <= ys+(int)tiles[s]->wY()-1 && tiles[s]->shapeValid(y-xs,x-ys) && x != y || tiles[s]->isSquarer() && x != y){   //consideration of symmetries for squarers
+                                if((squarer && !tiles[s]->isSquarer() && xs <= ys+(int)tiles[s]->wY()-1 && tiles[s]->shapeValid(y-xs,x-ys) && x != y) || (tiles[s]->isSquarer() && x != y)){   //consideration of symmetries for squarers
                                     pxyTerm.add(solve_Vars[s][xs+x_neg][ys+y_neg], tiles[s]->getParametrisation().getTilingWeight());          //in squarers the symmetric position for the current eq. below the diagonal is covered by the tile s
                                 }
                             }
@@ -248,7 +247,7 @@ void TilingStrategyOptimalILP::constructProblem()
                 }
             }
             ScaLP::Constraint c1Constraint;
-            if(performOptimalTruncation == true && (wOut < (int)prodWidth) && ((x+y) < ((int)prodWidth-wOut))) {
+            if(performOptimalTruncation && (wOut < (int)prodWidth) && ((x + y) < ((int)prodWidth - wOut))) {
                 stringstream nvarName;
                 nvarName << " b" << ((x < 0) ? "m" : "") << setfill('0') << setw(dpX) << ((x < 0) ? -x : x)
                          << ((y < 0) ? "m" : "") << setfill('0') << setw(dpY) << ((y < 0) ? -y : y);
@@ -261,9 +260,9 @@ void TilingStrategyOptimalILP::constructProblem()
                 }
 
                 c1Constraint = pxyTerm - ((squarer && x != y)?2:1) * tempV == 0;
-            } else if(performOptimalTruncation == false && (wOut < (int)prodWidth) && ((x+y) < ((int)prodWidth-wOut-guardBits))){
+            } else if(!performOptimalTruncation && (wOut < (int)prodWidth) && ((x + y) < (int)(prodWidth - wOut - guardBits))){
                 //c1Constraint = pxyTerm <= (bool)1;
-            } else if(performOptimalTruncation == false && (wOut < (int)prodWidth) && ((x+y) == ((int)prodWidth-wOut-guardBits))){
+            } else if(!performOptimalTruncation && (wOut < (int)prodWidth) && ((x + y) == (int)(prodWidth - wOut - guardBits))){
                 cout << "keepBit to place: " << keepBits << endl;
                 if((keepBits)?keepBits--:0){
                     c1Constraint = pxyTerm == ((squarer && x != y)?2:1);
@@ -317,7 +316,7 @@ void TilingStrategyOptimalILP::constructProblem()
     {
         cout << "   multiplier is truncated by " << (int)prodWidth-wOut << " bits (err=" << (unsigned long)wX*(((unsigned long)1<<((int)wOut-guardBits))) << "), ensure sufficient precision..." << endl;
         cout << "   guardBits=" << guardBits << endl;
-        cout << "   g=" << guardBits << " k=" << keepBits << " errorBudget=" << errorBudget << " difference to conservative est: " << errorBudget-(long long)(((unsigned long)1)<<(prodWidth-(int)wOut-1)-1) << endl;
+        cout << "   g=" << guardBits << " k=" << keepBits << " errorBudget=" << errorBudget << " difference to conservative est: " << errorBudget-(long long)(((unsigned long)1)<<((prodWidth-(int)wOut-1)-1)) << endl;
 
         stringstream nvarName;
         nvarName << "C";
@@ -326,7 +325,7 @@ void TilingStrategyOptimalILP::constructProblem()
         // C = 2^i*c_i + 2^(i+1)*c_(i+1)...
         ScaLP::Term cTerm;
         vector<ScaLP::Variable> cVars(guardBits-1);
-        for(int i = 0; i < guardBits-1; i++){
+        for(unsigned i = 0; i < guardBits-1; i++){
             stringstream nvarName;
             nvarName << "c" << prodWidth-wOut-guardBits+i;
             cout << nvarName.str() << endl;
@@ -398,8 +397,8 @@ void TilingStrategyOptimalILP::constructProblem()
             int xPos = anchor.first;
             int yPos = anchor.second;
 
-            for(int x = 0; x < parameters.getMultXWordSize(); x++){
-                for(int y = 0; y < parameters.getMultYWordSize(); y++){
+            for(int x = 0; x < (int)parameters.getMultXWordSize(); x++){
+                for(int y = 0; y < (int)parameters.getMultYWordSize(); y++){
                     if(0 <= xPos+x && 0 <= yPos+y && xPos+x < wX && yPos+y < wY){
                         mulArea[xPos+x][yPos+y] = mulArea[xPos+x][yPos+y] || parameters.shapeValid(x,y);
                         if(squarer) mulArea[yPos+y][xPos+x] = mulArea[yPos+y][xPos+x] || parameters.shapeValid(x,y);

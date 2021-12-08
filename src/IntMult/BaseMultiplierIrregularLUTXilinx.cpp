@@ -128,7 +128,6 @@ namespace flopoco
 
     mpz_class BaseMultiplierIrregularLUTXilinxOp::function(int yx)
     {
-        int temp = 0;
         int y = yx>>wX;
         int x = yx -(y<<wX);
         x = (isSignedX && x & (1<<(wX-1)))?x-2*(1<<(wX-1)):x;
@@ -140,7 +139,7 @@ namespace flopoco
         for( int yp = 0; yp < wY; yp++){
             for( int xp = 0; xp < wX; xp++){
                 if(!(bit_pattern[(this->shape)-1]&(1<<(yp*wX+xp)))){
-                    if((isSignedX && xp==(wX-1)) && (isSignedY && yp==(wY-1)) || !(isSignedX && xp==(wX-1)) && !(isSignedY && yp==(wY-1)) ){
+                    if(((isSignedX && xp==(wX-1)) && (isSignedY && yp==(wY-1))) || (!(isSignedX && xp==(wX-1)) && !(isSignedY && yp==(wY-1))) ){
                         raw_result -= (x&(1<<xp))*(y&(1<<yp));
                     } else {
                         raw_result += (x&(1<<xp))*(y&(1<<yp));
@@ -211,7 +210,7 @@ namespace flopoco
         for( int yp = 0; yp < wY; yp++){
             for( int xp = 0; xp < wX; xp++){
                 if(!(bit_pattern[(this->shape)-1]&(1<<(yp*wX+xp)))){
-                    if((isSignedX && xp==(wX-1)) && (isSignedY && yp==(wY-1)) || !(isSignedX && xp==(wX-1)) && !(isSignedY && yp==(wY-1)) ){
+                    if(((isSignedX && xp==(wX-1)) && (isSignedY && yp==(wY-1))) || (!(isSignedX && xp==(wX-1)) && !(isSignedY && yp==(wY-1))) ){
                         svR -= (svX&(1<<xp))*(svY&(1<<yp));
                     } else {
                         svR += (svX&(1<<xp))*(svY&(1<<yp));

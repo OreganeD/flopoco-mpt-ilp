@@ -29,8 +29,8 @@ TilingAndCompressionOptILP::TilingAndCompressionOptILP(
 			signedIO_,
 			bmc),
         CompressionStrategy(bitheap),
-		max_pref_mult_ {maxPrefMult},
 		occupation_threshold_{occupation_threshold},
+		max_pref_mult_ {maxPrefMult},
 		tiles{mtc_.MultTileCollection},
         guardBits{guardBits},
         keepBits{keepBits},
@@ -237,7 +237,7 @@ void TilingAndCompressionOptILP::constructProblem(int s_max)
     }
     prodWidth = IntMultiplier::prodsize(wX, wY, signedIO, signedIO);
     int nx = wX-1, ny = wY-1, ns = wS-1; dpX = 1; dpY = 1; dpS = 1;     //calc number of decimal places, for var names
-    int nk = possibleCompressors.size()+4, nc = prodWidth + 1, nerc = prodWidth-wOut, nst = s_max; dpK = 1; dpC = 1; dpERC = 1; dpSt = 1;
+    int nk = possibleCompressors.size()+4, nc = prodWidth + 1, nst = s_max; dpK = 1; dpC = 1; dpERC = 1; dpSt = 1;
     nx = (x_neg > nx)?x_neg:nx;                                         //in case the extend in negative direction is larger
     ny = (y_neg > ny)?y_neg:ny;
     while (nx /= 10)
@@ -258,7 +258,6 @@ void TilingAndCompressionOptILP::constructProblem(int s_max)
     vector<ScaLP::Term> bitsinColumn(prodWidth + 1);
     vector<vector<vector<ScaLP::Variable>>> solve_Vars(wS, vector<vector<ScaLP::Variable>>(wX+x_neg, vector<ScaLP::Variable>(wY+y_neg)));
     ScaLP::Term maxEpsTerm, constVecTerm;
-    __uint64_t sumOfPosEps = 0;
     // add the Constraints
     cout << "   adding the constraints to problem formulation..." << endl;
     for(int y = 0; y < wY; y++){
@@ -270,8 +269,8 @@ void TilingAndCompressionOptILP::constructProblem(int s_max)
                 for(int ys = 0 - tiles[s]->wY() + 1; ys <= y; ys++){					//...check if the position x,y gets covered by tile s located at position (xs, ys) = (x-wtile..x, y-htile..y)
                     for(int xs = 0 - tiles[s]->wX() + 1; xs <= x; xs++){
                         if(occupation_threshold_ == 1.0 && ((wX - xs) < (int)tiles[s]->wX() || (wY - ys) < (int)tiles[s]->wY())) break;
-                        if(signedIO && (wX < xs+tiles[s]->wX() || wY < ys+tiles[s]->wY()) ) break;                      //Avoid considering protruding cases in signed case, tiling is valid without
-                        if(signedIO && (wX == xs+tiles[s]->wX() && !tiles[s]->signSupX() || wY == ys+tiles[s]->wY() && !tiles[s]->signSupY() )) break; //Avoid placing tiles without signed support at the bottom and left |_ edge of the area to be tiled.
+                        if(signedIO && (wX < xs+(int)tiles[s]->wX() || wY < ys+(int)tiles[s]->wY()) ) break;                      //Avoid considering protruding cases in signed case, tiling is valid without
+                        if(signedIO && ((wX == xs+(int)tiles[s]->wX() && !tiles[s]->signSupX()) || (wY == ys+(int)tiles[s]->wY() && !tiles[s]->signSupY()) )) break; //Avoid placing tiles without signed support at the bottom and left |_ edge of the area to be tiled.
                         if(tiles[s]->shape_contribution(x, y, xs, ys, wX, wY, signedIO)){
 //                            if((wOut < (int)prodWidth) && ((xs+tiles[s]->wX()+ys+tiles[s]->wY()-2) < ((int)prodWidth-wOut-guardBits))) break;
                             if(tiles[s]->shape_utilisation(xs, ys, wX, wY, signedIO) >=  occupation_threshold_ ){
@@ -284,14 +283,14 @@ void TilingAndCompressionOptILP::constructProblem(int s_max)
                                     obj.add(tempV, (double)tiles[s]->ownLUTCost(xs, ys, wX, wY, signedIO));    //append variable to cost function
 
                                     int col_min = xs+ys+tiles[s]->getRelativeResultLSBWeight(tiles[s]->getParametrisation());
-                                    int col_max = xs+ys+tiles[s]->getRelativeResultMSBWeight(tiles[s]->getParametrisation(),signedIO && xs+tiles[s]->wX() == wX, signedIO && ys+tiles[s]->wY() == wY);
+                                    int col_max = xs+ys+tiles[s]->getRelativeResultMSBWeight(tiles[s]->getParametrisation(),signedIO && xs+(int)tiles[s]->wX() == (int)wX, signedIO && ys+(int)tiles[s]->wY() == (int)wY);
                                     for(col_min = ((col_min < 0)?0:col_min); col_min <= (((int)prodWidth<col_max)?(int)prodWidth:col_max); col_min++){
                                         bitsinColumn[col_min].add(tempV, 1);                                      //Output bits from tiles, that have to be compressed on the compressor tree, when a tile is used
                                     }
 
-                                    if(signedIO && (xs+tiles[s]->wX() == wX || ys+tiles[s]->wY() == wY) ){              //Handling of the sign extension bits in dynamically calculated constant bit vector
+                                    if(signedIO && (xs+(int)tiles[s]->wX() == (int)wX || ys+(int)tiles[s]->wY() == (int)wY) ){              //Handling of the sign extension bits in dynamically calculated constant bit vector
                                         if(tiles[s]->wX() == 1 && tiles[s]->wY() == 1 && xs == wX-1 && ys == wY-1) break; //the 1x1 tile with (1,1) signedness should not get a sign extension vector.
-                                        constVecTerm.add(solve_Vars[s][xs+x_neg][ys+y_neg],(double)(((1ULL<<(wX+wY))-(1ULL<<(xs+ys+tiles[s]->getRelativeResultMSBWeight(tiles[s]->getParametrisation(),signedIO && xs+tiles[s]->wX() == wX, signedIO && ys+tiles[s]->wY() == wY))))));
+                                        constVecTerm.add(solve_Vars[s][xs+x_neg][ys+y_neg],(double)(((1ULL<<(wX+wY))-(1ULL<<(xs+ys+tiles[s]->getRelativeResultMSBWeight(tiles[s]->getParametrisation(),signedIO && xs+(int)tiles[s]->wX() == wX, signedIO && ys+(int)tiles[s]->wY() == wY))))));
                                         //printf("s=%02d, x=%02d, y=%02d, wx=%01d, wy=%01d, wOut=%02d, msb=%02d, 0x%08llx\n", s, xs, ys, tiles[s]->wX(), tiles[s]->wY(), tiles[s]->getRelativeResultMSBWeight(tiles[s]->getParametrisation(),signedIO && xs+tiles[s]->wX() == wX, signedIO && ys+tiles[s]->wY() == wY)-tiles[s]->getRelativeResultLSBWeight(tiles[s]->getParametrisation())+1, xs+ys+tiles[s]->getRelativeResultMSBWeight(tiles[s]->getParametrisation(),signedIO && xs+tiles[s]->wX() == wX, signedIO && ys+tiles[s]->wY() == wY), ((1ULL<<(wX+wY))-(1ULL<<(xs+ys+tiles[s]->getRelativeResultMSBWeight(tiles[s]->getParametrisation(),signedIO && xs+tiles[s]->wX() == wX, signedIO && ys+tiles[s]->wY() == wY)))));
                                     }
                                 }
@@ -311,9 +310,9 @@ void TilingAndCompressionOptILP::constructProblem(int s_max)
                 maxEpsTerm.add(1ULL << (x + y));
 
                 c1Constraint = pxyTerm - tempV == 0;
-            } else if(!performOptimalTruncation && (wOut < (int)prodWidth) && ((x + y) < ((int)prodWidth - wOut - guardBits))){
+            } else if(!performOptimalTruncation && (wOut < (int)prodWidth) && ((x + y) < (int)(prodWidth - wOut - guardBits))){
                 //c1Constraint = pxyTerm <= (bool)1;
-            } else if(!performOptimalTruncation && (wOut < (int)prodWidth) && ((x + y) == ((int)prodWidth - wOut - guardBits))){
+            } else if(!performOptimalTruncation && (wOut < (int)prodWidth) && ((x + y) == (int)(prodWidth - wOut - guardBits))){
                 if((keepBits_)?keepBits_--:0){
                     c1Constraint = pxyTerm == (bool)1;
                     cout << "keepBit at" << x << "," << y << endl;
@@ -371,7 +370,7 @@ void TilingAndCompressionOptILP::constructProblem(int s_max)
         // C = 2^i*c_i + 2^(i+1)*c_(i+1)...
         ScaLP::Term cTerm;
         vector<ScaLP::Variable> cVars(prodWidth-wOut-1);
-        for(int i = 0; i < prodWidth-wOut-1; i++){
+        for(unsigned i = 0; i < prodWidth-wOut-1; i++){
             stringstream cvarName;
             cvarName << "c" << i;
             //cout << cvarName.str() << endl;
@@ -409,7 +408,7 @@ void TilingAndCompressionOptILP::constructProblem(int s_max)
     //constant vector bits for sign extension and truncation constants
     vector<ScaLP::Variable> cvBits(prodWidth+5);
     if(signedIO || wOut < (int)prodWidth){
-        for(int i = 0; i < prodWidth+5; i++){
+        for(unsigned i = 0; i < prodWidth+5; i++){
             stringstream cvarName;
             cvarName << "v" << setfill('0') << setw(dpC) << i;
             //cout << cvarName.str() << " weight " << (double)(1ULL << i) << endl;
@@ -604,8 +603,8 @@ void TilingAndCompressionOptILP::constructProblem(int s_max)
             int xPos = anchor.first;
             int yPos = anchor.second;
 
-            for(int x = 0; x < parameters.getMultXWordSize(); x++){
-                for(int y = 0; y < parameters.getMultYWordSize(); y++){
+            for(int x = 0; x < (int)parameters.getMultXWordSize(); x++){
+                for(int y = 0; y < (int)parameters.getMultYWordSize(); y++){
                     if(0 <= xPos+x && 0 <= yPos+y && xPos+x < wX && yPos+y < wY)
                         mulArea[xPos+x][yPos+y] = mulArea[xPos+x][yPos+y] || parameters.shapeValid(x,y);
                 }

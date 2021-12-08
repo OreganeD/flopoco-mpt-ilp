@@ -23,8 +23,8 @@ Operator* BaseMultiplierDSP::generateOperator(
 }
 
     double BaseMultiplierDSP::getLUTCost(int x_anchor, int y_anchor, int wMultX, int wMultY, bool signedIO){
-        bool signedX = signedIO && (wMultX == x_anchor+wX()+1 || wMultX == x_anchor+wX());
-        bool signedY = signedIO && (wMultY == y_anchor+wY()+1 || wMultY == y_anchor+wY());
+        bool signedX = signedIO && (wMultX == x_anchor+(int)wX()+1 || wMultX == x_anchor+(int)wX());
+        bool signedY = signedIO && (wMultY == y_anchor+(int)wY()+1 || wMultY == y_anchor+(int)wY());
 
         int x_min = ((x_anchor < 0)?0: x_anchor);
         int y_min = ((y_anchor < 0)?0: y_anchor);

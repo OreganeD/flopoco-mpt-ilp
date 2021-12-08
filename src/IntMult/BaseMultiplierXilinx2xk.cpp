@@ -185,7 +185,7 @@ BaseMultiplierXilinx2xkOp::BaseMultiplierXilinx2xkOp(Operator *parentOp, Target*
             }
         } else if(in1_signed && in2_signed) {       //Both sides are signed
             if(i==needed_luts || i==needed_luts-1) {
-                lutop_o6 = lut_in(0) & ~lut_in(1) | lut_in(2) & lut_in(1);
+                lutop_o6 = (lut_in(0) & ~lut_in(1)) | (lut_in(2) & lut_in(1));
                 lutop_o5 = lut_in(4);
             } else if(i==1) {
                 lutop_o6 = (lut_in(0) & lut_in(1) &  ~(lut_in(2) & lut_in(3))) | ( ~lut_in(0) & lut_in(2) & lut_in(3));
@@ -194,7 +194,7 @@ BaseMultiplierXilinx2xkOp::BaseMultiplierXilinx2xkOp(Operator *parentOp, Target*
                 lutop_o6 = lut_in(2) & lut_in(3);
                 lutop_o5 = lut_in(1) & ~lut_in(3) & lut_in(0) & lut_in(2);
             } else {
-                lutop_o6 = lut_in(0) ^ lut_in(0) & lut_in(1) ^ lut_in(2) & lut_in(3);
+                lutop_o6 = lut_in(0) ^ (lut_in(0) & lut_in(1)) ^ (lut_in(2) & lut_in(3));
                 lutop_o5 = lut_in(3) & ~lut_in(1) & lut_in(0) & lut_in(2);
             }
         } else {

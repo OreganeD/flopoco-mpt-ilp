@@ -76,8 +76,8 @@ namespace flopoco {
                 }
 
                 ScaLP::Solver s = ScaLP::Solver(solverBackend);
-              if(target_)
-                s.timeout = target_->getILPTimeout();
+                if(target_)
+                    s.timeout = target_->getILPTimeout();
 
                 s.quiet = true;
 //                s.quiet = false;
@@ -161,7 +161,7 @@ namespace flopoco {
                             if(edges[j].nodes.second == edges[i].nodes.first) {
                                 inEdgeNotFound = false;
                                 t += pow(2, edges[j].shift) * edgeError[j];
-                            }                        
+                            }
                         }
                         t += (truncError[i] - edgeError[i]);
                         s << ( t == 0 );
@@ -181,7 +181,7 @@ namespace flopoco {
                             if(edges[j].nodes.second == edges[i].nodes.first) {
                                 inEdgeNotFound = false;
                                 t += pow(2, edges[j].shift) * edgeError[j];
-                            }                        
+                            }
                         }
 
                         stringstream vN;
@@ -217,7 +217,7 @@ namespace flopoco {
                             vN << "gain_" << adderCount;
                             faGain.push_back(ScaLP::newIntegerVariable(vN.str()));
                             //s << ( faGain[adderCount] == 0 );
-                            
+
                             size_t operandCount{0u};
                             for(size_t j{0u}; j < edges.size() && operandCount < 2u; ++j) {
                                 if(edges[j].nodes.second == it) {
@@ -226,8 +226,8 @@ namespace flopoco {
                                         s << ( faGain[adderCount] - truncPosition[j] == edges[j].shift );
                                 }
                             }
-                        } else { 
-                            stringstream vN1, vN2; 
+                        } else {
+                            stringstream vN1, vN2;
                             vN1 << "gain_" << adderCount;
                             vN2 << "indic_" << onlyPositive;
                             faGain.push_back(ScaLP::newIntegerVariable(vN1.str()));
@@ -246,12 +246,12 @@ namespace flopoco {
                                 if(edges[j].nodes.second == it) {
                                     inEdgeNotFound = false;
                                     shiftTerms.push_back(truncPosition[j]+edges[j].shift);
-                                }                        
+                                }
                             }
                             s << ( faGain[adderCount] - shiftTerms[2*onlyPositive] >= 0 );
                             s << ( faGain[adderCount] - shiftTerms[2*onlyPositive+1] >= 0 );
                             // indicator constraints variant
-                            
+
                             if(useBigM) {
                                 s << ( shiftTerms[2*onlyPositive+1] - bigM + bigM*indicVar[onlyPositive] - faGain[adderCount] <= 0 );
                                 s << ( faGain[adderCount] - shiftTerms[2*onlyPositive+1] - bigM + bigM*indicVar[onlyPositive] <= 0 );
@@ -302,9 +302,9 @@ namespace flopoco {
                             {
                                 if(edges[adderOutEdges[j]].nodes.first == edges[i].nodes.first)
                                     notFound = false;
-                            } 
+                            }
                             if(notFound)
-                                adderOutEdges.push_back(i);                           
+                                adderOutEdges.push_back(i);
                         }
 
                         if(is_a<register_node_t>(*edges[i].nodes.second)) {

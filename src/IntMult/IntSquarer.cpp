@@ -167,7 +167,7 @@ returns: an integer pext that defines the position of the last column
 
 		if(wOut==2*wIn){ // sanity check
 			for (int i=0; i<2*wIn; i++) {
-				if(bhc[i] != bh.getColumnHeight(i)) {
+				if(bhc[i] != (int)bh.getColumnHeight(i)) {
 					THROWERROR("failed sanity check on bit heap heights for i=" << i << " : " << bhc[i] << " vs " <<  bh.getColumnHeight(i));
 				}
 			}

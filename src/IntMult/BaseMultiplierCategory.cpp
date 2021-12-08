@@ -31,8 +31,8 @@ namespace flopoco {
 	{
 	    if(anchor_y + (int) this->wY_ - 1 < anchor_x) return false;
 	    bool below_diagonal = false;
-	    for(int y = 0; y < this->wY_; y++){
-	        for(int x = 0; x < this->wX_; x++){
+	    for(int y = 0; y < (int)this->wY_; y++){
+	        for(int x = 0; x < (int)this->wX_; x++){
 	            if(anchor_x <= anchor_y + y && this->shapeValid(x,y) ) below_diagonal = true;
 	        }
 	    }

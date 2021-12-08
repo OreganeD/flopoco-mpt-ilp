@@ -1386,12 +1386,12 @@ namespace flopoco{
         vector<vector<int> > coveredBits(solution.getNumberOfStages()+1, vector<int>(bitheap->width+4, 0));
         vector<int> bh_constants(bitheap->width+4, 0);
 
-        int lastMaxHeight = 0, previousMaxHeight;
-        for(unsigned int c = 0; c < orderedBits[0].size(); c++) {
+        unsigned lastMaxHeight = 0;
+        for(unsigned c = 0; c < orderedBits[0].size(); c++) {
             bh_bit[0][c] = orderedBits[0][c].size();
             lastMaxHeight = (lastMaxHeight < orderedBits[0][c].size())?orderedBits[0][c].size():lastMaxHeight;
             //cout << "col=" << c << " height=" << orderedBits[0][c].size() << endl;
-            for(unsigned int b = 0; b < orderedBits[0][c].size(); b++) {
+            for(unsigned b = 0; b < orderedBits[0][c].size(); b++) {
                 if(orderedBits[0][c][b]->signal->type() == Signal::SignalType::constantWithDeclaration || orderedBits[0][c][b]->signal->type() == Signal::SignalType::constant) bh_constants[c]++;
                 //cout << (orderedBits[0][c][b]->signal->getName()) << " is constant " << (orderedBits[0][c][b]->signal->type() == Signal::SignalType::constantWithDeclaration) << endl;
             }
@@ -1399,22 +1399,22 @@ namespace flopoco{
 
         int shift = 0;
         int finalAdderStart = 0, afound = 0;
-        for(unsigned int s = 0; s <= solution.getNumberOfStages(); s++) {
+        for(unsigned s = 0; s <= (unsigned)solution.getNumberOfStages(); s++) {
             int maxHeight = 0;
-            for (unsigned int c = 0; c < bitheap->width; c++) {
+            for (unsigned c = 0; c < bitheap->width; c++) {
 
-                if(s < solution.getNumberOfStages()){
+                if(s < (unsigned)solution.getNumberOfStages()){
                     vector<pair<BasicCompressor *, unsigned int> > tempVector;
                     tempVector = solution.getCompressorsAtPosition(s, c);
-                    for (unsigned int j = 0; j < tempVector.size(); j++) {      //for every compressor in current column and stage
+                    for (unsigned j = 0; j < tempVector.size(); j++) {      //for every compressor in current column and stage
                         int cc;
                         //cout << tempVector[j].first->heights.size() << " " << tempVector[j].first->heights[0] << " " << tempVector[j].first->getStringOfIO() << endl;
                         compr << tab <<  "\\draw[fill="<< tikz_colors[color++%N_TIKZ_COLORS] << "!50,opacity=0.75] ("<<-(int)c*0.25L+0.125L<<","<<(coveredBits[s][c]*0.25L)-0.125L-shift*0.25L<<")  {[rounded corners=2.5pt]";
-                        for(cc = 0; cc < tempVector[j].first->heights.size(); cc++){
+                        for(cc = 0; cc < (int)tempVector[j].first->heights.size(); cc++){
                             compr << "--("<<-(int)(c+cc)*0.25+0.125<<","<<(coveredBits[s][c+cc]+tempVector[j].first->heights[cc])*0.25L-0.125L-shift*0.25L<<")";
-                            if(cc+1 == tempVector[j].first->heights.size() || cc+1 < tempVector[j].first->heights.size() && (coveredBits[s][c+cc]+tempVector[j].first->heights[cc]) != coveredBits[s][c+cc+1]+tempVector[j].first->heights[cc+1])
+                            if(cc+1 == (int)tempVector[j].first->heights.size() || (cc+1 < (int)tempVector[j].first->heights.size() && (coveredBits[s][c+cc]+tempVector[j].first->heights[cc]) != coveredBits[s][c+cc+1]+tempVector[j].first->heights[cc+1]))
                                 compr << "--("<<-(int)(c+cc+1)*0.25+0.125<<","<<(coveredBits[s][c+cc]+tempVector[j].first->heights[cc])*0.25L-0.125L-shift*0.25L<<")";
-                            if(cc+1 == tempVector[j].first->heights.size()){
+                            if(cc+1 == (int)tempVector[j].first->heights.size()){
                                 compr << "--("<<-(int)(c+cc+1)*0.25+0.125<<","<<coveredBits[s][c+cc]*0.25L-0.125L-shift*0.25L<<")";
                             }
                             coveredBits[s][c+cc] += tempVector[j].first->heights[cc];
@@ -1427,7 +1427,7 @@ namespace flopoco{
                         }
                         compr << "--cycle};" << endl;
                         int prevBitPos;
-                        for(cc = 0; cc < tempVector[j].first->outHeights.size(); cc++){
+                        for(cc = 0; cc < (int)tempVector[j].first->outHeights.size(); cc++){
                             if(0 < cc){ //draw connection for output bits of compressors
                                 compr << tab << "\\draw[black,thick] (-0.25*" << c+cc << "," << bh_bit[s+1][c+cc]*0.25L-shift*0.25L-(lastMaxHeight)*0.25L << ")"
                                 << "--(-0.25*" << c+cc-1 << "," << prevBitPos*0.25L-shift*0.25L-(lastMaxHeight)*0.25L << ") ;" << endl;
@@ -1458,11 +1458,10 @@ namespace flopoco{
                     }
                 }
             }
-            previousMaxHeight = lastMaxHeight;
             shift += lastMaxHeight;
             lastMaxHeight = maxHeight;
 
-            if(s == solution.getNumberOfStages()) { //Output of final stage of the compressor tree
+            if(s == (unsigned)solution.getNumberOfStages()) { //Output of final stage of the compressor tree
                 compr << tab << "\\draw[black,thick] (-0.25*" << finalAdderStart << "," << -shift*0.25L << ")"
                       << "--(-0.25*" << bitheap->width-1 << "," << -shift*0.25L << ") ;" << endl;
                 compr << tab <<  tab <<"\\foreach \\i in {0,...," << bitheap->width-1 << "}" << endl <<

@@ -45,10 +45,10 @@ public:
 private:
     float occupation_threshold_;
     int dpX, dpY, dpS, dpC, wS, max_pref_mult_;
-    unsigned prodWidth, guardBits, keepBits;
-    mpz_class &centerErrConstant, eBudget;
-    unsigned long long  errorBudget;
     vector<BaseMultiplierCategory*> tiles;
+    unsigned prodWidth, guardBits, keepBits;
+    mpz_class eBudget, &centerErrConstant;
+    unsigned long long  errorBudget;
     bool performOptimalTruncation, squarer;
 #ifdef HAVE_SCALP
     void constructProblem();

@@ -20,8 +20,8 @@ Operator* BaseMultiplierLUT::generateOperator(
 }
 
 	double BaseMultiplierLUT::getLUTCost(int x_anchor, int y_anchor, int wMultX, int wMultY, bool signedIO){
-        bool signedX = signedIO && (wMultX == x_anchor+wX());
-        bool signedY = signedIO && (wMultY == y_anchor+wY());
+        bool signedX = signedIO && (wMultX == x_anchor+(int)wX());
+        bool signedY = signedIO && (wMultY == y_anchor+(int)wY());
 		//int ws = (wX()==1)?wY():((wY()==1)?wX():wX()+wY());
 		int ws = (wX()==1 && !signedX)?wY():((wY()==1 && !signedY)?wX():wX()+wY());     //The wOut of 2x1 or 2x1 is 1 bit larger, when the short or both sides are signed.
 		int luts = ((ws <= 5)?ws/2+ws%2:ws);
@@ -39,8 +39,8 @@ Operator* BaseMultiplierLUT::generateOperator(
 	}
 
 	int BaseMultiplierLUT::ownLUTCost(int x_anchor, int y_anchor, int wMultX, int wMultY, bool signedIO) {
-        bool signedX = signedIO && (wMultX == x_anchor+wX());
-        bool signedY = signedIO && (wMultY == y_anchor+wY());
+        bool signedX = signedIO && (wMultX == x_anchor+(int)wX());
+        bool signedY = signedIO && (wMultY == y_anchor+(int)wY());
         //int ws = (wX()==1)?wY():((wY()==1)?wX():wX()+wY());
         int ws = (wX()==1 && !signedX)?wY():((wY()==1 && !signedY)?wX():wX()+wY());
 		int luts = ((ws <= 5)?ws/2+ws%2:ws);

@@ -47,10 +47,10 @@ public:
 private:
     float occupation_threshold_;
     int dpX, dpY, dpS, wS, dpK, dpC, dpERC, dpSt, s_max, max_pref_mult_;
+    vector<BaseMultiplierCategory*> tiles;
     unsigned prodWidth, guardBits, keepBits;
-    mpz_class &centerErrConstant, eBudget;
+    mpz_class eBudget, &centerErrConstant;
     unsigned long long  errorBudget;
-	vector<BaseMultiplierCategory*> tiles;
 	bool performOptimalTruncation, minLutsFocus;
 #ifdef HAVE_SCALP
     BasicCompressor* flipflop;

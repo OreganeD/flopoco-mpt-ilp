@@ -409,9 +409,9 @@ namespace flopoco {
     }
 
     unsigned int IntMultiplier::widthOfDiagonalOfRect(unsigned wX, unsigned wY, unsigned col, unsigned wFull){
-        if(0 <= col && col <= min((int)wX, (int)wY)){
+        if(0 <= col && (int)col <= min((int)wX, (int)wY)){
             return col;
-        } else if(min((int)wX,(int)wY) < col && col <= max((int)wX, (int)wY)){
+        } else if(min((int)wX,(int)wY) < (int)col && (int)col <= max((int)wX, (int)wY)){
             return min((int)wX,(int)wY);
         } else {
             return wFull-col;
@@ -944,8 +944,8 @@ namespace flopoco {
             int xPos = anchor.first;
             int yPos = anchor.second;
 
-            for(int x = (0 <= xPos)?xPos:0; x < ((xPos + parameters.getTileXWordSize() < wX)?xPos + parameters.getTileXWordSize():wX); x++){
-                for(int y = (0 <= yPos)?yPos:0; y < ((yPos + parameters.getTileYWordSize() < wY)?yPos + parameters.getTileYWordSize():wY); y++){
+            for(int x = (0 <= xPos)?xPos:0; x < (int)((xPos + parameters.getTileXWordSize() < wX)?xPos + parameters.getTileXWordSize():wX); x++){
+                for(int y = (0 <= yPos)?yPos:0; y < (int)((yPos + parameters.getTileYWordSize() < wY)?yPos + parameters.getTileYWordSize():wY); y++){
                     if( parameters.shapeValid(x-xPos,y-yPos) || parameters.isSquarer() ){
                         if(1 < std::abs(parameters.getTilingWeight())){
                             mulAreaI[x][y] = mulAreaI[x][y] + ((0 <= parameters.getTilingWeight())?1:(-1));
@@ -964,9 +964,9 @@ namespace flopoco {
 
         mpz_class truncError, maxErr = errorBudget+constant;
         truncError = mpz_class(0);
-        for(int y = 0; y < wY; y++){
-            for(int x = wX-1; 0 <= x; x--){
-                if(!(mulAreaI[x][y] == 1))
+        for(int y = 0; y < (int)wY; y++){
+            for(int x = (int)wX-1; 0 <= x; x--){
+                if(mulAreaI[x][y] != 1)
                     truncError += (mpz_class(1)<<(x+y));
                 cout << ((mulAreaI[x][y] == 1) ? 1 : 0);
             }
@@ -991,8 +991,8 @@ namespace flopoco {
 	        int xPos = anchor.first;
 	        int yPos = anchor.second;
 
-	        for(int x = (0 <= xPos)?xPos:0; x < ((xPos + parameters.getTileXWordSize() < wX)?xPos + parameters.getTileXWordSize():wX); x++){
-	            for(int y = (0 <= yPos)?yPos:0; y < ((yPos + parameters.getTileYWordSize() < wY)?yPos + parameters.getTileYWordSize():wY); y++){
+	        for(int x = (0 <= xPos)?xPos:0; x < (int)((xPos + parameters.getTileXWordSize() < wX)?xPos + parameters.getTileXWordSize():wX); x++){
+	            for(int y = (0 <= yPos)?yPos:0; y < (int)((yPos + parameters.getTileYWordSize() < wY)?yPos + parameters.getTileYWordSize():wY); y++){
 	                if( parameters.shapeValid(x-xPos,y-yPos) || parameters.isSquarer() ){
 	                    if(1 < std::abs(parameters.getTilingWeight())){
 	                        mulAreaI[x][y] = mulAreaI[x][y] + ((0 <= parameters.getTilingWeight())?1:(-1));
@@ -1015,8 +1015,8 @@ namespace flopoco {
             error = 0;
             cout << " min weight=" << col << endl;
             mpz_pow_ui(weight.get_mpz_t(), mpz_class(2).get_mpz_t(), col);
-            for(int x = 0; x <= col && x < wX; x++){
-                for(int y = 0; x+y <= col && y < wY; y++){
+            for(int x = 0; x <= col && x < (int)wX; x++){
+                for(int y = 0; x+y <= col && y < (int)wY; y++){
                     error += (mulAreaI[x][y] == 1)?weight:0;
                     nBits += (mulAreaI[x][y] == 1)?1:0;
                 }
