@@ -92,13 +92,11 @@ returns: an integer pext that defines the position of the last column
 
 
 	
-	IntSquarer::IntSquarer(OperatorPtr parentOp_, Target* target_,  int wIn_, bool signedIn_, int wOut_):
+	IntSquarer::IntSquarer(OperatorPtr parentOp_, Target* target_,  int wIn_, bool signedIn_, int wOut_, string method, int maxDSP):
 		Operator(parentOp_, target_), wIn(wIn_), signedIn(signedIn_), wOut(wOut_)
 	{
 		srcFileName = "IntSquarer";
-		if(signedIn){
-			THROWERROR("Sorry, signedIn not implemented yet");
-		}
+
 		if(wOut==0){
 			wOut=2*wIn; // valid whatever signedIn
 		}
@@ -107,83 +105,98 @@ returns: an integer pext that defines the position of the last column
 		setNameWithFreqAndUID(name.str());
 		setCopyrightString("Florent de Dinechin (2021)");
 
-		vector<int> bhc = buildExactSquareColumnHeights(wIn);
-		int l=0;    // initialization that works for the exact case
-		int lext=0;
-		int t=0; // trucated bits in the rightmost column
-		guardBits=0;
-		if(wOut!=2*wIn){
-			l=2*wIn-wOut;
-			compute_truncation_params(bhc,  l, lext,  t);
-			guardBits=l-lext;
-			REPORT(INFO, "Truncation parameters: lext=" << lext << " (g=" << guardBits << ")  t=" << t);
-			faithfulOnly=true;
-		} else {
-			lext=0;
-			faithfulOnly=false; // this is an exact squarer	
-		}
-
-		// If you add t++; here simulation fails so we seem to touch the optimal.
-		int k  = bhc[lext]-t; // kept bits in the rightmost column
-		
-
-
 		// Set up the IO signals
 		addInput ("X"  , wIn);
 		addOutput("R"  , wOut);
 
-		// use the fix-point constructor
-		BitHeap bh(this, 2*wIn-1, lext);
+		if(method == "schoolbook"){
+		    if(signedIn){
+		        THROWERROR("Sorry, signedIn not implemented yet");
+		    }
 
-		// Naive bit-level version, to get drawings for The Book
-		// The diagonal bits
-		for (int i=0; i<wIn; i++) {
-			if(needThisBit(2*i, lext, k)) {
-				string bit="x"+to_string(i)+"sq";
-				vhdl << tab << declare(getTarget()->logicDelay(), bit) << " <= X" << of(i) << ";" <<endl;
-				bh.addBit(bit, 2*i);
-			}
-		}
-		// The triangle bits 
-		for (int i=0; i<wIn-1; i++) {
-			for (int j=i+1; j<wIn; j++) {
-				if(needThisBit(i+j+1, lext, k)) {
-					string bit="x"+to_string(i)+"x"+to_string(j);
-					vhdl << tab << declare(getTarget()->logicDelay(), bit) << " <= X" << of(i) << " and X" << of(j) << ";" <<endl;
-					bh.addBit(bit, i+j+1);
-				}	
-			}
-		}
-		// for (int i=lext; i<2*wIn; i++) {	cerr << i << " "  << bh.getColumnHeight(i) << endl ; }
+		    vector<int> bhc = buildExactSquareColumnHeights(wIn);
+		    int l=0;    // initialization that works for the exact case
+		    int lext=0;
+		    int t=0; // trucated bits in the rightmost column
+		    guardBits=0;
+		    if(wOut!=2*wIn){
+		        l=2*wIn-wOut;
+		        compute_truncation_params(bhc,  l, lext,  t);
+		        guardBits=l-lext;
+		        REPORT(INFO, "Truncation parameters: lext=" << lext << " (g=" << guardBits << ")  t=" << t);
+		        faithfulOnly=true;
+		    } else {
+		        lext=0;
+		        faithfulOnly=false; // this is an exact squarer
+		    }
+
+		    // If you add t++; here simulation fails so we seem to touch the optimal.
+		    int k  = bhc[lext]-t; // kept bits in the rightmost column
+
+		    // use the fix-point constructor
+		    BitHeap bh(this, 2*wIn-1, lext);
+
+		    // Naive bit-level version, to get drawings for The Book
+		    // The diagonal bits
+		    for (int i=0; i<wIn; i++) {
+		        if(needThisBit(2*i, lext, k)) {
+		            string bit="x"+to_string(i)+"sq";
+		            vhdl << tab << declare(getTarget()->logicDelay(), bit) << " <= X" << of(i) << ";" <<endl;
+		            bh.addBit(bit, 2*i);
+		        }
+		    }
+		    // The triangle bits
+		    for (int i=0; i<wIn-1; i++) {
+		        for (int j=i+1; j<wIn; j++) {
+		            if(needThisBit(i+j+1, lext, k)) {
+		                string bit="x"+to_string(i)+"x"+to_string(j);
+		                vhdl << tab << declare(getTarget()->logicDelay(), bit) << " <= X" << of(i) << " and X" << of(j) << ";" <<endl;
+		                bh.addBit(bit, i+j+1);
+		            }
+		        }
+		    }
+		    // for (int i=lext; i<2*wIn; i++) {	cerr << i << " "  << bh.getColumnHeight(i) << endl ; }
 		
-		// the correction constant + round bit
-		if(wOut!=2*wIn) {
-			for (int i=lext; i<l; i++) {
-				REPORT(0, "constant bit at pos " << i);
-				bh.addConstantOneBit(i);
-			}
-		}
+		    // the correction constant + round bit
+		    if(wOut!=2*wIn) {
+		        for (int i=lext; i<l; i++) {
+		            REPORT(0, "constant bit at pos " << i);
+		            bh.addConstantOneBit(i);
+		        }
+		    }
 
 
-		if(wOut==2*wIn){ // sanity check
-			for (int i=0; i<2*wIn; i++) {
-				if(bhc[i] != (int)bh.getColumnHeight(i)) {
-					THROWERROR("failed sanity check on bit heap heights for i=" << i << " : " << bhc[i] << " vs " <<  bh.getColumnHeight(i));
-				}
-			}
-		}
+		    if(wOut==2*wIn){ // sanity check
+		        for (int i=0; i<2*wIn; i++) {
+		            if(bhc[i] != (int)bh.getColumnHeight(i)) {
+		                THROWERROR("failed sanity check on bit heap heights for i=" << i << " : " << bhc[i] << " vs " <<  bh.getColumnHeight(i));
+		            }
+		        }
+		    }
 
 		
-		bh.startCompression();
-		string bhr=bh.getSumName();
+		    bh.startCompression();
+		    string bhr=bh.getSumName();
 
 
-		if(wOut==2*wIn) {
-			vhdl << tab << "R <= " << bhr << ";" <<endl;
+		    if(wOut==2*wIn) {
+		        vhdl << tab << "R <= " << bhr << ";" <<endl;
+		    }
+		    else {
+		        vhdl << tab << "R <= " << bhr<< range(wOut+guardBits-1, guardBits) << ";" <<endl;
+		    }
+		} else if(method == "optimal"){
+		    stringstream commands, name;
+		    getTarget()->setTilingMethod("optimal");
+		    getTarget()->setCompressionMethod("optimalMinStages");
+		    getTarget()->setUseTargetOptimizations(true);
+		    getTarget()->setGenerateFigures(true);
+		    name << "Squarer" << wIn << "x" << wIn << "_wOut" << wOut;
+		    commands << "useIrregular=1 use2xk=1 useLUT=1 useKaratsuba=" << ((72<=wIn)?1:0) << " useDSP=" << (maxDSP?1:0) << " maxDSP=" << maxDSP << " squarer=1 " << "wX=" << wIn << " wY=" << wIn  << " wOut=" << wOut << " signedIO=" << signedIn;
+		    newInstance( "IntMultiplier", name.str(), commands.str(),"X=>X, Y=>X", "R=>R");
+		} else {
+		    THROWERROR("Unknown squarer design method!");
 		}
-		else {
-			vhdl << tab << "R <= " << bhr<< range(wOut+guardBits-1, guardBits) << ";" <<endl;
-		}			
 #if 0 // Old code
 		
 		if (wIn <= 17 ) {
@@ -430,12 +443,15 @@ returns: an integer pext that defines the position of the last column
 
 
 	OperatorPtr IntSquarer::parseArguments(OperatorPtr parentOp, Target *target, std::vector<std::string> &args) {
-		int wIn, wOut;
+		int wIn, wOut, maxDSP;
 		bool signedIn;
+		string method;
 		UserInterface::parseStrictlyPositiveInt(args, "wIn", &wIn);
 		UserInterface::parseInt(args, "wOut", &wOut);
 		UserInterface::parseBoolean(args, "signedIn", &signedIn);
-		return new IntSquarer(parentOp,target, wIn, signedIn, wOut);
+		UserInterface::parseString(args, "method", &method);
+		UserInterface::parseInt(args, "maxDSP", &maxDSP);
+		return new IntSquarer(parentOp,target, wIn, signedIn, wOut, method, maxDSP);
 	}
 
 
@@ -447,6 +463,8 @@ returns: an integer pext that defines the position of the last column
 											 "", // see also
 											 "wIn(int): size of input in bits;\
 						            wOut(int)=0: size of the output if you want a truncated squarer. 0 for exact (full) squarer; \
+                                    method(string)=schoolbook: squarer design method, schoolbook (standard) or optimal; \
+                                    maxDSP(int)=0: limit DSPs, 0 (standard) or allow more; \
 						            signedIn(bool)=false: inputs can be signed or unsigned (output always unsigned);", // This string will be parsed
 											 "", // no particular extra doc needed
 											 IntSquarer::parseArguments
