@@ -11,7 +11,7 @@ wget https://www.sollya.org/releases/sollya-3.0/sollya-3.0.tar.gz && tar xzf sol
 
 
 #Finally FloPoCo itself, 
-wget https://gforge.inria.fr/frs/download.php/file/35206/flopoco-2.3.2.tgz && tar xzf flopoco-2.3.2.tgz && cd flopoco-2.3.2/ && cmake . && make
+wget https://perso.citi-lab.fr/fdedinec/recherche/OldWarez/FloPoCo/flopoco-2.3.2.tgz && tar xzf flopoco-2.3.2.tgz && cd flopoco-2.3.2/ && cmake . && make
 
 # Now show the list of operators -- disabled because it doesn't return 0, hence breaks docker install
 #./flopoco  
