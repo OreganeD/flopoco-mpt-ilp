@@ -5,7 +5,12 @@ yes | sudo apt update && sudo DEBIAN_FRONTEND=noninteractive apt install -y subv
 BASEDIR=$PWD
 git clone https://github.com/fixif/WCPG.git && cd WCPG && sh autogen.sh && ./configure && make && sudo make install && cd $BASEDIR
 
-git clone https://gitlab.inria.fr/fdupont/flopoco.git
+# If you have a gitlab account replace the following lines
+wget http://www.flopoco.org/flopoco-gitmaster.tgz
+tar xzf flopoco-gitmaster.tgz
+# with
+# git clone git@gitlab.com:flopoco/flopoco.git
+
 
 cd flopoco && mkdir build && cd build && cmake .. && make &&  cd $BASEDIR
 
