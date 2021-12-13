@@ -23,16 +23,23 @@ namespace flopoco{
 		addInput ("Y", w);
 		if(flags&1) addOutput("XltY");
 		if(flags&2) addOutput("XeqY");
-		if(flags&3) addOutput("XgtY");
+		if(flags&4) addOutput("XgtY");
 
-		if(method==0) { // Plain VHDL 
+		if(method==0) { // Plain VHDL
+			// for 64-bit with wrapper: 86 LUT , 8 Carry4, Data Path Delay:         1.371ns 
+    if(flags&1) vhdl << tab << declare("XltYi") << " <= '1' when X<Y else '0';"<<endl;
+		if(flags&2) vhdl << tab << declare("XeqYi") << " <= '1' when X=Y else '0';"<<endl;
+		if(flags&4) vhdl << tab << declare("XgtYi") << " <= '1' when X>Y else '0';"<<endl;
+		} // end method=0
+		if(method==100) { // Plain VHDL, asymmetric: result is strictly identical to method=0
+			// for 64-bit with wrapper: 86 LUT , 8 Carry4, Data Path Delay:         1.371ns 
 			vhdl << tab << declare("XltYi") << " <= '1' when X<Y else '0';"<<endl;
 			vhdl << tab << declare("XeqYi") << " <= '1' when X=Y else '0';"<<endl;
-			vhdl << tab << declare("XgtYi") << " <= '1' when X>Y else '0';"<<endl;
+			vhdl << tab << declare("XgtYi") << " <= not (XeqYi or XltYi);"<<endl;
 		} // end method=0
-		vhdl << tab << "XltY <= XltYi;"<<endl;
-		vhdl << tab << "XeqY <= XeqYi;"<<endl;
-		vhdl << tab << "XgtY <= XgtYi;"<<endl;
+    if(flags&1) 		vhdl << tab << "XltY <= XltYi;"<<endl;
+    if(flags&2) 		vhdl << tab << "XeqY <= XeqYi;"<<endl;
+    if(flags&4) 		vhdl << tab << "XgtY <= XgtYi;"<<endl;
 	}
 	
 
@@ -48,7 +55,7 @@ namespace flopoco{
 		bool XgtY = (svX>svY);
 		if(flags&1) tc->addExpectedOutput("XltY", XltY);
 		if(flags&2) tc->addExpectedOutput("XeqY", XeqY);
-		if(flags&3) tc->addExpectedOutput("XgtY", XgtY);
+		if(flags&4) tc->addExpectedOutput("XgtY", XgtY);
 	}
 
 
