@@ -85,7 +85,7 @@ namespace flopoco{
 		vhdl << tab << declare("excExpFracY",2+wE+wF) << " <= Y"<<range(wE+wF+2, wE+wF+1) << " & Y"<<range(wE+wF-1, 0)<<";"<<endl;
 
 
-
+#if 0 // following IntComparator experiments, this is bad style: 329 LUT, 11.709 delay overall
 		vhdl << tab << declare("addCmpOp1",wE+wF+3) << " <= '0'  & excExpFracX;"<<endl;
 		vhdl << tab << declare("addCmpOp2",wE+wF+3) << " <= '1'  & not excExpFracY;"<<endl;
 		{Signal* i=getSignalByName("addCmpOp1");
@@ -95,7 +95,10 @@ namespace flopoco{
 		newInstance("IntAdder", "cmpAdder", join("wIn=", (wE+wF+3)), "X=>addCmpOp1,Y=>addCmpOp2,Cin=>addCmpCin", "R=>cmpRes");
 
 		vhdl<< tab << declare(getTarget()->fanoutDelay(2*(wE+wF+3) + 2*wE), "swap")  << " <= cmpRes"<<of(wE+wF+2)<<";"<<endl;
+#else // TODO an instance of IntComparator, when it self-pipelines: 313 LUT, 11.735ns
+		vhdl<< tab << declare(getTarget()->ltComparatorDelay(wE+wF+3), "swap")  << " <= '1' when excExpFracX < excExpFracY else '0';"<<endl;
 
+#endif
 		addComment("exponent difference");
 		vhdl<< tab << declare(getTarget()->adderDelay(wE+1),
 													"eXmeY",wE)	<< " <= (X"<<range(wE+wF-1,wF)<<") - (Y"<<range(wE+wF-1,wF)<<");"<<endl;
