@@ -81,7 +81,7 @@ namespace flopoco{
   	vhdl << tab << declare(target->adderDelay(wE+1), "expXmExpY",wE+1) << " <= ('0' & X" << range(wE+wF-1, wF) << ") - ('0'  & Y" << range(wE+wF-1, wF) << ") " << ";" << endl;
   	vhdl << tab << declare(target->adderDelay(wE+1), "expYmExpX",wE+1) << " <= ('0' & Y" << range(wE+wF-1, wF) << ") - ('0'  & X" << range(wE+wF-1, wF) << ") " << ";" << endl;
 
-  	vhdl << tab << declare(target->adderDelay(wE+wF), "swap") << " <= '0' when expFracX >= expFracY else '1';" << endl;
+  	vhdl << tab << declare(target->ltComparatorDelay(wE+wF), "swap") << " <= '0' when expFracX >= expFracY else '1';" << endl;
 
   	string pmY="Y";
 		if ( sub ) {
