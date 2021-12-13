@@ -25,18 +25,43 @@ namespace flopoco{
 		if(flags&2) addOutput("XeqY");
 		if(flags&4) addOutput("XgtY");
 
-		if(method==0) { // Plain VHDL
-			// for 64-bit with wrapper: 86 LUT , 8 Carry4, Data Path Delay:         1.371ns 
+
+		if(method==1) { // Plain VHDL, asymmetric: lower area, larger delay
+			// w=64 flags=7 Wrapper: 55 LUT , 8 Carry4, Data Path Delay:         2.003ns
+			if (flags!=7){
+				REPORT(0, "method=1 only makes sense for flags=7, reverting to method=0");
+				method=0;
+			}
+			else{
+				vhdl << tab << declare("XltYi") << " <= '1' when X<Y else '0';"<<endl;
+				vhdl << tab << declare("XeqYi") << " <= '1' when X=Y else '0';"<<endl;
+				vhdl << tab << declare("XgtYi") << " <= not (XeqYi or XltYi);"<<endl;
+			}
+		} // end method=1
+
+
+		if(method==0) { // Plain VHDL 
+			// w=64 flags=7 Wrapper: 86 LUT , 8 Carry4, Data Path Delay:         1.371ns 
+			// w=64 flags=1 Wrapper: 32 LUT , 8 Carry4, Data Path Delay:         1.354ns 
+			// w=64 flags=2 Wrapper: 22 LUT , 8 Carry4, Data Path Delay:         1.375ns
+			// w=64 flags=3 Wrapper: 54 LUT , 8 Carry4, Data Path Delay:         1.361ns
+			// All this is very consistent. eq can pack 3 bits/LUT, lt and gt pack 2 bits/LUT
     if(flags&1) vhdl << tab << declare("XltYi") << " <= '1' when X<Y else '0';"<<endl;
 		if(flags&2) vhdl << tab << declare("XeqYi") << " <= '1' when X=Y else '0';"<<endl;
 		if(flags&4) vhdl << tab << declare("XgtYi") << " <= '1' when X>Y else '0';"<<endl;
 		} // end method=0
-		if(method==100) { // Plain VHDL, asymmetric: result is strictly identical to method=0
-			// for 64-bit with wrapper: 86 LUT , 8 Carry4, Data Path Delay:         1.371ns 
-			vhdl << tab << declare("XltYi") << " <= '1' when X<Y else '0';"<<endl;
-			vhdl << tab << declare("XeqYi") << " <= '1' when X=Y else '0';"<<endl;
-			vhdl << tab << declare("XgtYi") << " <= not (XeqYi or XltYi);"<<endl;
-		} // end method=0
+
+#if 0
+		if(method==2) { // Here should come a mix of ternary and binary tree
+			// This is a Dadda-like algorithm. We aim at the depth of a ternary tree but do as much of it as  
+			int level=0;
+			bool done=false;
+			while(not done) {
+				
+			}
+		}
+#endif
+		// Copying intermediate signals to output
     if(flags&1) 		vhdl << tab << "XltY <= XltYi;"<<endl;
     if(flags&2) 		vhdl << tab << "XeqY <= XeqYi;"<<endl;
     if(flags&4) 		vhdl << tab << "XgtY <= XgtYi;"<<endl;

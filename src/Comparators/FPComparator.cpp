@@ -53,21 +53,29 @@ namespace flopoco{
 		vhdl << tab << declare("positiveY") << " <= not signY ;"<<endl;
 		
 		addComment("expfrac comparisons ");
-		vhdl << tab << declare("addltOp1",wE+wF+1) << " <= '0'  & ExpFracX;"<<endl;
-		vhdl << tab << declare("addltOp2",wE+wF+1) << " <= '1'  & not ExpFracY;"<<endl;
-		newInstance("IntAdder", "addlt", join("wIn=", (wE+wF+1)), "X=>addltOp1,Y=>addltOp2", "R=>addltR", "Cin=>'1'");
-
-		addComment("result of X-Y negative iff X<Y");
-		vhdl<< tab << declare("ExpFracXltExpFracY")  << " <= addltR"<<of(wE+wF)<<";"<<endl;
-		vhdl << tab << declare("addgtOp1",wE+wF+1) << " <= '0'  & ExpFracY;"<<endl;
-		vhdl << tab << declare("addgtOp2",wE+wF+1) << " <= '1'  & not ExpFracX;"<<endl;
-		newInstance("IntAdder", "addgt", join("wIn=", (wE+wF+1)), "X=>addgtOp1,Y=>addgtOp2", "R=>addgtR", "Cin=>'1'");
-
-		addComment("result of Y-X negative iff X>Y ");
-		vhdl<< tab << declare("ExpFracXgtExpFracY")  << " <= addgtR"<<of(wE+wF)<<";"<<endl;
 
 		addComment("Let us trust the synthesis tools on this reduction");
 		vhdl<< tab << declare(getTarget()->adderDelay(wE+wF), "ExpFracXeqExpFracY")  << " <= '1' when ExpFracX = ExpFracY else '0';"<<endl;
+
+#if 0 // removed after experiments with intcomparator (was 157sl, 2.14ns for DP)
+		vhdl << tab << declare("addltOp1",wE+wF+1) << " <= '0'  & ExpFracX;"<<endl;
+		vhdl << tab << declare("addltOp2",wE+wF+1) << " <= '1'  & not ExpFracY;"<<endl;
+		newInstance("IntAdder", "addlt", join("wIn=", (wE+wF+1)), "X=>addltOp1,Y=>addltOp2", "R=>addltR", "Cin=>'1'");
+		addComment("result of X-Y negative iff X<Y");
+		vhdl<< tab << declare("ExpFracXltExpFracY")  << " <= addltR"<<of(wE+wF)<<";"<<endl;
+
+		vhdl << tab << declare("addgtOp1",wE+wF+1) << " <= '0'  & ExpFracY;"<<endl;
+		vhdl << tab << declare("addgtOp2",wE+wF+1) << " <= '1'  & not ExpFracX;"<<endl;
+		newInstance("IntAdder", "addgt", join("wIn=", (wE+wF+1)), "X=>addgtOp1,Y=>addgtOp2", "R=>addgtR", "Cin=>'1'");
+		addComment("result of Y-X negative iff X>Y ");
+		vhdl<< tab << declare("ExpFracXgtExpFracY")  << " <= addgtR"<<of(wE+wF)<<";"<<endl;
+#else// added after experiments with intcomparator  (was 66sl, 2.31ns for DP)
+		addComment("Let us also trust the synthesis tools on this one");
+		vhdl<< tab << declare(getTarget()->adderDelay(wE+wF), "ExpFracXltExpFracY")  << " <= '1' when ExpFracX < ExpFracY else '0';"<<endl;
+		// since there is more logic behind, it is for free to compute gt out of lt and eq
+		// if I copypaste the gt line, it adds 32 slices for DP
+		vhdl<< tab << declare("ExpFracXgtExpFracY")  << " <= not(ExpFracXltExpFracY or ExpFracXeqExpFracY);"<<endl;
+#endif
 
 		addComment("-- and now the logic");
 		vhdl<< tab << declare("sameSign")  << " <= not (signX xor signY) ;" << endl;
