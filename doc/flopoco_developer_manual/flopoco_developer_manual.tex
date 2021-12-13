@@ -237,7 +237,7 @@ Beware, the order is important for the operator scheduling to work properly, and
 \subsection{Sub-components: shared instances}
 
 A component may also be shared (i.e. the same component is reused many times).
-Simple examples are the tables in FPConstDiv, or in \texttt{IntConstDiv}.
+Simple examples are the tables in \texttt{FPConstDiv}, or in \texttt{IntConstDiv}.
 
 The preferred method to use in such case is the \emph{newSharedInstance()} method of Operator, as in the following:
 \begin{verbatim}
@@ -253,7 +253,7 @@ for (....) {
 }
 \end{verbatim}
 
-See \texttt{IntConstDiv} of \texttt{FPDiv} for detailed examples.
+See \texttt{IntConstDiv} or \texttt{FPDiv} for detailed examples.
 
 \subsection{Using the Table object}
 Small tables of precomputed values are very powerful components, especially when targetting FPGAs.
