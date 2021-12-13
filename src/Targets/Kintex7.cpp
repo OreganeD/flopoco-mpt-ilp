@@ -68,8 +68,11 @@ namespace flopoco{
 
 	
 	double Kintex7::eqComparatorDelay(int size){
-		// TODO Refine
-		return addRoutingDelay( lut5Delay_ + double((size-1)/(lutInputs_/2)+1)/4*carry4Delay_); 
+		return adderDelay((size+1)/3); 
+	}
+
+	double Kintex7::ltComparatorDelay(int size){
+		return adderDelay((size+1)/2); 
 	}
 	
 	double Kintex7::eqConstComparatorDelay(int size){

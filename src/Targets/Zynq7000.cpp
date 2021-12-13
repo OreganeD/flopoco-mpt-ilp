@@ -64,8 +64,13 @@ namespace flopoco{
 
 	
 	double Zynq7000::eqComparatorDelay(int size){
-		// TODO Refine
-		return addRoutingDelay( lutDelay_ + double((size-1)/(lutInputs_/2)+1)/4*carry4Delay_); 
+		// Experiments using IntComparator
+		return adderDelay(ceil(  ((double)size) / 3.0)); 
+	}
+	
+	double Zynq7000::ltComparatorDelay(int size){
+		// Experiments using IntComparator
+		return adderDelay(ceil(  ((double)size) / 2.0)); 
 	}
 	
 	double Zynq7000::eqConstComparatorDelay(int size){

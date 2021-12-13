@@ -235,6 +235,25 @@ namespace flopoco{
 		 */
 		virtual double adder3Delay(int n) =0;
 
+		/** Function which returns the delay for an n bit equality comparison
+		* @param n the number of bits of the comparison
+		* @return the delay of the comparisson between two vectors
+		*/
+		virtual double eqComparatorDelay(int n) =0;
+
+		/** Function which returns the delay for an n bit "strictly greater" comparison
+		* @param n the number of bits of the comparison
+		* @return the delay of the comparisson between two vectors
+		*/
+		virtual double ltComparatorDelay(int n) =0;
+
+		/** Function which returns the delay for an n bit equality comparison with a
+		* constant
+		* @param n the number of bits of the comparison
+		* @return the delay of the comparisson between a vector and a constant
+		*/
+		virtual double eqConstComparatorDelay(int n) =0;
+
 
 		// From there on:  Do not use if you can use one of the previous.
 		// We would like to deprecate this level of detail.
@@ -256,21 +275,6 @@ namespace flopoco{
 		 * @return the carry propagate delay
 		 */
 		virtual double carryPropagateDelay() =0;
-
-
-		/** Function which returns the delay for an n bit equality comparison
-		* @param n the number of bits of the comparison
-		* @return the delay of the comparisson between two vectors
-		*/
-		virtual double eqComparatorDelay(int n) =0;
-
-		/** Function which returns the delay for an n bit equality comparison with a
-		* constant
-		* @param n the number of bits of the comparison
-		* @return the delay of the comparisson between a vector and a constant
-		*/
-		virtual double eqConstComparatorDelay(int n) =0;
-
 
 
 		/** Function which returns the local wire delay (local routing)

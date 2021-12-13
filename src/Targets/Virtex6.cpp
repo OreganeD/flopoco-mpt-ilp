@@ -132,11 +132,14 @@ namespace flopoco{
 
 	double Virtex6::eqComparatorDelay(int size){
 		double delay;
-#if 0
-		delay = lut2_ + muxcyStoO_ + double((size-1)/(lutInputs_/2)+1)*muxcyCINtoO_;
-#else
-		delay= adderDelay(size);
-#endif
+		delay= adderDelay((size+1)/2);
+		TARGETREPORT("eqComparatorDelay(" << size << ") = " << delay*1e9 << " ns.");
+		return delay;
+	}
+
+	double Virtex6::ltComparatorDelay(int size){
+		double delay;
+		delay= adderDelay((size+1)/2);
 		TARGETREPORT("eqComparatorDelay(" << size << ") = " << delay*1e9 << " ns.");
 		return delay;
 	}

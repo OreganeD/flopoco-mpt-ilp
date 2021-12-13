@@ -82,9 +82,13 @@ namespace flopoco{
 
 
 	double VirtexUltrascalePlus::eqComparatorDelay(int size){
-		// TODO Refine
-		return addRoutingDelay( lut6Delay_ + double((size-1)/(lutInputs_/2)+1)/8*carry8Delay_);
+		return adderDelay((size+1)/3);
 	}
+	
+	double VirtexUltrascalePlus::ltComparatorDelay(int size){
+		return adderDelay((size+1)/2);
+	}
+	
 
 	double VirtexUltrascalePlus::eqConstComparatorDelay(int size){
 		// TODO refine

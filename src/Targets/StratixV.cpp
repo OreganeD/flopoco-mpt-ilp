@@ -134,7 +134,10 @@ namespace flopoco{
 	};
 	
 	double StratixV::eqComparatorDelay(int size){
-		return adderDelay(size) + elemWireDelay_ + lut2_; // TODO: check correctness
+		return adderDelay((size+1)/2); // TODO: check correctness
+	};
+	double StratixV::ltComparatorDelay(int size){
+		return adderDelay((size+1)/2); // TODO: check correctness
 	};
 	
 	double StratixV::eqConstComparatorDelay(int size){

@@ -48,6 +48,7 @@ namespace flopoco{
 		double adderDelay(int size, bool addRoutingDelay=true);
 
 		double eqComparatorDelay(int size);
+		double ltComparatorDelay(int size);
 		double eqConstComparatorDelay(int size);
 
 		double lutDelay();

@@ -55,7 +55,7 @@ namespace flopoco{
 		addComment("expfrac comparisons ");
 
 		addComment("Let us trust the synthesis tools on this reduction");
-		vhdl<< tab << declare(getTarget()->adderDelay(wE+wF), "ExpFracXeqExpFracY")  << " <= '1' when ExpFracX = ExpFracY else '0';"<<endl;
+		vhdl<< tab << declare(getTarget()->eqComparatorDelay(wE+wF), "ExpFracXeqExpFracY")  << " <= '1' when ExpFracX = ExpFracY else '0';"<<endl;
 
 #if 0 // removed after experiments with intcomparator (was 157sl, 2.14ns for DP)
 		vhdl << tab << declare("addltOp1",wE+wF+1) << " <= '0'  & ExpFracX;"<<endl;
@@ -71,7 +71,7 @@ namespace flopoco{
 		vhdl<< tab << declare("ExpFracXgtExpFracY")  << " <= addgtR"<<of(wE+wF)<<";"<<endl;
 #else// added after experiments with intcomparator  (was 66sl, 2.31ns for DP)
 		addComment("Let us also trust the synthesis tools on this one");
-		vhdl<< tab << declare(getTarget()->adderDelay(wE+wF), "ExpFracXltExpFracY")  << " <= '1' when ExpFracX < ExpFracY else '0';"<<endl;
+		vhdl<< tab << declare(getTarget()->ltComparatorDelay(wE+wF), "ExpFracXltExpFracY")  << " <= '1' when ExpFracX < ExpFracY else '0';"<<endl;
 		// since there is more logic behind, it is for free to compute gt out of lt and eq
 		// if I copypaste the gt line, it adds 32 slices for DP
 		vhdl<< tab << declare("ExpFracXgtExpFracY")  << " <= not(ExpFracXltExpFracY or ExpFracXeqExpFracY);"<<endl;
