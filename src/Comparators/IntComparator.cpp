@@ -13,7 +13,9 @@ namespace flopoco{
 	// All this is very consistent. eq can pack 3 bits/LUT, lt and gt pack 2 bits/LUT
 	// Using  method=1, where gt is computed out of lt and eq asymmetric: lower area, larger delay
 	// w=64 flags=7 Wrapper: 55 LUT , 8 Carry4, Data Path Delay:         2.003ns
-	
+	// Using method=2 (binary tree, not exploiting fast carry) :  69 LUTs, 3.42 ns
+	// We essentially need 2*63 LUT4 that can be packed as 64 LUT6.
+	// No miracle here
 
   IntComparator::IntComparator(OperatorPtr parentOp, Target* target, int w, int flags, int method) :
 		Operator(parentOp, target), w(w), flags(flags), method(method) {
@@ -38,6 +40,14 @@ namespace flopoco{
 			}
 		}
 
+		if(method==1 && flags!=7){
+			REPORT(0, "method=1 only makes sense for flags=7, reverting to method=0");
+			method=0;
+		}
+		if(method==2 && flags!=7){
+			REPORT(0, "Somebody has been lazy, method=2 only implemented for flags=7: this is what you shall get.");
+			flags=7;
+		}
 		addInput ("X", w);
 		addInput ("Y", w);
 		if(flags&1) addOutput("XltY");
@@ -45,10 +55,6 @@ namespace flopoco{
 		if(flags&4) addOutput("XgtY");
 
 
-		if(method==1 && flags!=7){
-			REPORT(0, "method=1 only makes sense for flags=7, reverting to method=0");
-			method=0;
-		}
 
 		if (method==0 || method ==1) {
 			// determine if we have to split the input to reach the target frequency
@@ -109,7 +115,6 @@ namespace flopoco{
 			}
 			
 #endif
-			// logic is: if both > and < are required then compute 
 			if(chunkSizes.size() == 1)		{
 				if(flags&1) vhdl << tab << declare(getTarget()->ltComparatorDelay(w), "XltYi") << " <= '1' when X<Y else '0';"<<endl;
 				if(flags&2) vhdl << tab << declare(getTarget()->eqComparatorDelay(w), "XeqYi") << " <= '1' when X=Y else '0';"<<endl;
@@ -185,16 +190,35 @@ namespace flopoco{
 
 			}
 		}		
-#if 0
-		if(method==2) { // Here should come a mix of ternary and binary tree
-			// This is a Dadda-like algorithm. We aim at the depth of a ternary tree but do as much of it as  
-			int level=0;
-			bool done=false;
-			while(not done) {
-				
+		if(method==2) {
+			// plain binary tree, just to check that The Book is correct
+			// Useful for ASIC some day, probably not for FPGA
+
+			// initialize the leaves
+			for(int i=0; i<w; i++) {
+				vhdl << tab << declare("C_" + to_string(i) + "_" + to_string(i), 2)
+						 << " <= " << "X" << of(i) << " & "  <<  "Y" << of(i) <<  ";"<<endl;
 			}
+			int level=0;
+			int stride=1; // invariant stride=2^level
+			string Cd; // it needs to exit the loop
+			while (stride<w) { // need to add one more level
+				level+=1;
+				stride *= 2;
+				for(int i=0; i<w; i+=stride) {
+					Cd = "C_" + to_string(stride-1+i) + "_" + to_string(i);
+					string Cl = "C_" + to_string(stride-1+i)+"_"+to_string(stride/2+i);
+					string Cr = "C_" + to_string(stride/2-1 + i)+"_"+to_string(i);
+					vhdl << tab << declare(getTarget()->logicDelay(), Cd,2) << " <= " << endl;
+					vhdl << tab << tab << "      \"01\"  when " << Cl << "=\"01\" or (("<< Cl << "=\"00\" or "<< Cl << "=\"11\") and (" << Cr << "=\"01\" ))" << endl;
+					vhdl << tab << tab << "else  \"10\"  when " << Cl << "=\"10\" or (("<< Cl << "=\"00\" or "<< Cl << "=\"11\") and (" << Cr << "=\"10\" ))" << endl;
+					vhdl << tab << tab << "else  \"00\" ;" << endl; 
+				}
+			}
+			vhdl << tab << declare("XltYi") << " <= '1' when " << Cd << "=\"01\" else '0' ;" << endl;
+			vhdl << tab << declare("XgtYi") << " <= '1' when " << Cd << "=\"10\" else '0' ;" << endl;
+			vhdl << tab << declare("XeqYi") << " <= '1' when " << Cd << "=\"00\" or " << Cd << "=\"11\"  else '0' ;" << endl;
 		}
-#endif
 		// Copying intermediate signals to output
     if(flags&1) 		vhdl << tab << "XltY <= XltYi;"<<endl;
     if(flags&2) 		vhdl << tab << "XeqY <= XeqYi;"<<endl;
