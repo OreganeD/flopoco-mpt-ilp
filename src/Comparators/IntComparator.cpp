@@ -4,6 +4,16 @@
 using namespace std;
 namespace flopoco{
 
+	// some Kintex7 experiments
+	// using method=0
+	//  w=64 flags=7 Wrapper: 86 LUT , 8 Carry4, Data Path Delay:         1.371ns 
+	//  w=64 flags=1 Wrapper: 32 LUT , 8 Carry4, Data Path Delay:         1.354ns 
+	//  w=64 flags=2 Wrapper: 22 LUT , 8 Carry4, Data Path Delay:         1.375ns
+	//  w=64 flags=3 Wrapper: 54 LUT , 8 Carry4, Data Path Delay:         1.361ns
+	// All this is very consistent. eq can pack 3 bits/LUT, lt and gt pack 2 bits/LUT
+	// Using  method=1, where gt is computed out of lt and eq asymmetric: lower area, larger delay
+	// w=64 flags=7 Wrapper: 55 LUT , 8 Carry4, Data Path Delay:         2.003ns
+	
 
   IntComparator::IntComparator(OperatorPtr parentOp, Target* target, int w, int flags, int method) :
 		Operator(parentOp, target), w(w), flags(flags), method(method) {
@@ -27,40 +37,147 @@ namespace flopoco{
 				method=0;
 			}
 		}
+
 		addInput ("X", w);
 		addInput ("Y", w);
 		if(flags&1) addOutput("XltY");
 		if(flags&2) addOutput("XeqY");
 		if(flags&4) addOutput("XgtY");
 
-		// determine chunk size if any
-		
-		
-		if(method==1) { // Plain VHDL, asymmetric: lower area, larger delay
-			// w=64 flags=7 Wrapper: 55 LUT , 8 Carry4, Data Path Delay:         2.003ns
-			if (flags!=7){
-				REPORT(0, "method=1 only makes sense for flags=7, reverting to method=0");
-				method=0;
+
+		if(method==1 && flags!=7){
+			REPORT(0, "method=1 only makes sense for flags=7, reverting to method=0");
+			method=0;
+		}
+
+		if (method==0 || method ==1) {
+			// determine if we have to split the input to reach the target frequency
+			
+			double targetPeriod = 1.0/getTarget()->frequency() - getTarget()->ffDelay();
+			// What is the maximum lexicographic time of our inputs?
+			int maxCycle;
+			double maxCP;
+			getIOMaxLexicographicTime(maxCycle, maxCP);
+			double totalPeriod;
+			if(flags==2){ // equality test only
+				totalPeriod = maxCP + getTarget()->eqComparatorDelay(w);
 			}
-			else{
-				vhdl << tab << declare("XltYi") << " <= '1' when X<Y else '0';"<<endl;
-				vhdl << tab << declare("XeqYi") << " <= '1' when X=Y else '0';"<<endl;
-				vhdl << tab << declare("XgtYi") << " <= not (XeqYi or XltYi);"<<endl;
+			else { // at least one lt or gt
+				totalPeriod = maxCP + getTarget()->ltComparatorDelay(w);
 			}
-		} // end method=1
+			
+			REPORT(DETAILED, "maxCycle=" << maxCycle <<  "  maxCP=" << maxCP <<  "  totalPeriod=" << totalPeriod <<  "  targetPeriod=" << targetPeriod );
+#if 0
+			
+			int chunks=0; // optimistic case
+			vector<int> chunkSizes;		
+			int coveredSize=0;	
+			while(coveredSize<w) {
+				chunks++;
+				int chunkSize=1;
+				while (maxCP + (flags==2?getTarget()->eqComparatorDelay(chunkSize):getTarget()->ltComparatorDelay(chunkSize)) < targetPeriod)
+					chunkSize++;
+				chunkSize--;
+				if(coveredSize+chunkSize>w) {
+					chunkSize = w-coveredSize;
+				}
+				coveredSize += chunkSize;
+				chunkSizes.push_back(chunkSize);
+				maxCP=0; // after the first chunk
+			}
+			REPORT(DETAILED, "Found " << chunks << " chunks");
+			for (int i=0; i<chunks; i++) {
+				REPORT(DETAILED, "   chunk " <<i << " : " << chunkSizes[i] << " bit");
+			}
+#else
+			int chunkSize=1;
+			while (maxCP + (flags==2?getTarget()->eqComparatorDelay(chunkSize):getTarget()->ltComparatorDelay(chunkSize)) < targetPeriod)
+				chunkSize++;
+			chunkSize--;
+			REPORT(DETAILED, "The first level must be split in chunks of " << chunkSize << " bits");
 
+			int coveredSize=0;	
+			vector<int> chunkSizes;		
+			while(coveredSize<w) {
+				coveredSize += chunkSize;
+				if(coveredSize>w) {
+					chunkSizes.push_back(w-coveredSize+chunkSize);
+				}
+				else {
+					chunkSizes.push_back(chunkSize);
+				}
+			}
+			
+#endif
+			// logic is: if both > and < are required then compute 
+			if(chunkSizes.size() == 1)		{
+				if(flags&1) vhdl << tab << declare(getTarget()->ltComparatorDelay(w), "XltYi") << " <= '1' when X<Y else '0';"<<endl;
+				if(flags&2) vhdl << tab << declare(getTarget()->eqComparatorDelay(w), "XeqYi") << " <= '1' when X=Y else '0';"<<endl;
+				if(flags&4) {
+					if((method==0) || (0==flags&1)) { // a third comparator 
+						vhdl << tab << declare(getTarget()->ltComparatorDelay(w), "XgtYi") << " <= '1' when X>Y else '0';"<<endl;
+					}
+					else{ // compute gt out of lt and eq
+						vhdl << tab << declare(getTarget()->logicDelay(), "XgtYi") << " <= not (XeqYi or XltYi);"<<endl;
+					}
+				}
+			}
+			else {
+				addComment("For this frequency we need to split the comparison into two levels");
+				int l=0;
+				for(int i=0; i<chunkSizes.size(); i++) {
+					string chunkX = "X" + range(l+chunkSizes[i]-1, l);
+					string chunkY = "Y" + range(l+chunkSizes[i]-1, l);
+					l += chunkSizes[i];
+					// we will need the = of chunks in any case
+					vhdl << tab << declare(getTarget()->eqComparatorDelay(chunkSizes[i]), join("XeqYi", i)) <<
+							" <= '1' when " << chunkX << "=" << chunkY << " else '0';"<<endl;
 
-		if(method==0) { // Plain VHDL 
-			// w=64 flags=7 Wrapper: 86 LUT , 8 Carry4, Data Path Delay:         1.371ns 
-			// w=64 flags=1 Wrapper: 32 LUT , 8 Carry4, Data Path Delay:         1.354ns 
-			// w=64 flags=2 Wrapper: 22 LUT , 8 Carry4, Data Path Delay:         1.375ns
-			// w=64 flags=3 Wrapper: 54 LUT , 8 Carry4, Data Path Delay:         1.361ns
-			// All this is very consistent. eq can pack 3 bits/LUT, lt and gt pack 2 bits/LUT
-    if(flags&1) vhdl << tab << declare("XltYi") << " <= '1' when X<Y else '0';"<<endl;
-		if(flags&2) vhdl << tab << declare("XeqYi") << " <= '1' when X=Y else '0';"<<endl;
-		if(flags&4) vhdl << tab << declare("XgtYi") << " <= '1' when X>Y else '0';"<<endl;
-		} // end method=0
+					if(flags&1) {
+						vhdl << tab << declare(getTarget()->ltComparatorDelay(chunkSizes[i]), join("XltYi",i)) <<
+							" <= '1' when " << chunkX << "<" << chunkY << " else '0';"<<endl;
+						// Now build two vectors XX and YY such that comparing XX and YY will be equivalent to comparing X and Y
+						//     01 when lt       00 when eq       10 when not (lt or eq)
+						vhdl << tab << declare(join("XX", i)) << " <= not (" << join("XltYi",i) << " or " << join("XeqYi",i) << ");"<<endl;
+						vhdl << tab << declare(join("YY", i)) << " <= " << join("XltYi",i) << ";"<<endl;
+					}
+					if(flags&4 && not (flags&1)) { // cases when we need to build the  XgtYi of chunks
+						vhdl << tab << declare(getTarget()->ltComparatorDelay(chunkSizes[i]), join("XgtYi", i))<< 
+							" <= '1' when " << chunkX << ">" << chunkY << " else '0';" << endl;
+						// Now build two vectors XX and YY such that comparing XX and YY will be equivalent to comparing X and Y
+						//     01 when not (gt or eq)       00 when eq       10 when gt 
+						vhdl << tab << declare(join("XX", i)) << " <= " << join("XgtYi",i) << ";"<<endl;
+						vhdl << tab << declare(join("YY", i)) << " <= not (" << join("XgtYi",i) << " or " << join("XeqYi",i) << ");"<<endl;
+					}
+				}
 
+				addComment("XXX and YYX are two synthetic numbers such that comparing XX and YY is be equivalent to comparing X and Y");
+				vhdl << tab << declare("XXX", chunkSizes.size()) << " <= " ;
+				for(int i=chunkSizes.size()-1; i>=0; i--) {
+					vhdl << join("XX",i) << (i==0?"":" & ");
+				}
+				vhdl <<";"<<endl;
+				vhdl << tab << declare("YYY", chunkSizes.size()) << " <= " ;
+				for(int i=chunkSizes.size()-1; i>=0; i--) {
+					vhdl << join("YY",i) << (i==0?"":" & ");
+				}
+				vhdl <<";"<<endl;
+				
+				if(flags&1)
+					vhdl << tab << declare(getTarget()->ltComparatorDelay(chunkSizes.size()), "XltYi") << " <= '1' when XXX<YYY else '0';"<<endl;
+				if(flags&2)
+					vhdl << tab << declare(getTarget()->eqComparatorDelay(chunkSizes.size()), "XeqYi") << " <= '1' when XXX=YYY else '0';"<<endl;
+				if(flags&4) {
+					if((method==0) || (0==flags&1)) { // a third comparator 
+						vhdl << tab << declare("XgtYi") << " <= '1' when XXX>YYY else '0';"<<endl;
+					}
+					else{ // compute gt out of lt and eq
+						vhdl << tab << declare(getTarget()->logicDelay(), "XgtYi") << " <= not (XeqYi or XltYi);"<<endl;
+					}
+				}
+
+			}
+		}		
 #if 0
 		if(method==2) { // Here should come a mix of ternary and binary tree
 			// This is a Dadda-like algorithm. We aim at the depth of a ternary tree but do as much of it as  
@@ -104,7 +221,7 @@ namespace flopoco{
 		int w, flags, method;
 		UserInterface::parseStrictlyPositiveInt(args, "w", &w); 
 		UserInterface::parseStrictlyPositiveInt(args, "flags", &flags);
-		UserInterface::parsePositiveInt(args, "method", &method);
+		UserInterface::parseInt(args, "method", &method);
 		return new IntComparator(parentOp, target, w, flags, method);
 	}
 
@@ -119,10 +236,13 @@ namespace flopoco{
 		if(index==-1) 
 		{ // The unit tests
 
-			for(int w=5; w<53; w+=3) {
-				paramList.push_back(make_pair("w",to_string(w)));
-				testStateList.push_back(paramList);
-				paramList.clear();
+			for(int w=4; w<400; w+=100) { // 5 is an exhaustive test. The others test the decomposition in chunks
+				for(int flags=1; flags<8; flags++) { // 5 is an exhaustive test. The others test the decomposition in chunks
+					paramList.push_back(make_pair("w",to_string(w)));
+					paramList.push_back(make_pair("flags",to_string(flags)));
+					testStateList.push_back(paramList);
+					paramList.clear();
+				}
 			}
 		}
 		else     
