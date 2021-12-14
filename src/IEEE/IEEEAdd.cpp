@@ -300,13 +300,13 @@ namespace flopoco{
 		addComment("Final rounding, with the mantissa overflowing in the exponent  ", tab);
 		
 		vhdl << tab << declare(target->logicDelay(3), "roundUpBit")<<" <= '1' when roundBit='1' and (stickyBit='1' or (stickyBit='0' and lsb='1')) else '0';"<<endl;
-		vhdl << tab << declare("zeroadd", wE+wF) << " <=  " << zg(wE+wF) << ";" << endl;
 		newInstance(
 				"IntAdder", 
 				"roundingAdder", 
 				"wIn=" + to_string(wE+wF), 
-				"X=>expSigPreRound,Cin=>roundUpBit,Y=>zeroadd",
-				"R=>expSigR"
+				"X=>expSigPreRound,Cin=>roundUpBit",
+				"R=>expSigR",
+				"Y=>"+zg(wE+wF) // constant input
 			);
 
 		addComment("Final packing", tab);

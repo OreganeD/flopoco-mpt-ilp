@@ -250,10 +250,7 @@ with vrs -i
 				 <<"<= '1' when (rnd='1' and stk='1') or (rnd='1' and stk='0' and lsb='1')" << endl
 				 << "  else '0';"<<endl;
 
-		vhdl << tab  << declare("zeros", wE+2+wF+1) << "  <= " <<  zg(wE+2+wF+1,0)<<";"<<endl;
-		
-		newInstance("IntAdder", "roundingAdder", join("wIn=",wE+2+wF+1), "X=>expFrac,Y=>zeros,Cin=>needToRound","R=>RoundedExpFrac");
-		
+		newInstance("IntAdder", "roundingAdder", join("wIn=",wE+2+wF+1), "X=>expFrac,Cin=>needToRound","R=>RoundedExpFrac", "Y=>"+zg(wE+2+wF+1,0));
 		addComment("possible update to exception bits");
 		vhdl << tab << declare("upExc",2)<<" <= RoundedExpFrac"<<range(wE+wF+2,wE+wF+1)<<";"<<endl;
 		vhdl << tab << declare("fracR",wF)<<" <= RoundedExpFrac"<<range(wF,1)<<";"<<endl;

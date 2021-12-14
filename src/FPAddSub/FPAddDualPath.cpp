@@ -410,13 +410,13 @@ With combined shifter sticky (despite a few useless gates)
 		REPORT(DETAILED, "Building final round adder");
 		// finalRoundAdd will add the mantissa concatenated with exponent, two bits reserved for possible under/overflow
 
-		vhdl<<tab<< declare("zeroInput",2+wE+wF) << " <= " << zg(2+wE+wF)<< ";" <<endl;
-		
 		newInstance("IntAdder",
 								getName()+"_finalRoundAdd",
 								join("wIn=", wE + wF + 2),
-								"X=>resultBeforeRound,Y=>zeroInput,Cin=>round", "R=>resultRounded");
-
+								"X=>resultBeforeRound,Cin=>round",
+								"R=>resultRounded",
+								"Y=>"+zg(2+wE+wF)  // constant input
+								);
 		// ostringstream zero;
 		// zero<<"("<<1+wE+wF<<" downto 0 => '0') ";
 
