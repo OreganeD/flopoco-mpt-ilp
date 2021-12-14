@@ -7,7 +7,6 @@ Added IntComparator
 Added FPComparator
 Added IEEEFMA
 
-
 ======================================================================
 Version 4.1.3
 FixIIR improvements

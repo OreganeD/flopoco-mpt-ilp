@@ -11,8 +11,10 @@ namespace flopoco{
 	//  w=64 flags=2 Wrapper: 22 LUT , 8 Carry4, Data Path Delay:         1.375ns
 	//  w=64 flags=3 Wrapper: 54 LUT , 8 Carry4, Data Path Delay:         1.361ns
 	// All this is very consistent. eq can pack 3 bits/LUT, lt and gt pack 2 bits/LUT
+
 	// Using  method=1, where gt is computed out of lt and eq asymmetric: lower area, larger delay
 	// w=64 flags=7 Wrapper: 55 LUT , 8 Carry4, Data Path Delay:         2.003ns
+
 	// Using method=2 (binary tree, not exploiting fast carry) :  69 LUTs, 3.42 ns
 	// We essentially need 2*63 LUT4 that can be packed as 64 LUT6.
 	// No miracle here
@@ -199,6 +201,14 @@ namespace flopoco{
 				vhdl << tab << declare("C_" + to_string(i) + "_" + to_string(i), 2)
 						 << " <= " << "X" << of(i) << " & "  <<  "Y" << of(i) <<  ";"<<endl;
 			}
+			// padding to the next power of two
+			int j=1 << intlog2(w); // next power of two
+			for(int i=w; i<j; i++) {
+				vhdl << tab << declare("C_" + to_string(i) + "_" + to_string(i), 2)
+						 << " <= \"00\" ;"<<endl;
+			}
+			w=j;
+			
 			int level=0;
 			int stride=1; // invariant stride=2^level
 			string Cd; // it needs to exit the loop
