@@ -146,6 +146,7 @@
 <span class="optionalparam"> <dt> <code class="parametername">optiTrunc</code>  (<code class="parametertype">bool</code>)   (optional, default value is true)</dt><dd>if true, considers the Truncation error dynamicly, instead of defining a hard border for tiling, like in th ARITH paper</dd> </span>
 <span class="optionalparam"> <dt> <code class="parametername">minStages</code>  (<code class="parametertype">bool</code>)   (optional, default value is true)</dt><dd>if true, minimizes stages in combined opt. of tiling an comp., otherwise try to find a sol. with less LUTs and more stages</dd> </span>
 <span class="optionalparam"> <dt> <code class="parametername">beamRange</code>  (<code class="parametertype">int</code>)   (optional, default value is 3)</dt><dd>range for beam search</dd> </span>
+<span class="optionalparam"> <dt> <code class="parametername">squarer</code>  (<code class="parametertype">bool</code>)   (optional, default value is false)</dt><dd>generate squarer</dd> </span>
 </dl></dd>
 </dl>
 <dl>
@@ -172,8 +173,20 @@
 <dd><em>Parameters:</em> <dl>
 <dt> <code class="parametername">wIn</code>  (<code class="parametertype">int</code>) </dt><dd>size of input in bits</dd>
 <span class="optionalparam"> <dt> <code class="parametername">wOut</code>  (<code class="parametertype">int</code>)   (optional, default value is 0)</dt><dd>size of the output if you want a truncated squarer. 0 for exact (full) squarer</dd> </span>
+<span class="optionalparam"> <dt> <code class="parametername">method</code>  (<code class="parametertype">string</code>)   (optional, default value is schoolbook)</dt><dd>squarer design method, schoolbook (standard) or optimal</dd> </span>
+<span class="optionalparam"> <dt> <code class="parametername">maxDSP</code>  (<code class="parametertype">int</code>)   (optional, default value is 0)</dt><dd>limit DSPs, 0 (standard) or allow more</dd> </span>
 <span class="optionalparam"> <dt> <code class="parametername">signedIn</code>  (<code class="parametertype">bool</code>)   (optional, default value is false)</dt><dd>inputs can be signed or unsigned (output always unsigned)</dd> </span>
 </dl></dd>
+</dl>
+<dl>
+<dt class="operatorname">IntComparator</dt>
+<dd class="operatordescription">An integer comparator.</dd>
+<dd><em>Parameters:</em> <dl>
+<dt> <code class="parametername">w</code>  (<code class="parametertype">int</code>) </dt><dd>size in bits of integers to be compared</dd>
+<span class="optionalparam"> <dt> <code class="parametername">flags</code>  (<code class="parametertype">int</code>)   (optional, default value is 7)</dt><dd>if bit 0 set output  X<Y, if bit 1 set output X=Y, if bit 2 set output  X>Y</dd> </span>
+<span class="optionalparam"> <dt> <code class="parametername">method</code>  (<code class="parametertype">int</code>)   (optional, default value is -1)</dt><dd>method to be used, for experimental purpose (-1: automatic, 0: symmetric plain VHDL, 1: asymmetric plain VHDL where gt is computed out of lt and eq)</dd> </span>
+</dl></dd>
+<dd>Outputs up to 3 mutually exclusive signals:  XltY (less than, strictly), XeqY (equal), XsgtY (greater than, strictly)</dd>
 </dl>
 <dl>
 <dt class="operatorname">BaseMultiplierDSPSuperTilesXilinx</dt>
@@ -217,6 +230,14 @@
 <dt> <code class="parametername">wX</code>  (<code class="parametertype">int</code>) </dt><dd>size of input X of a single DSP-block</dd>
 <dt> <code class="parametername">wY</code>  (<code class="parametertype">int</code>) </dt><dd>size of input Y of a single DSP-block</dd>
 <dt> <code class="parametername">n</code>  (<code class="parametertype">int</code>) </dt><dd>size of pattern and number of DSP substitutions</dd>
+</dl></dd>
+</dl>
+<dl>
+<dt class="operatorname">IntSquarerLUT</dt>
+<dd class="operatordescription">Implements a LUT squarer by simply tabulating all results in the LUT, should only be used for very small word sizes</dd>
+<dd><em>Parameters:</em> <dl>
+<dt> <code class="parametername">wIn</code>  (<code class="parametertype">int</code>) </dt><dd>size of the input XxX</dd>
+<dt> <code class="parametername">isSigned</code>  (<code class="parametertype">bool</code>) </dt><dd>signedness of the input</dd>
 </dl></dd>
 </dl>
 <h3>Basic floating-point operators</h3>
