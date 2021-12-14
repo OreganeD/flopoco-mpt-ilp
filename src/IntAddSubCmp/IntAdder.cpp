@@ -52,6 +52,7 @@ namespace flopoco {
 
 		double targetPeriod = 1.0/getTarget()->frequency() - getTarget()->ffDelay();
 		// What is the maximum lexicographic time of our inputs?
+#if 0
 		schedule();
 		int maxCycle = 0;
 		double maxCP = 0.0;
@@ -63,6 +64,11 @@ namespace flopoco {
 				maxCP = i->getCriticalPath();
 			}
 		}
+#else
+		int maxCycle;
+		double maxCP;
+		getIOMaxLexicographicTime(maxCycle, maxCP);
+#endif
 		double totalPeriod = maxCP + getTarget()->adderDelay(wIn);
 
 		REPORT(DETAILED, "maxCycle=" << maxCycle <<  "  maxCP=" << maxCP <<  "  totalPeriod=" << totalPeriod <<  "  targetPeriod=" << targetPeriod );

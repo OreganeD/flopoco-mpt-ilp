@@ -441,6 +441,13 @@ namespace flopoco {
 		 */
 		double getCPContributionFromSignal(string name, bool report = false);
 
+		/**
+		 * Return the max lexicographic time of the IOs of this operator
+		 * @param 
+		 */
+		void getIOMaxLexicographicTime(int& cycle, double& delay, bool report = false);
+
+
 
 		/**
 		 * Functions modifying Signals

@@ -841,6 +841,20 @@ namespace flopoco{
 	}
 
 
+	void Operator::getIOMaxLexicographicTime(int& maxCycle, double& maxCP, bool report){
+		schedule();
+		maxCycle = 0;
+		maxCP = 0.0;
+		for(auto i: ioList_) {
+			REPORT(DEBUG, "signal " << i->getName() <<  "  Cycle=" << i->getCycle() <<  "  criticalPath=" << i->getCriticalPath() );
+			if((i->getCycle() > maxCycle)
+				 || ((i->getCycle() == maxCycle) && (i->getCriticalPath() > maxCP)))	{
+				maxCycle = i->getCycle();
+				maxCP = i->getCriticalPath();
+			}
+		}
+
+	}
 
 
 	double Operator::getOutputDelay(string s)

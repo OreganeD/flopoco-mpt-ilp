@@ -19,13 +19,23 @@ namespace flopoco{
 		if( (flags<=0) || (flags>7)) {
 			THROWERROR("incorrect value of flags: " << flags)
 		}
+		if(method==-1) { // the user asked us to choose
+			if(flags==7) {
+				method=1; // asymmetric
+			}
+			else {
+				method=0;
+			}
+		}
 		addInput ("X", w);
 		addInput ("Y", w);
 		if(flags&1) addOutput("XltY");
 		if(flags&2) addOutput("XeqY");
 		if(flags&4) addOutput("XgtY");
 
-
+		// determine chunk size if any
+		
+		
 		if(method==1) { // Plain VHDL, asymmetric: lower area, larger delay
 			// w=64 flags=7 Wrapper: 55 LUT , 8 Carry4, Data Path Delay:         2.003ns
 			if (flags!=7){
@@ -132,7 +142,7 @@ namespace flopoco{
 			"", //seeAlso
 			"w(int): size in bits of integers to be compared;\
 			flags(int)=7: if bit 0 set output  X<Y, if bit 1 set output X=Y, if bit 2 set output  X>Y;\
-			method(int)=0: method to be used, for experimental purpose;",
+			method(int)=-1: method to be used, for experimental purpose (-1: automatic, 0: symmetric plain VHDL, 1: asymmetric plain VHDL where gt is computed out of lt and eq);",
 			"Outputs up to 3 mutually exclusive signals:  XltY (less than, strictly), XeqY (equal), XsgtY (greater than, strictly)",
 			IntComparator::parseArguments,
 			IntComparator::unitTest

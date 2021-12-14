@@ -13,7 +13,7 @@ namespace flopoco{
 		 * @param[in]		w				  input width
 		 * @param[in]		flags			if bit 0 set, output  X<Y, if bit 1 set, X=Y, if bit 2 set, X>Y
 		 */
-		IntComparator(OperatorPtr parentOp, Target* target, int w, int flags=7, int method=0);
+		IntComparator(OperatorPtr parentOp, Target* target, int w, int flags=7, int method=-1);
 
 		/**
 		 * IntComparator destructor
