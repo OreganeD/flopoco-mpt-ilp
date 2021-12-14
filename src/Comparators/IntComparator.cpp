@@ -149,6 +149,13 @@ namespace flopoco{
 						vhdl << tab << declare(join("XX", i)) << " <= " << join("XgtYi",i) << ";"<<endl;
 						vhdl << tab << declare(join("YY", i)) << " <= not (" << join("XgtYi",i) << " or " << join("XeqYi",i) << ");"<<endl;
 					}
+					if(flags==2) { // this case needs specific treatment
+						// Now build two vectors XX and YY such that comparing XX and YY will be equivalent to comparing X and Y
+						//     00 when eq       10 when noteq
+						// generated code could be more elegant in this case but the optimizer should do the right thing
+						vhdl << tab << declare(join("XX", i)) << " <= not " << join("XeqYi",i) << ";"<<endl;
+						vhdl << tab << declare(join("YY", i)) << " <= '0';"<<endl;
+					}
 				}
 
 				addComment("XXX and YYX are two synthetic numbers such that comparing XX and YY is be equivalent to comparing X and Y");
@@ -236,7 +243,7 @@ namespace flopoco{
 		if(index==-1) 
 		{ // The unit tests
 
-			for(int w=4; w<400; w+=100) { // 5 is an exhaustive test. The others test the decomposition in chunks
+			for(int w=4; w<1000; w+=300) { // 4 is an exhaustive test. The others test the decomposition in chunks
 				for(int flags=1; flags<8; flags++) { // 5 is an exhaustive test. The others test the decomposition in chunks
 					paramList.push_back(make_pair("w",to_string(w)));
 					paramList.push_back(make_pair("flags",to_string(flags)));
