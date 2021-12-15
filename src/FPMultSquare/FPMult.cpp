@@ -65,7 +65,7 @@ namespace flopoco{
 		int wEmax_ = max(wEX_, wEY_); // not sufficient, there should be weR as well
 		//Add exponents and substract bias
 		vhdl << tab << declare(getTarget()->adderDelay(wEmax_+2), "expSumPreSub", wEmax_+2) << " <= (\"00\" & expX) + (\"00\" & expY);" << endl;
-		vhdl << tab << declare("bias", wEmax_+2) << " <= CONV_STD_LOGIC_VECTOR(" << intpow2(wER-1)-1 << ","<<wEmax_+2<<");"<< endl;
+		vhdl << tab << declare("bias", wEmax_+2) << " <= CONV_STD_LOGIC_VECTOR(" << (mpz_class(1) << (wER-1))-1 << ","<<wEmax_+2<<");"<< endl;
 
 		vhdl << tab << declare(getTarget()->adderDelay(wEmax_+2), "expSum",wEX+2) << " <= expSumPreSub - bias;" << endl;
 
@@ -222,6 +222,48 @@ namespace flopoco{
 		mpfr_clears(x, y, r, NULL);
 	}
 
+
+	TestList FPMult::unitTest(int index)
+	{
+		// the static list of mandatory tests
+		TestList testStateList;
+		vector<pair<string,string>> paramList;
+		
+		if(index==-1) 
+		{ // The unit tests
+
+			paramList.push_back(make_pair("wE","5"));
+			paramList.push_back(make_pair("wF","10"));
+			testStateList.push_back(paramList);
+			paramList.clear();
+			paramList.push_back(make_pair("wE","8"));
+			paramList.push_back(make_pair("wF","23"));
+			testStateList.push_back(paramList);
+			paramList.clear();
+			paramList.push_back(make_pair("wE","11"));
+			paramList.push_back(make_pair("wF","52"));
+			testStateList.push_back(paramList);
+			paramList.clear();
+			for(int wF=5; wF<53; wF+=(wF<25?1:3) ) {
+				int wE = 6+(wF/10);
+				while(wE>wF)
+					wE -= 1;			
+				paramList.push_back(make_pair("wF",to_string(wF)));
+				paramList.push_back(make_pair("wE",to_string(wE)));
+				testStateList.push_back(paramList);
+				paramList.clear();
+			}
+			
+		}
+		else     
+		{
+				// finite number of random test computed out of index
+			// TODO
+		}	
+		return testStateList;
+	}
+	
+	
 	OperatorPtr FPMult::parseArguments(OperatorPtr parentOp, Target *target , vector<string> &args){
 		int wEX, wFX, wEY, wFY, wEOut, wFOut;
 		bool correctlyRounded;
@@ -260,7 +302,9 @@ namespace flopoco{
 						   correctlyRounded(bool)=true: correct (true) or faithful (false) rounding;\
 						   dspThreshold(real)=0.0: threshold of relative occupation ratio of a DSP multiplier to be used or not", // This string will be parsed
                            "",
-                           FPMult::parseArguments
+											 FPMult::parseArguments,
+											 FPMult::unitTest
+
                            ) ;
 
 	}

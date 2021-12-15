@@ -41,6 +41,8 @@ namespace flopoco{
 		 */
 		void emulate(TestCase * tc);
 
+		static TestList unitTest(int index);
+		
 		// User-interface stuff
 		/** Factory method */
 		static OperatorPtr parseArguments(OperatorPtr parentOp, Target *target , vector<string> &args);
