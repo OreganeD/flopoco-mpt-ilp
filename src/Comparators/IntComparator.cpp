@@ -303,7 +303,7 @@ namespace flopoco{
 			"", //seeAlso
 			"w(int): size in bits of integers to be compared;\
 			flags(int)=7: if bit 0 set output  X<Y, if bit 1 set output X=Y, if bit 2 set output  X>Y;\
-			method(int)=-1: method to be used, for experimental purpose (-1: automatic, 0: symmetric plain VHDL, 1: asymmetric plain VHDL where gt is computed out of lt and eq);",
+			method(int)=-1: method to be used, for experimental purpose (-1: automatic, 0: symmetric plain VHDL, 1: asymmetric plain VHDL where gt is computed out of lt and eq, 2: binary tree);",
 			"Outputs up to 3 mutually exclusive signals:  XltY (less than, strictly), XeqY (equal), XsgtY (greater than, strictly)",
 			IntComparator::parseArguments,
 			IntComparator::unitTest
