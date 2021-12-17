@@ -15,7 +15,9 @@ namespace flopoco
                 target,
                 parameters.isSignedMultX(),
                 parameters.isSignedMultY(),
-                (TILE_SHAPE)parameters.getShapePara()
+                (TILE_SHAPE)parameters.getShapePara(),
+                parameters.getTileXWordSize(),
+                parameters.getTileYWordSize()
         );
     }
 
@@ -39,7 +41,8 @@ namespace flopoco
     {
         if(!param.getShapePara() || param.getShapePara() > 8)
             throw string("Error in ") + string("srcFileName") + string(": shape unknown");
-        return getRelativeResultMSBWeight((TILE_SHAPE)param.getShapePara(), param.isSignedMultX(), param.isSignedMultY());
+        return getRelativeResultLSBWeight((TILE_SHAPE)param.getShapePara()) + BaseMultiplierIrregularLUTXilinx::calc_wR(shape, param.getTileXWordSize(), param.getTileYWordSize(), param.isSignedMultX(), param.isSignedMultY())-1;
+        //return getRelativeResultMSBWeight((TILE_SHAPE)param.getShapePara(), param.isSignedMultX(), param.isSignedMultY());
     }
 
     double BaseMultiplierIrregularLUTXilinx::getLUTCost(int x_anchor, int y_anchor, int wMultX, int wMultY, bool signedIO){
@@ -92,30 +95,70 @@ namespace flopoco
         return false;
     }
 
-    BaseMultiplierIrregularLUTXilinxOp::BaseMultiplierIrregularLUTXilinxOp(Operator *parentOp, Target* target, bool isSignedX, bool isSignedY, BaseMultiplierIrregularLUTXilinx::TILE_SHAPE shape) : Operator(parentOp,target), shape(shape), wX(BaseMultiplierIrregularLUTXilinx::get_wX(shape)), wY(BaseMultiplierIrregularLUTXilinx::get_wY(shape)), isSignedX(isSignedX), isSignedY(isSignedY)
-    {
-        int wR = BaseMultiplierIrregularLUTXilinx::get_wR(shape, isSignedX, isSignedY);
+    int BaseMultiplierIrregularLUTXilinx::calc_wR(TILE_SHAPE shape,int wsx, int wsy, bool isSignedX, bool isSignedY){
+        int lsb = 6, pmsb = 0, nmsb = 0, msb=0;
+        unsigned short bit_pattern[8] = {0x1fe, 0xf4, 0x1e, 0x1e, 0x1f, 0x3e, 0x1f, 0x3e};
+        int wX = get_wX((TILE_SHAPE)shape);
+        for (int yx=0; yx < 1<<(wsx+wsy); yx++)
+        {
+            int y = yx>>wsx;
+            int x = yx -(y<<wsx);
+            x = (isSignedX && x & (1<<(wsx-1)))?x-2*(1<<(wsx-1)):x;
+            y = (isSignedY && y & (1<<(wsy-1)))?y-2*(1<<(wsy-1)):y;
 
+            int raw_result = x * y;
+            //printf("0x%03x: x=%+03d, y=%+03d, r=%+03d", yx, x, y, raw_result);
+
+            for( int yp = 0; yp < wsy; yp++){
+                for( int xp = 0; xp < wsx; xp++){
+                    if(!(bit_pattern[(shape)-1]&(1<<(yp*wX+xp)))){
+                        if(((isSignedX && xp==(wsx-1)) && (isSignedY && yp==(wsy-1))) || (!(isSignedX && xp==(wsx-1)) && !(isSignedY && yp==(wsy-1))) ){
+                            raw_result -= (x&(1<<xp))*(y&(1<<yp));
+                        } else {
+                            raw_result += (x&(1<<xp))*(y&(1<<yp));
+                        }
+                    }
+                }
+            }
+            //printf("0x%03x: x=%+03d, y=%+03d, r=%+03d", yx, x, y, raw_result);
+            for(int i = 0; i < 6; i++){
+                if(raw_result < 0 && (raw_result & (1<<i)) == 0 && nmsb <= i) nmsb = i+1;
+                if(0 <= raw_result && raw_result & (1<<i) && pmsb < i) pmsb = i;
+                if(raw_result & (1<<i) && i < lsb) lsb = i;
+            }
+            if(nmsb <= pmsb) nmsb = pmsb + 1;
+            msb = max(nmsb, pmsb);
+            //cout << " lsb=" << lsb << " msb=" << msb << endl;
+        }
+        if(lsb == 6) lsb = 0;
+        //cout << "lsb=" << lsb << " msb=" << msb << " wOut=" << msb-lsb+1 << endl;
+        return msb-lsb+1;
+    }
+
+    BaseMultiplierIrregularLUTXilinxOp::BaseMultiplierIrregularLUTXilinxOp(Operator *parentOp, Target* target, bool isSignedX, bool isSignedY, BaseMultiplierIrregularLUTXilinx::TILE_SHAPE shape, int wsx, int wsy) : Operator(parentOp,target), shape(shape), wX(BaseMultiplierIrregularLUTXilinx::get_wX(shape)), wY(BaseMultiplierIrregularLUTXilinx::get_wY(shape)), wsx(wsx), wsy(wsy), isSignedX(isSignedX), isSignedY(isSignedY)
+    {
+        //int wR = BaseMultiplierIrregularLUTXilinx::get_wR(shape, isSignedX, isSignedY);
+        wR = BaseMultiplierIrregularLUTXilinx::calc_wR(shape, wsx, wsy, isSignedX, isSignedY);
         ostringstream name;
         name << "BaseMultiplierIrregularLUTXilinx_" << wX << (isSignedX==1 ? "_signed" : "") << "x" << wY  << (isSignedY==1 ? "_signed" : "");
 
         setNameWithFreqAndUID(name.str());
 
-        addInput("X", wX);
-        addInput("Y", wY);
+        addInput("X", wsx);
+        addInput("Y", wsy);
         addOutput("R", wR);
 
         vector<mpz_class> val;
         REPORT(DEBUG, "Filling table for a non-rectangular LUT multiplier of max size " << wX << "x" << wY << " (out put size is " << wR << ")")
-        for (int yx=0; yx < 1<<(wX+wY); yx++)
+        for (int yx=0; yx < 1<<(wsx+wsy); yx++)
         {
             val.push_back(function(yx));
         }
-        Operator *op = new Table(this, target, val, "MultTable", wX+wY, wR);
+        Operator *op = new Table(this, target, val, "MultTable", wsx+wsy, wR);
         op->setShared();
         UserInterface::addToGlobalOpList(op);
 
-        vhdl << declare(0.0,"Xtable",wX+wY) << " <= Y & X;" << endl;
+        vhdl << declare(0.0,"Xtable",wsx+wsy) << " <= Y & X;" << endl;
 
         inPortMap("X", "Xtable");
         outPortMap("Y", "Y1");
@@ -128,18 +171,18 @@ namespace flopoco
 
     mpz_class BaseMultiplierIrregularLUTXilinxOp::function(int yx)
     {
-        int y = yx>>wX;
-        int x = yx -(y<<wX);
-        x = (isSignedX && x & (1<<(wX-1)))?x-2*(1<<(wX-1)):x;
-        y = (isSignedY && y & (1<<(wY-1)))?y-2*(1<<(wY-1)):y;
+        int y = yx>>wsx;
+        int x = yx -(y<<wsx);
+        x = (isSignedX && x & (1<<(wsx-1)))?x-2*(1<<(wsx-1)):x;
+        y = (isSignedY && y & (1<<(wsy-1)))?y-2*(1<<(wsy-1)):y;
 
         int raw_result = x * y;
         //printf("0x%03x: x=%+03d, y=%+03d, r=%+03d", yx, x, y, raw_result);
 
-        for( int yp = 0; yp < wY; yp++){
-            for( int xp = 0; xp < wX; xp++){
+        for( int yp = 0; yp < wsy; yp++){
+            for( int xp = 0; xp < wsx; xp++){
                 if(!(bit_pattern[(this->shape)-1]&(1<<(yp*wX+xp)))){
-                    if(((isSignedX && xp==(wX-1)) && (isSignedY && yp==(wY-1))) || (!(isSignedX && xp==(wX-1)) && !(isSignedY && yp==(wY-1))) ){
+                    if(((isSignedX && xp==(wsx-1)) && (isSignedY && yp==(wsy-1))) || (!(isSignedX && xp==(wsx-1)) && !(isSignedY && yp==(wsy-1))) ){
                         raw_result -= (x&(1<<xp))*(y&(1<<yp));
                     } else {
                         raw_result += (x&(1<<xp))*(y&(1<<yp));
@@ -147,8 +190,9 @@ namespace flopoco
                 }
             }
         }
-        //printf(", 0x%03x, 0x%03x, msb=%d", raw_result, (1<<wX+wY)-1, BaseMultiplierIrregularLUTXilinx::getRelativeResultMSBWeight(this->shape, this->isSignedX, this->isSignedY));
-        raw_result &= (1<<(BaseMultiplierIrregularLUTXilinx::getRelativeResultMSBWeight(this->shape, this->isSignedX, this->isSignedY)+1))-1;
+        //printf(", 0x%03x, 0x%03x, msb=%d", raw_result&0xFFF, (1<<(wX+wY))-1, BaseMultiplierIrregularLUTXilinx::getRelativeResultLSBWeight(this->shape)+wR-1);
+        //raw_result &= (1<<(BaseMultiplierIrregularLUTXilinx::getRelativeResultMSBWeight(this->shape, this->isSignedX, this->isSignedY)+1))-1;
+        raw_result &= (1<<(BaseMultiplierIrregularLUTXilinx::getRelativeResultLSBWeight(this->shape)+wR))-1;
         //printf(", 0x%03x, shift=%01d, 0x%03x\n", raw_result, (unsigned)BaseMultiplierIrregularLUTXilinx::getRelativeResultLSBWeight(this->shape), (unsigned)(raw_result >> BaseMultiplierIrregularLUTXilinx::getRelativeResultLSBWeight(this->shape)));
         mpz_class r  = (raw_result >> BaseMultiplierIrregularLUTXilinx::getRelativeResultLSBWeight(this->shape));
 
@@ -165,7 +209,7 @@ namespace flopoco
         UserInterface::parseBoolean(args,"xSigned", &isSignedX);
         UserInterface::parseBoolean(args,"ySigned", &isSignedY);
 
-        return new BaseMultiplierIrregularLUTXilinxOp(parentOp,target, isSignedX, isSignedY, (BaseMultiplierIrregularLUTXilinx::TILE_SHAPE)wS);
+        return new BaseMultiplierIrregularLUTXilinxOp(parentOp,target, isSignedX, isSignedY, (BaseMultiplierIrregularLUTXilinx::TILE_SHAPE)wS, get_wX((BaseMultiplierIrregularLUTXilinx::TILE_SHAPE)wS), get_wY((BaseMultiplierIrregularLUTXilinx::TILE_SHAPE)wS));
     }
 
     void BaseMultiplierIrregularLUTXilinx::registerFactory(){
@@ -207,10 +251,10 @@ namespace flopoco
 
         svR = svX * svY;
 
-        for( int yp = 0; yp < wY; yp++){
-            for( int xp = 0; xp < wX; xp++){
+        for( int yp = 0; yp < wsy; yp++){
+            for( int xp = 0; xp < wsx; xp++){
                 if(!(bit_pattern[(this->shape)-1]&(1<<(yp*wX+xp)))){
-                    if(((isSignedX && xp==(wX-1)) && (isSignedY && yp==(wY-1))) || (!(isSignedX && xp==(wX-1)) && !(isSignedY && yp==(wY-1))) ){
+                    if(((isSignedX && xp==(wsx-1)) && (isSignedY && yp==(wsy-1))) || (!(isSignedX && xp==(wsx-1)) && !(isSignedY && yp==(wsy-1))) ){
                         svR -= (svX&(1<<xp))*(svY&(1<<yp));
                     } else {
                         svR += (svX&(1<<xp))*(svY&(1<<yp));

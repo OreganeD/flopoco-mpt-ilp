@@ -62,6 +62,7 @@ namespace flopoco
         bool shapeValid(Parametrization const & param, unsigned x, unsigned y) const override;
         bool signSupX() override {return true;}
         bool signSupY() override {return true;}
+        static int calc_wR(TILE_SHAPE shape, int wsx, int wsy, bool isSignedX, bool isSignedY);
 
         Operator *generateOperator(Operator *parentOp, Target *target, Parametrization const & params) const final;
 
@@ -87,7 +88,7 @@ namespace flopoco
     class BaseMultiplierIrregularLUTXilinxOp : public Operator {
     public:
         BaseMultiplierIrregularLUTXilinxOp(Operator *parentOp, Target* target, bool isSignedX, bool isSignedY,
-                BaseMultiplierIrregularLUTXilinx::TILE_SHAPE shape);
+                                           BaseMultiplierIrregularLUTXilinx::TILE_SHAPE shape, int wsx, int wsy);
 
         void emulate(TestCase* tc);
         static TestList unitTest(int index);
@@ -95,7 +96,7 @@ namespace flopoco
 
     private:
         BaseMultiplierIrregularLUTXilinx::TILE_SHAPE shape;
-        int wX, wY;
+        int wX, wY, wsx, wsy, wR ;       //formal word sizes, actual word sizes
         bool isSignedX, isSignedY;
         static const unsigned short bit_pattern[8];
         mpz_class function(int xy);
