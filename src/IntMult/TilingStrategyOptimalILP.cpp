@@ -208,7 +208,7 @@ void TilingStrategyOptimalILP::constructProblem()
         dpC++;
 
     vector<vector<vector<ScaLP::Variable>>> solve_Vars(wS, vector<vector<ScaLP::Variable>>(wX+x_neg, vector<ScaLP::Variable>(wY+y_neg)));
-    ScaLP::Term maxEpsTerm;
+    ScaLP::Term maxEpsTerm, minEpsTerm;
     // add the Constraints
     cout << "   adding the constraints to problem formulation..." << endl;
     for(int y = 0; y < wY; y++){
@@ -252,13 +252,21 @@ void TilingStrategyOptimalILP::constructProblem()
                 nvarName << " b" << ((x < 0) ? "m" : "") << setfill('0') << setw(dpX) << ((x < 0) ? -x : x)
                          << ((y < 0) ? "m" : "") << setfill('0') << setw(dpY) << ((y < 0) ? -y : y);
                 ScaLP::Variable tempV = ScaLP::newBinaryVariable(nvarName.str());
-                maxEpsTerm.add(tempV, (-1LL) * (1LL << (x + y)));
-                maxEpsTerm.add(1ULL << (x + y));
-                if(squarer && x != y){                      //with a squarer the tiling is mirrored at the diagonal, so missing tiles on top also cause an error below
+                if(signedIO && (wX-1 == x || wY-1 == y)){
+                    minEpsTerm.add(tempV, (+1LL) * (1LL << (x + y)));
+                    minEpsTerm.add((-1LL) << (x + y));
+                    if(squarer && x != y){                      //with a squarer the tiling is mirrored at the diagonal, so missing tiles on top also cause an error below
+                        minEpsTerm.add(tempV, (+1LL) * (1LL << (x + y)));
+                        minEpsTerm.add((-1LL) << (x + y));
+                    }
+                } else {
                     maxEpsTerm.add(tempV, (-1LL) * (1LL << (x + y)));
                     maxEpsTerm.add(1ULL << (x + y));
+                    if(squarer && x != y){                      //with a squarer the tiling is mirrored at the diagonal, so missing tiles on top also cause an error below
+                        maxEpsTerm.add(tempV, (-1LL) * (1LL << (x + y)));
+                        maxEpsTerm.add(1ULL << (x + y));
+                    }
                 }
-
                 c1Constraint = pxyTerm - ((squarer && x != y)?2:1) * tempV == 0;
             } else if(!performOptimalTruncation && (wOut < (int)prodWidth) && ((x + y) < (int)(prodWidth - wOut - guardBits))){
                 //c1Constraint = pxyTerm <= (bool)1;
@@ -348,11 +356,19 @@ void TilingStrategyOptimalILP::constructProblem()
 
         //Limit the error budget
         cout << "  maxErr=" << errorBudget << endl;
-        ScaLP::Constraint truncConstraint = maxEpsTerm - Cvar < errorBudget;
-        stringstream consName;
-        consName << "maxEps";
-        truncConstraint.name = consName.str();
-        solver->addConstraint(truncConstraint);
+        ScaLP::Constraint maxErrConstraint = maxEpsTerm - Cvar < errorBudget;
+        stringstream maxErrName;
+        maxErrName << "maxEps";
+        maxErrConstraint.name = maxErrName.str();
+        solver->addConstraint(maxErrConstraint);
+
+        //Limit the error budget
+        cout << "  minErr=" << errorBudget << endl;
+        ScaLP::Constraint minErrConstraint = -minEpsTerm + Cvar < errorBudget;
+        stringstream minErrName;
+        minErrName << "minEps";
+        minErrConstraint.name = minErrName.str();
+        solver->addConstraint(minErrConstraint);
     }
 
     // Set the Objective
