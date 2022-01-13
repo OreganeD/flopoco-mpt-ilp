@@ -12,7 +12,7 @@ import string
 import argparse
 
 def report(text):
-    print "quartus_runsyn: " + text
+    print("quartus_runsyn: " + text)
 
 def get_compile_info(filename):
     vhdl=open(filename).read()
@@ -126,12 +126,12 @@ if __name__ == '__main__':
 
     index1=fit_report.find("; Device")
     index2=fit_report.find("; Total HSSI", index1)
-    print fit_report[index1:index2]
+    print(fit_report[index1:index2])
 
     sta_report=open(entity+".sta.rpt").read()
     index1=sta_report.find(fmax_string)
     index2=sta_report.find("This panel", index1)
-    print sta_report[index1:index2]
+    print(sta_report[index1:index2])
 
     failure=sta_report.find("VIOLATED")
     if(failure!=-1): # TODO! The following was intended to get more details but it reports nothing new. Go read the doc...
