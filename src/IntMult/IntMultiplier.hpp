@@ -56,6 +56,31 @@ namespace flopoco {
 
 		BitHeap* getBitHeap(void) {return bitHeap;}
 
+		/**
+         * @brief Checks if a tiling for a truncated multiplier meets the error budget as required for faithfulness
+         * @param solution list of the placed tiles with their parametrization and anchor point
+         * @param guardBits the number of bits below the output LSB that we need to keep in the summation
+         * @param errorBudget maximal permissible weight of the sum of the omitted partial products (as they would appear in an array multiplier)
+         * @param constant to recenter the truncation error around 0 since it can otherwise only be negative, since there are only partial products left out. This allows a larger error, so more products can be omitted
+         * @param wX width (input word size) in x-direction of multiplier
+         * @param wY height (input word size) in y-direction of multiplier
+         * @param signedIO signedness of the multiplier
+         * @return truncation error as MPZ value
+         */
+		static mpz_class checkTruncationError(list<TilingStrategy::mult_tile_t> &solution, unsigned int guardBits, const mpz_class& errorBudget, const mpz_class& constant, int wX, int wY, bool signedIO) ;
+
+		/**
+         * @brief calculate the width of the diagonal of a rectangle, that is equivalent to the number of partial product bits in the hypothetical resulting bitheap of a Bough-Wooley-Multiplier
+         * @param wX width of the rectangle
+         * @param wY height of the rectangle
+         * @param col sum of the coordinates (x+y) that describe the diagonal
+         * @param wFull full product width of the rectangular multiplier
+         * @return number of partial products in the diagonal
+         */
+		static unsigned int widthOfDiagonalOfRect(unsigned int wX, unsigned int wY, unsigned int col, unsigned wFull, bool signedIO=false);
+
+		static unsigned int negValsInDiagonalOfRect(unsigned wX, unsigned wY, unsigned col, unsigned wFull, bool signedIO);
+
 	protected:
 
 		unsigned int wX;                         /**< the width for X after possible swap such that wX>wY */
@@ -114,7 +139,8 @@ namespace flopoco {
 		unsigned int computeGuardBits(unsigned int wX, unsigned int wY, unsigned int wOut);
 
         /**
-         * @brief Compute several parameters for a faithfully rounding truncated multiplier
+         * @brief Compute several parameters for a faithfully rounding truncated multiplier, supports the singed case
+         * @details Compute guard-bits, keep-bits, the error re-centering constant and the error budget. The parameters are estimated by sucessivly removing partial products (as they would apperar in an and array, although the actual multiplier might use larger tiles) as long as the error bounds are met. The function considers the dynamic calculation of the error recentering constant to extend the permissible error to allow more truncated bits and hence a lower cost. In contrast to the algorithm published in the truncation paper mentioned below, this variant also considers that the singed case, where the partial products at the left and bottom edge |_ of the tiled area cause a positive when omitted (as they count negative in the result). The function has quadratic complexity.
          * @param wFull width of result of a non-truncated multiplier with the same input widths
          * @param wOut requested output width of the result vector of the truncated multiplier
          * @param g the number of bits below the output LSB that we need to keep in the summation
@@ -123,11 +149,11 @@ namespace flopoco {
          * @param constant to recenter the truncation error around 0 since it can otherwise only be negative, since there are only partial products left out. This allows a larger error, so more products can be omitted
          * @return none
          */
-        void computeTruncMultParams(unsigned wFull, unsigned wOut, unsigned &g, unsigned &k, unsigned long long &errorBudget, unsigned long long &constant);
+        void computeTruncMultParamsMPZ(unsigned wFull, unsigned wOut, unsigned &g, unsigned &k, mpz_class &errorBudget, mpz_class &constant) const;
 
         /**
          * @brief Compute several parameters for a faithfully rounding truncated multiplier
-         * @details Compute guard-bits, keep-bits, the error re-centering constant and the error budget as shown in A. Boettcher, M. Kumm, F. de Dinechin "Resource optimal truncated multipliers for FPGAs"
+         * @details Compute guard-bits, keep-bits, the error re-centering constant and the error budget as shown in A. Boettcher, M. Kumm, F. de Dinechin "Resource optimal truncated multipliers for FPGAs" This function has a linear complexity.
          * @param wFull width of result of a non-truncated multiplier with the same input widths
          * @param wOut requested output width of the result vector of the truncated multiplier
          * @param g the number of bits below the output LSB that we need to keep in the summation
@@ -136,7 +162,7 @@ namespace flopoco {
          * @param constant to recenter the truncation error around 0 since it can otherwise only be negative, since there are only partial products left out. This allows a larger error, so more products can be omitted
          * @return none
          */
-        void computeTruncMultParamsMPZ(unsigned wFull, unsigned wOut, unsigned &g, unsigned &k, mpz_class &errorBudget, mpz_class &constant);
+        void computeTruncMultParamsMPZunsigned(unsigned wFull, unsigned wOut, unsigned &g, unsigned &k, mpz_class &errorBudget, mpz_class &constant) const;
 
 		/**
 		 * add a unique identifier for the multiplier, and possibly for the block inside the multiplier
@@ -155,16 +181,6 @@ namespace flopoco {
 		void branchToBitheap(BitHeap* bh, list<TilingStrategy::mult_tile_t> &solution , unsigned int bitheapLSBWeight);
 
         /**
-         * @brief Checks if a tiling for a truncated multiplier meets the error budget as required for faithfulness
-         * @param solution list of the placed tiles with their parametrization and anchor point
-         * @param guardBits the number of bits below the output LSB that we need to keep in the summation
-         * @param errorBudget maximal permissible weight of the sum of the omitted partial products (as they would appear in an array multiplier)
-         * @param constant to recenter the truncation error around 0 since it can otherwise only be negative, since there are only partial products left out. This allows a larger error, so more products can be omitted
-         * @return none
-         */
-        mpz_class checkTruncationError(list<TilingStrategy::mult_tile_t> &solution, unsigned int guardBits, const mpz_class& errorBudget, const mpz_class& constant) const;
-
-        /**
          * @brief Calculate the LSB of the BitHeap required to maintain faithfulness, so that unnecessary LSBs to meet the error budget of multiplier tiles can be omitted from compression
          * @param solution list of the placed tiles with their parametrization and anchor point
          * @param guardBits the number of bits below the output LSB that we need to keep in the summation
@@ -173,17 +189,13 @@ namespace flopoco {
          * @param actualTruncError the truncation error as previously determined by counting the untiled positions
          * @return none
          */
-        int calcBitHeapLSB(list<TilingStrategy::mult_tile_t> &solution, unsigned guardBits, const mpz_class& errorBudget, const mpz_class& constant, const mpz_class& actualTruncError);
+        int calcBitHeapLSB(list<TilingStrategy::mult_tile_t> &solution, unsigned guardBits, const mpz_class& errorBudget, const mpz_class& constant, const mpz_class& actualTruncError) const;
 
-        /**
-         * @brief calculate the width of the diagonal of a rectangle, that is equivalent to the number of partial product bits in the hypothetical resulting bitheap of a Bough-Wooley-Multiplier
-         * @param wX width of the rectangle
-         * @param wY height of the rectangle
-         * @param col sum of the coordinates (x+y) that describe the diagonal
-         * @param wFull full product width of the rectangular multiplier
-         * @return number of partial products in the diagonal
-         */
-        static unsigned int widthOfDiagonalOfRect(unsigned int wX, unsigned int wY, unsigned int col, unsigned wFull);
+        static unsigned additionalError_n(unsigned int wX, unsigned int wY, unsigned int col, unsigned int t, unsigned int wFull, bool signedIO);
+
+        static unsigned additionalError_p(unsigned int wX, unsigned int wY, unsigned int col, unsigned int t, unsigned int wFull, bool signedIO);
+
+        static mpz_class calcErcConst(mpz_class &errorBudget, mpz_class &wlext, mpz_class &deltap, mpz_class constant=1);
     };
 
 }

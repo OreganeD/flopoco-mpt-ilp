@@ -157,8 +157,7 @@ void TilingStrategyOptimalILP::solve()
             }
         }
 
-    } while(performOptimalTruncation && !checkTruncationError(solution, guardBits, eBudget, centerErrConstant) && 0 < optTruncNumericErr);
-
+    } while(performOptimalTruncation && eBudget+centerErrConstant < IntMultiplier::checkTruncationError(solution, guardBits, eBudget, centerErrConstant, wX, wY, signedIO) && 0 < optTruncNumericErr);
 /*
     solution.push_back(make_pair(tiles[1]->getParametrisation().tryDSPExpand(0, 0, wX, wY, signedIO), make_pair(0, 0)));
     solution.push_back(make_pair(tiles[0]->getParametrisation().tryDSPExpand(16, 0, wX, wY, signedIO), make_pair(16, 0)));
@@ -271,13 +270,13 @@ void TilingStrategyOptimalILP::constructProblem()
             } else if(!performOptimalTruncation && (wOut < (int)prodWidth) && ((x + y) < (int)(prodWidth - wOut - guardBits))){
                 //c1Constraint = pxyTerm <= (bool)1;
             } else if(!performOptimalTruncation && (wOut < (int)prodWidth) && ((x + y) == (int)(prodWidth - wOut - guardBits))){
-                cout << "keepBit to place: " << keepBits << endl;
+                //cout << "keepBit to place: " << keepBits << endl;
                 if((keepBits)?keepBits--:0){
                     c1Constraint = pxyTerm == ((squarer && x != y)?2:1);
                     if(squarer && x != y && keepBits) keepBits--;           //consider symmetric bit in squarer
-                    cout << "keepBit at" << x << "," << y << endl;
+                    //cout << "keepBit at" << x << "," << y << endl;
                 } else {
-                    cout << "NO keepBit at" << x << "," << y << endl;
+                    //cout << "NO keepBit at" << x << "," << y << endl;
                 }
             } else {
                 c1Constraint = pxyTerm == ((!squarer || x == y)?1.0:2.0);
@@ -382,65 +381,5 @@ void TilingStrategyOptimalILP::constructProblem()
 
 
 #endif
-
-    void TilingStrategyOptimalILP::computeTruncMultParams(int w, int &g, int &k, long long &errorBudget){
-        // first loop iterates over the columns, right to left
-        int i = 0;
-        long long weightedSumOfTruncatedBits = 0, constant;
-        bool loop=true;
-        while(loop){
-            i++;
-            weightedSumOfTruncatedBits += i * (1<<(i-1));
-            constant = (1<<(w-1)) - (1<<(i-1));
-            errorBudget = (1<<(w-1)) + constant;
-            loop = (weightedSumOfTruncatedBits < errorBudget);
-        } // when we exit the loop, we have found g
-        g = w-(i-1);
-        // Now add back bits in rigthtmost column, one by one
-        k = 0;
-        while(weightedSumOfTruncatedBits >= errorBudget) {
-            weightedSumOfTruncatedBits -= (1<<(i-1));
-            k++;
-        }
-    }
-
-    bool TilingStrategyOptimalILP::checkTruncationError(list<TilingStrategy::mult_tile_t> &solution, unsigned guardBits, mpz_class errorBudget, mpz_class constant){
-        std::vector<std::vector<bool>> mulArea(wX, std::vector<bool>(wY,false));
-
-        for(auto & tile : solution) {
-            auto &parameters = tile.first;
-            auto &anchor = tile.second;
-            int xPos = anchor.first;
-            int yPos = anchor.second;
-
-            for(int x = 0; x < (int)parameters.getMultXWordSize(); x++){
-                for(int y = 0; y < (int)parameters.getMultYWordSize(); y++){
-                    if(0 <= xPos+x && 0 <= yPos+y && xPos+x < wX && yPos+y < wY){
-                        mulArea[xPos+x][yPos+y] = mulArea[xPos+x][yPos+y] || parameters.shapeValid(x,y);
-                        if(squarer) mulArea[yPos+y][xPos+x] = mulArea[yPos+y][xPos+x] || parameters.shapeValid(x,y);
-                    }
-                }
-            }
-        }
-
-        mpz_class truncError, maxErr = errorBudget+constant;
-        truncError = mpz_class(0);
-        for(int y = 0; y < wY; y++){
-            for(int x = wX-1; 0 <= x; x--){
-                if(mulArea[x][y] == false)
-                    truncError += (mpz_class(1)<<(x+y));
-                //cout << ((mulArea[x][y] == true)?1:0);
-            }
-            //cout << endl;
-        }
-
-        if(truncError <= maxErr){
-            cout << "OK: actual truncation error=" << truncError << " is smaller than the max. permissible error=" << maxErr << " by " << maxErr-truncError << "." << endl;
-            return true;
-        } else {
-            cout << "WARNING: actual truncation error=" << truncError << " is larger than the max. permissible error=" << maxErr << " by " << truncError-maxErr << "." << endl;
-            return false;
-        }
-    }
 
 }   //end namespace flopoco

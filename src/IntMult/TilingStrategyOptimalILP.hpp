@@ -55,17 +55,6 @@ private:
 
         ScaLP::Solver *solver;
 #endif
-    void computeTruncMultParams(int w, int &g, int &k, long long &errorBudget);
-
-    /**
-     * @brief Checks if a tiling for a truncated multiplier meets the error budget as required for faithfulness
-     * @param solution list of the placed tiles with their parametrization and anchor point
-     * @param guardBits the number of bits below the output LSB that we need to keep in the summation
-     * @param errorBudget maximal permissible weight of the sum of the omitted partial products (as they would appear in an array multiplier)
-     * @param constant to recenter the truncation error around 0 since it can otherwise only be negative, since there are only partial products left out. This allows a larger error, so more products can be omitted
-     * @return true when the error bound is met, otherwise false
-     */
-    bool checkTruncationError(list<TilingStrategy::mult_tile_t> &solution, unsigned int guardBits, mpz_class errorBudget, mpz_class constant);
 };
 
 }

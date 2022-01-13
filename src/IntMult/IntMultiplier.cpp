@@ -59,8 +59,13 @@ namespace flopoco {
 
         unsigned int guardBits = 0, keepBits = 0;
         mpz_class errorBudget = 0, centerErrConstant = 0;
-        if(wFullP - wOut)
-            computeTruncMultParamsMPZ(wFullP, wOut, guardBits, keepBits, errorBudget, centerErrConstant);
+        if(wFullP - wOut){
+            if(signedIO_){
+                computeTruncMultParamsMPZ(wFullP, wOut, guardBits, keepBits, errorBudget, centerErrConstant);
+            }else{
+                computeTruncMultParamsMPZunsigned(wFullP, wOut, guardBits, keepBits, errorBudget, centerErrConstant);
+            }
+        }
         //cout << " guardBits=" << guardBits << " keepBits=" << keepBits << " errorBudget=" << errorBudget << " centerErrConstant=" << centerErrConstant << endl;
 
         REPORT(INFO, "IntMultiplier(): Constructing a multiplier of size " <<
@@ -267,7 +272,7 @@ namespace flopoco {
 
        	if (guardBits > 0) {
             //Check truncated solution
-            mpz_class actualTruncError = checkTruncationError(solution, guardBits, errorBudget, centerErrConstant);
+            mpz_class actualTruncError = checkTruncationError(solution, guardBits, errorBudget, centerErrConstant, wX, wY, signedIO);
             cout << "calc min req weight is=" << prodsize(wX, wY, signedIO, signedIO) - (wOut + guardBits) << endl;
             bitHeapLSBWeight = (dynamic_cast<CompressionStrategy*>(tilingStrategy))?0:calcBitHeapLSB(solution, guardBits, errorBudget, centerErrConstant, actualTruncError);
             guardBits = wFullP - wOut - bitHeapLSBWeight; //To select result bits, because the dynamic ilp does not consider guardBits
@@ -344,42 +349,65 @@ namespace flopoco {
 		return nbDontCare - nbUnneeded;
 	}
 
-    /**
-     * @brief Compute several parameters for a faithfully rounding truncated multiplier
-     * @param wFull width of result of a non-truncated multiplier with the same input widths
-     * @param wOut requested output width of the result vector of the truncated multiplier
-     * @param g the number of bits below the output LSB that we need to keep in the summation
-     * @param k number of bits to keep in in the column with weight w-g
-     * @param errorBudget maximal permissible weight of the sum of the omitted partial products (as they would appear in an array multiplier)
-     * @param constant to recenter the truncation error around 0 since it can otherwise only be negative, since there are only partial products left out. This allows a larger error, so more products can be omitted
-     * @return none
-     */
-    void IntMultiplier::computeTruncMultParams(unsigned wFull, unsigned wOut, unsigned &g, unsigned &k, unsigned long long &errorBudget, unsigned long long &constant){
-        // first loop iterates over the columns, right to left
-        unsigned w = wFull - wOut; //weight of the LSB of the result, relative to the LSB of a non-truncated multiplier
-        errorBudget = (1ULL<<(w-1)); //tiling error budget
-        if(w == 0) return;
-        unsigned col = 0, height;
-        unsigned long long weightedSumOfTruncatedBits = 0;   //actual error
-        bool loop=true;
-        while(loop){
-            col++;                                                          //bitheap column
-            height = (col > (wFull/2))?wFull-col:col;                       //number of partial products in column
-            weightedSumOfTruncatedBits += height * (1ULL<<(col-1));
-            constant = (1ULL<<(w-1)) - (1ULL<<(col-1));
-            //cout << "col=" << col << " height=" << height << " wstb=" << weightedSumOfTruncatedBits << " errorBudget=" << errorBudget << " C=" << constant << endl;
-            loop = (weightedSumOfTruncatedBits < errorBudget + constant);
-        } // when we exit the loop, we have found g
-        g = w-(col-1);
-        // Now add back bits in rigthtmost column, one by one
-        k = 0;
-        while(weightedSumOfTruncatedBits >= errorBudget + constant) {
-            weightedSumOfTruncatedBits -= (1ULL<<(col-1));
-            k++;
+    void IntMultiplier::computeTruncMultParamsMPZ(unsigned wFull, unsigned wOut, unsigned &g, unsigned &k, mpz_class &errorBudget, mpz_class &constant) const{
+        unsigned l_P = wFull - wOut, l_ext = 0, t = 0;
+        mpz_class colweight = 2, deltan = 0, deltap = 0, wlext = 1, wlextpe = 2, tbits = 0;
+        mpz_pow_ui(errorBudget.get_mpz_t(), mpz_class(2).get_mpz_t(), l_P-1); //tiling error budget
+        if(l_P == 0) return;
+        mpz_class delta_n_new = deltan + additionalError_n(wX, wY, l_ext, t + 1, wFull, signedIO) * wlext;
+        mpz_class delta_p_new = deltap + additionalError_p(wX, wY, l_ext, t + 1, wFull, signedIO) * wlext;
+        mpz_class constant_new = calcErcConst(errorBudget, wlext, delta_p_new);
+        //Try to remove whole diagonals without violating the error bound.
+        while(delta_n_new - constant_new < errorBudget && delta_p_new + constant_new < errorBudget ){
+            t++;
+            deltan = delta_n_new;
+            deltap = delta_p_new;
+            constant = constant_new;
+            printf("l_ext=%2i, t=%2i, deltap=%lu, deltan=%lu, wlext=%lu, wlextpe=%lu, C=%lu\n", l_ext, t, deltap.get_ui(), deltan.get_ui(), wlext.get_ui(), wlextpe.get_ui(), constant.get_ui());
+            if(widthOfDiagonalOfRect(wX, wY, l_ext+1, wFull) <= t){
+                t = 0, l_ext++;
+                wlext = wlextpe;
+                mpz_pow_ui(wlextpe.get_mpz_t(), mpz_class(2).get_mpz_t(), l_ext+1);
+            }
+            delta_n_new = deltan + additionalError_n(wX, wY, l_ext, t + 1, wFull, signedIO) * wlext;
+            delta_p_new = deltap + additionalError_p(wX, wY, l_ext, t + 1, wFull, signedIO) * wlext;
+            constant_new = calcErcConst(errorBudget, wlext, delta_p_new, constant);
         }
+
+        cout << "posTruncError=" << deltap << " negTruncError=" << deltan << endl;
+
+        g = l_P - l_ext;
+        k = widthOfDiagonalOfRect(wX,wY,l_ext+1,wFull) - t;
+        printf("w=%2i, l_ext=%i, t=%i, g=%i, k=%i, ", wX, l_ext, t, g, k);
+        cout << "errorBudget=" << errorBudget << ", C=" << constant << endl;
     }
 
-    void IntMultiplier::computeTruncMultParamsMPZ(unsigned wFull, unsigned wOut, unsigned &g, unsigned &k, mpz_class &errorBudget, mpz_class &constant){
+    mpz_class IntMultiplier::calcErcConst(mpz_class &errorBudget, mpz_class &wlext, mpz_class &deltap, mpz_class constant){
+        if(constant == 0) return 0;
+        constant = errorBudget - wlext;                                         //2^(l_P-1) - 2^(l_ext+1)
+        mpz_class cMaxLim = -deltap + errorBudget;
+        //cout << "C=" << constant << " cMaxLim=" << cMaxLim << endl;
+        while(cMaxLim <= constant) constant -= wlext;
+        return constant;
+    }
+
+    unsigned IntMultiplier::additionalError_n(unsigned wX, unsigned wY, unsigned col, unsigned t, unsigned wFull, bool signedIO){
+        unsigned nvals = negValsInDiagonalOfRect(wX, wY, col + 1, wFull, signedIO);
+        unsigned diagl = widthOfDiagonalOfRect(wX, wY, col + 1, wFull);
+        if( !(nvals && ( t == 1 && wX - 1 <= col || t == diagl && wY - 1 <= col) ) && !(nvals == 2 && t == diagl) ) return 1;
+        return 0;
+    }
+
+    unsigned IntMultiplier::additionalError_p(unsigned wX, unsigned wY, unsigned col, unsigned t, unsigned wFull, bool signedIO){
+        unsigned nvals = negValsInDiagonalOfRect(wX, wY, col + 1, wFull, signedIO);
+        unsigned diagl = widthOfDiagonalOfRect(wX, wY, col + 1, wFull);
+        //cout << "nvals=" << nvals << " diag=" << diagl << " " << (nvals && ( t == 1 && wX - 1 <= col || t == diagl && wY - 1 <= col) ) << endl;
+        if( nvals && ( t == 1 && wX - 1 <= col || t == diagl && wY - 1 <= col) ) return 1;
+        if( nvals == 2 && t == diagl) return 1;
+        return 0;
+    }
+
+    void IntMultiplier::computeTruncMultParamsMPZunsigned(unsigned wFull, unsigned wOut, unsigned &g, unsigned &k, mpz_class &errorBudget, mpz_class &constant) const{
         unsigned l_P = wFull - wOut, l_ext = 0, t = 0;
         mpz_class colweight = 2, dlow = 0, wlext = 1, wlextpe = 2, wlp;
         mpz_pow_ui(errorBudget.get_mpz_t(), mpz_class(2).get_mpz_t(), l_P-1); //tiling error budget
@@ -408,7 +436,8 @@ namespace flopoco {
         cout << "errorBudget=" << errorBudget << ", C=" << constant << endl;
     }
 
-    unsigned int IntMultiplier::widthOfDiagonalOfRect(unsigned wX, unsigned wY, unsigned col, unsigned wFull){
+    unsigned int IntMultiplier::widthOfDiagonalOfRect(unsigned wX, unsigned wY, unsigned col, unsigned wFull, bool signedIO){
+        if(signedIO){ wX--; wY--; wFull = prodsize(wX, wY, signedIO, signedIO);}
         if(0 <= col && (int)col <= min((int)wX, (int)wY)){
             return col;
         } else if(min((int)wX,(int)wY) < (int)col && (int)col <= max((int)wX, (int)wY)){
@@ -416,6 +445,10 @@ namespace flopoco {
         } else {
             return wFull-col;
         }
+    }
+
+    unsigned int IntMultiplier::negValsInDiagonalOfRect(unsigned wX, unsigned wY, unsigned col, unsigned wFull, bool signedIO){
+        return widthOfDiagonalOfRect(wX,wY,col ,wFull) - widthOfDiagonalOfRect(wX,wY,col ,wFull, signedIO);
     }
 
     /**
@@ -935,7 +968,7 @@ namespace flopoco {
 		return testStateList;
 	}
 
-    mpz_class IntMultiplier::checkTruncationError(list<TilingStrategy::mult_tile_t> &solution, unsigned guardBits, const mpz_class& errorBudget, const mpz_class& constant) const{
+    mpz_class IntMultiplier::checkTruncationError(list<TilingStrategy::mult_tile_t> &solution, unsigned guardBits, const mpz_class& errorBudget, const mpz_class& constant, int wX, int wY, bool signedIO) {
         std::vector<std::vector<int>> mulAreaI(wX, std::vector<int>(wY,0));
 
         for(auto & tile : solution) {
@@ -962,26 +995,33 @@ namespace flopoco {
             }
         }
 
-        mpz_class truncError, maxErr = errorBudget+constant;
-        truncError = mpz_class(0);
+        mpz_class negTruncError, posTruncError, maxErr = errorBudget+constant;
+        negTruncError = mpz_class(0); posTruncError = mpz_class(0);
         for(int y = 0; y < (int)wY; y++){
             for(int x = (int)wX-1; 0 <= x; x--){
-                if(mulAreaI[x][y] != 1)
-                    truncError += (mpz_class(1)<<(x+y));
+                if(mulAreaI[x][y] != 1){
+                    // partial product at left and bottom |_ edge count negative in signed case (but not at corner)
+                    if(signedIO && ((wX-1 == x) != (wY-1 ==y))){
+                        // when they are missing they contribute with a positive error
+                        posTruncError += (mpz_class(1)<<(x+y));
+                    } else {
+                        negTruncError += (mpz_class(1)<<(x+y));
+                    }
+                }
                 cout << ((mulAreaI[x][y] == 1) ? 1 : 0);
             }
             cout << endl;
         }
 
-        if(truncError <= maxErr){
-            cout << "OK: actual truncation error=" << truncError << " is smaller than the max. permissible error=" << maxErr << " by " << maxErr-truncError << "." << endl;
+        if(max(negTruncError,posTruncError) <= maxErr){
+            cout << "OK: actual truncation error=" << max(negTruncError,posTruncError) << " is smaller than the max. permissible error=" << maxErr << " by " << maxErr-max(negTruncError,posTruncError) << "." << endl;
         } else {
-            cout << "ERROR: actual truncation error=" << truncError << " is larger than the max. permissible error=" << maxErr << " by " << truncError-maxErr << "." << endl;
+            cout << "ERROR: actual truncation error=" << max(negTruncError,posTruncError) << " is larger than the max. permissible error=" << maxErr << " by " << max(negTruncError,posTruncError)-maxErr << "." << endl;
         }
-        return truncError;
+        return max(negTruncError,posTruncError);
 	}
 
-    int IntMultiplier::calcBitHeapLSB(list<TilingStrategy::mult_tile_t> &solution, unsigned guardBits, const mpz_class& errorBudget, const mpz_class& constant, const mpz_class& actualTruncError){
+    int IntMultiplier::calcBitHeapLSB(list<TilingStrategy::mult_tile_t> &solution, unsigned guardBits, const mpz_class& errorBudget, const mpz_class& constant, const mpz_class& actualTruncError) const{
 	    int col=0, nBits = 0;
 	    std::vector<std::vector<int>> mulAreaI(wX, std::vector<int>(wY,0));
 

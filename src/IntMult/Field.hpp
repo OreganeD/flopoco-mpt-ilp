@@ -4,6 +4,7 @@
 #include <utility>
 #include <vector>
 #include "BaseMultiplierCategory.hpp"
+#include "IntMultiplier.hpp"
 
 using namespace std;
 

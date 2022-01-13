@@ -238,18 +238,21 @@ namespace flopoco {
         cout << "keepBits " << keepBits << " guardBits " << guardBits << " prod " << prodWidth << " wOut " << wOut <<endl;
         ID fieldID = fieldState.getID();
         unsigned int updateMissing = 0;
+
+        int t = IntMultiplier::widthOfDiagonalOfRect(wX_, wY_, (int)prodWidth-wOut-guardBits+1, prodWidth) - keepBits;
+        cout << "t=" << t << " diag=" << IntMultiplier::widthOfDiagonalOfRect(wX_, wY_, (int)prodWidth-wOut-guardBits+1, prodWidth) << endl;
         for(unsigned int y = 0; y < wY_; y++) {
             for(unsigned int x = 0; x < wX_; x++) {
                 if((x+y) < ((int)prodWidth-wOut-guardBits)){
                     field_[y][x] = fieldID;
                     updateMissing++;
                 } else if((x+y) == ((int)prodWidth-wOut-guardBits)){
-                    if((keepBits)?keepBits--:0){
-                        cout << "keepBit at" << x << "," << y << endl;
-                    } else {
-                        cout << "NO keepBit at" << x << "," << y << endl;
+                    if((t)?t--:0){
+                        //cout << "NO keepBit at" << x << "," << y << endl;
                         field_[y][x] = fieldID;
                         updateMissing++;
+                    } else {
+                        //cout << "keepBit at" << x << "," << y << endl;
                     }
                 }
             }
