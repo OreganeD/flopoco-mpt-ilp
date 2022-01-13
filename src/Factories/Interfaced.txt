@@ -35,6 +35,7 @@ GenericLut
 Fix2FP
 FP2Fix
 IntComparator
+IntConstantComparator
 FPComparator
 FPAdd
 FPMult

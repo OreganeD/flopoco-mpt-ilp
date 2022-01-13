@@ -106,6 +106,7 @@ Conversions/Fix2FP
 Conversions/OutputIEEE
 Conversions/InputIEEE
 Comparators/IntComparator
+Comparators/IntConstantComparator
 Comparators/FPComparator
 FPAddSub/FPAdd
 FPAddSub/FPAddDualPath

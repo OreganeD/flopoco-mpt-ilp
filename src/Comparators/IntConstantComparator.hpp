@@ -1,24 +1,25 @@
-#ifndef INTCOMPARATPOR_HPP
-#define INTCOMPARATPOR_HPP
+#ifndef INTCONSTANTCOMPARATOR_HPP
+#define INTCONSTANTCOMPARATOR_HPP
 #include "../Operator.hpp"
 
 
+
 namespace flopoco{
-	class IntComparator : public Operator{
+	class IntConstantComparator : public Operator{
 	public:
 		/**
-		 * The IntComparator constructor
+		 * The IntConstantComparator constructor
 		 * @param[in]		parentOp	parent operator in the instance hierarchy
 		 * @param[in]		target		target device
 		 * @param[in]		w				  input width
 		 * @param[in]		flags			if bit 0 set, output  X<Y, if bit 1 set, X=Y, if bit 2 set, X>Y
 		 */
-		IntComparator(OperatorPtr parentOp, Target* target, int w, int flags=7, int method=-1);
+		IntConstantComparator(OperatorPtr parentOp, Target* target, int w, mpz_class c, int flags=7, int method=-1);
 
 		/**
-		 * IntComparator destructor
+		 * IntConstantComparator destructor
 		 */
-		~IntComparator();
+		~IntConstantComparator();
 
 		/** Factory method that parses arguments and calls the constructor */
 		static OperatorPtr parseArguments(OperatorPtr parentOp, Target *target , vector<string> &args);
@@ -38,10 +39,15 @@ namespace flopoco{
 	private:
 		/** bit width */
 		int w;
-		/** cmpflags, see flopoco doc */
+
+		/** cmpflags bit 0: <   bit 1: =  bit 2: >  */
 		int flags;
-		/** method, see flopoco doc */
+		
+		/** method */
 		int method;
+
+		/** the constant to compare to */
+		mpz_class mpC;
 	};
 }
 #endif

@@ -56,54 +56,38 @@ namespace flopoco{
 		if(flags&2) addOutput("XeqY");
 		if(flags&4) addOutput("XgtY");
 
+		int chunkSize;
 
 
-		if (method==0 || method ==1) {
-			// determine if we have to split the input to reach the target frequency
-			
-			double targetPeriod = 1.0/getTarget()->frequency() - getTarget()->ffDelay();
-			// What is the maximum lexicographic time of our inputs?
-			int maxCycle;
-			double maxCP;
-			getIOMaxLexicographicTime(maxCycle, maxCP);
-			double totalPeriod;
-			if(flags==2){ // equality test only
-				totalPeriod = maxCP + getTarget()->eqComparatorDelay(w);
+		if (method==0 || method ==1 || method ==3) {
+			if(getTarget()->plainVHDL()) {
+				chunkSize=w;
 			}
-			else { // at least one lt or gt
-				totalPeriod = maxCP + getTarget()->ltComparatorDelay(w);
+			else if (method == 3) {
+				chunkSize = (int) ceil(sqrt(w));
 			}
+			else {
+				// determine if we have to split the input to reach the target frequency
+				double targetPeriod = 1.0/getTarget()->frequency() - getTarget()->ffDelay();
+				// What is the maximum lexicographic time of our inputs?
+				int maxCycle;
+				double maxCP;
+				getIOMaxLexicographicTime(maxCycle, maxCP);
+				double totalPeriod;
+				if(flags==2){ // equality test only
+					totalPeriod = maxCP + getTarget()->eqComparatorDelay(w);
+				}
+				else { // at least one lt or gt
+					totalPeriod = maxCP + getTarget()->ltComparatorDelay(w);
+				}
 			
-			REPORT(DETAILED, "maxCycle=" << maxCycle <<  "  maxCP=" << maxCP <<  "  totalPeriod=" << totalPeriod <<  "  targetPeriod=" << targetPeriod );
-#if 0
-			
-			int chunks=0; // optimistic case
-			vector<int> chunkSizes;		
-			int coveredSize=0;	
-			while(coveredSize<w) {
-				chunks++;
-				int chunkSize=1;
+				REPORT(DETAILED, "maxCycle=" << maxCycle <<  "  maxCP=" << maxCP <<  "  totalPeriod=" << totalPeriod <<  "  targetPeriod=" << targetPeriod );
+				chunkSize=1;
 				while (maxCP + (flags==2?getTarget()->eqComparatorDelay(chunkSize):getTarget()->ltComparatorDelay(chunkSize)) < targetPeriod)
 					chunkSize++;
 				chunkSize--;
-				if(coveredSize+chunkSize>w) {
-					chunkSize = w-coveredSize;
-				}
-				coveredSize += chunkSize;
-				chunkSizes.push_back(chunkSize);
-				maxCP=0; // after the first chunk
+				REPORT(DETAILED, "The first level must be split in chunks of " << chunkSize << " bits");
 			}
-			REPORT(DETAILED, "Found " << chunks << " chunks");
-			for (int i=0; i<chunks; i++) {
-				REPORT(DETAILED, "   chunk " <<i << " : " << chunkSizes[i] << " bit");
-			}
-#else
-			int chunkSize=1;
-			while (maxCP + (flags==2?getTarget()->eqComparatorDelay(chunkSize):getTarget()->ltComparatorDelay(chunkSize)) < targetPeriod)
-				chunkSize++;
-			chunkSize--;
-			REPORT(DETAILED, "The first level must be split in chunks of " << chunkSize << " bits");
-
 			int coveredSize=0;	
 			vector<int> chunkSizes;		
 			while(coveredSize<w) {
@@ -116,7 +100,6 @@ namespace flopoco{
 				}
 			}
 			
-#endif
 			if(chunkSizes.size() == 1)		{
 				if(flags&1) vhdl << tab << declare(getTarget()->ltComparatorDelay(w), "XltYi") << " <= '1' when X<Y else '0';"<<endl;
 				if(flags&2) vhdl << tab << declare(getTarget()->eqComparatorDelay(w), "XeqYi") << " <= '1' when X=Y else '0';"<<endl;
@@ -125,7 +108,8 @@ namespace flopoco{
 						vhdl << tab << declare(getTarget()->ltComparatorDelay(w), "XgtYi") << " <= '1' when X>Y else '0';"<<endl;
 					}
 					else{ // compute gt out of lt and eq
-						vhdl << tab << declare(getTarget()->logicDelay(), "XgtYi") << " <= not (XeqYi or XltYi);"<<endl;
+						vhdl << tab << declare( // getTarget()->logicDelay(), // almost surely fused by the optimizer
+																	 "XgtYi") << " <= not (XeqYi or XltYi);"<<endl;
 					}
 				}
 			}
@@ -201,7 +185,7 @@ namespace flopoco{
 				vhdl << tab << declare("C_" + to_string(i) + "_" + to_string(i), 2)
 						 << " <= " << "X" << of(i) << " & "  <<  "Y" << of(i) <<  ";"<<endl;
 			}
-			// padding to the next power of two
+			REPORT(DETAILED, "padding to the next power of two");
 			int j=1 << intlog2(w); // next power of two
 			for(int i=w; i<j; i++) {
 				vhdl << tab << declare("C_" + to_string(i) + "_" + to_string(i), 2)
@@ -213,6 +197,7 @@ namespace flopoco{
 			int stride=1; // invariant stride=2^level
 			string Cd; // it needs to exit the loop
 			while (stride<w) { // need to add one more level
+				REPORT(DETAILED, "level=" << level);
 				level+=1;
 				stride *= 2;
 				for(int i=0; i<w; i+=stride) {
@@ -277,12 +262,15 @@ namespace flopoco{
 		if(index==-1) 
 		{ // The unit tests
 
-			for(int w=4; w<1000; w+=300) { // 4 is an exhaustive test. The others test the decomposition in chunks
+			for(int w=4; w<1000; w+=(w<10?1:300)) { // 4 is an exhaustive test. The others test the decomposition in chunks
 				for(int flags=1; flags<8; flags++) { // 5 is an exhaustive test. The others test the decomposition in chunks
-					paramList.push_back(make_pair("w",to_string(w)));
-					paramList.push_back(make_pair("flags",to_string(flags)));
-					testStateList.push_back(paramList);
-					paramList.clear();
+					for(int method=0; method<(w<100?3:2); method++) { // 5 is an exhaustive test. The others test the decomposition in chunks
+						paramList.push_back(make_pair("w",to_string(w)));
+						paramList.push_back(make_pair("flags",to_string(flags)));
+						paramList.push_back(make_pair("method",to_string(method)));
+						testStateList.push_back(paramList);
+						paramList.clear();
+					}
 				}
 			}
 		}
@@ -303,8 +291,8 @@ namespace flopoco{
 			"", //seeAlso
 			"w(int): size in bits of integers to be compared;\
 			flags(int)=7: if bit 0 set output  X<Y, if bit 1 set output X=Y, if bit 2 set output  X>Y;\
-			method(int)=-1: method to be used, for experimental purpose (-1: automatic, 0: symmetric plain VHDL, 1: asymmetric plain VHDL where gt is computed out of lt and eq, 2: binary tree);",
-			"Outputs up to 3 mutually exclusive signals:  XltY (less than, strictly), XeqY (equal), XsgtY (greater than, strictly)",
+			method(int)=-1: method to be used, for experimental purpose (-1: automatic, 0: symmetric, 1: asymmetric where gt is computed out of lt and eq, 2: binary tree, 3: two-level minimum latency);",
+			"Outputs up to 3 mutually exclusive signals:  XltY (less than, strictly), XeqY (equal), XgtY (greater than, strictly)",
 			IntComparator::parseArguments,
 			IntComparator::unitTest
 			) ;

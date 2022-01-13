@@ -13,7 +13,7 @@ namespace flopoco{
 		 * @param[in]		wE				with of the exponent
 		 * @param[in]		wF				with of the fraction
 		 */
-		FPComparator(OperatorPtr parentOp, Target* target, int wE, int wF);
+		FPComparator(OperatorPtr parentOp, Target* target, int wE, int wF, int flags=31, int method=-1);
 
 		/**
 		 * FPComparator destructor
@@ -40,6 +40,10 @@ namespace flopoco{
 		int wE;
 		/** bit width of the fraction */
 		int wF;
+		/** cmpflags, see flopoco doc */
+		int flags;
+		/** method, see flopoco doc */
+		int method;
 	};
 }
 #endif
