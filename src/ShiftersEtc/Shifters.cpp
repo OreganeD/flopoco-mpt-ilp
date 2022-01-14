@@ -160,7 +160,7 @@ namespace flopoco{
 						vhdl << tab << declare(levelDelay,
 																	 nextLevelName.str(),wX+intpow2(currentLevel+1)-1 )
 								 <<" <=  ("<<intpow2(currentLevel)-1 <<" downto 0 => " << padbit << ") & "<<currentLevelName.str()<<" when ps";
-						if (wShiftIn > 1)
+//						if (wShiftIn > 1) //this doesn't make sense as ps is allways a vector
 							vhdl << "(" << currentLevel << ")";
 						vhdl << " = '1' else "
 								 << tab << currentLevelName.str() <<" & ("<<intpow2(currentLevel)-1<<" downto 0 => '0');"<<endl;
@@ -172,7 +172,7 @@ namespace flopoco{
 						else {
 							vhdl << tab << declare(levelDelay, nextLevelName.str(),wX+intpow2(currentLevel+1)-1 )
 									 << "<= " << currentLevelName.str() << " & ("<<intpow2(currentLevel)-1 <<" downto 0 => '0') when ps";
-							if (wShiftIn>1)
+//							if (wShiftIn>1) //this doesn't make sense as ps is allways a vector
 								vhdl << "(" << currentLevel<< ")";
 							vhdl << "= '1' else "
 									 << tab <<" ("<<intpow2(currentLevel)-1<<" downto 0 => "  << padbit << ") & "<< currentLevelName.str() <<";"<<endl;
