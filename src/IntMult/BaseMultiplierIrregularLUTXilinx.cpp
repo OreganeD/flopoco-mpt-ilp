@@ -126,7 +126,7 @@ namespace flopoco
                 if(0 <= raw_result && raw_result & (1<<i) && pmsb < i) pmsb = i;
                 if(raw_result & (1<<i) && i < lsb) lsb = i;
             }
-            if(nmsb <= pmsb) nmsb = pmsb + 1;
+            if(nmsb <= pmsb && (isSignedX || isSignedY)) nmsb = pmsb + 1;
             msb = max(nmsb, pmsb);
             //cout << " lsb=" << lsb << " msb=" << msb << endl;
         }
