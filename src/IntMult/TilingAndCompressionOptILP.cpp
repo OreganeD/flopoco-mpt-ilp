@@ -145,7 +145,7 @@ void TilingAndCompressionOptILP::solve()
 
         parseTilingSolution(optTruncNumericErr);
 
-    } while(performOptimalTruncation && (wOut < (int)prodWidth) && !checkTruncationError(TilingStrategy::solution, guardBits, eBudget, centerErrConstant) && 0 < optTruncNumericErr);
+    } while(performOptimalTruncation && (wOut < (int)prodWidth)  && eBudget+centerErrConstant < IntMultiplier::checkTruncationError(TilingStrategy::solution, guardBits, eBudget, centerErrConstant, wX, wY, signedIO) && 0 < optTruncNumericErr);
 
 #endif
 }
@@ -257,7 +257,7 @@ void TilingAndCompressionOptILP::constructProblem(int s_max)
 
     vector<ScaLP::Term> bitsinColumn(prodWidth + 1);
     vector<vector<vector<ScaLP::Variable>>> solve_Vars(wS, vector<vector<ScaLP::Variable>>(wX+x_neg, vector<ScaLP::Variable>(wY+y_neg)));
-    ScaLP::Term maxEpsTerm, constVecTerm;
+    ScaLP::Term maxEpsTerm, minEpsTerm, constVecTerm;
     // add the Constraints
     cout << "   adding the constraints to problem formulation..." << endl;
     for(int y = 0; y < wY; y++){
@@ -306,8 +306,13 @@ void TilingAndCompressionOptILP::constructProblem(int s_max)
                 stringstream nvarName;
                 nvarName << " b" << setfill('0') << setw(dpX) << x << setfill('0') << setw(dpY) << y;
                 ScaLP::Variable tempV = ScaLP::newBinaryVariable(nvarName.str());
-                maxEpsTerm.add(tempV, (-1LL) * (1LL << (x + y)));
-                maxEpsTerm.add(1ULL << (x + y));
+                if(signedIO && (wX-1 == x || wY-1 == y)){
+                    minEpsTerm.add(tempV, (+1LL) * (1LL << (x + y)));
+                    minEpsTerm.add((-1LL) << (x + y));
+                } else {
+                    maxEpsTerm.add(tempV, (-1LL) * (1LL << (x + y)));
+                    maxEpsTerm.add(1ULL << (x + y));
+                }
 
                 c1Constraint = pxyTerm - tempV == 0;
             } else if(!performOptimalTruncation && (wOut < (int)prodWidth) && ((x + y) < (int)(prodWidth - wOut - guardBits))){
@@ -393,12 +398,20 @@ void TilingAndCompressionOptILP::constructProblem(int s_max)
         solver->addConstraint(cLimConstraint);
 
         //Limit the error budget
-        //cout << "  maxErr=" << errorBudget << endl;
-        ScaLP::Constraint truncConstraint = maxEpsTerm - Cvar < errorBudget;
-        stringstream consName;
-        consName << "maxEps";
-        truncConstraint.name = consName.str();
-        solver->addConstraint(truncConstraint);
+        cout << "  maxErr=" << errorBudget << endl;
+        ScaLP::Constraint maxErrConstraint = maxEpsTerm - Cvar < errorBudget;
+        stringstream maxErrName;
+        maxErrName << "maxEps";
+        maxErrConstraint.name = maxErrName.str();
+        solver->addConstraint(maxErrConstraint);
+
+        //Limit the error budget
+        cout << "  minErr=" << errorBudget << endl;
+        ScaLP::Constraint minErrConstraint = -minEpsTerm + Cvar < errorBudget;
+        stringstream minErrName;
+        minErrName << "minEps";
+        minErrConstraint.name = minErrName.str();
+        solver->addConstraint(minErrConstraint);
     }
     //Add rounding bit to constant vector
     if(wOut < (int)prodWidth) constVecTerm.add((double)( 1ULL << (prodWidth-wOut-1)));
