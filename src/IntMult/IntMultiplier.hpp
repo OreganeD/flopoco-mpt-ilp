@@ -196,6 +196,8 @@ namespace flopoco {
         static unsigned additionalError_p(unsigned int wX, unsigned int wY, unsigned int col, unsigned int t, unsigned int wFull, bool signedIO);
 
         static mpz_class calcErcConst(mpz_class &errorBudget, mpz_class &wlext, mpz_class &deltap, mpz_class constant=1);
+
+        void createFigures(TilingStrategy *tilingStrategy) const;
     };
 
 }

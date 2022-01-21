@@ -44,7 +44,7 @@ namespace flopoco {
         srcFileName = "IntMultiplier";
         setCopyrightString("Martin Kumm, Florent de Dinechin, Kinga Illyes, Bogdan Popa, Bogdan Pasca, 2012");
 
-        ostringstream name;
+        ostringstream name, trunc_info;
         name << "IntMultiplier";
         setNameWithFreqAndUID(name.str());
 
@@ -54,23 +54,23 @@ namespace flopoco {
         multiplierUid = parentOp->getNewUId();
         wFullP = prodsize(wX, wY, signedIO_, signedIO_);
 
-        if (wOut == 0)
-            wOut = prodsize(wX, wY, signedIO_, signedIO_);
+        if (wOut == 0 || wFullP < wOut)
+            wOut = wFullP;
 
         unsigned int guardBits = 0, keepBits = 0;
         mpz_class errorBudget = 0, centerErrConstant = 0;
-        if(wFullP - wOut){
+        if(wOut < wFullP){  //check if multiplier is truncated
             if(signedIO_){
                 computeTruncMultParamsMPZ(wFullP, wOut, guardBits, keepBits, errorBudget, centerErrConstant);
             }else{
                 computeTruncMultParamsMPZunsigned(wFullP, wOut, guardBits, keepBits, errorBudget, centerErrConstant);
             }
+            trunc_info << " faithfully rounded to wOut=" << wOut << " bits. Will use " << guardBits << " guard and " << keepBits <<
+                        " keep bits. The error budget is " << errorBudget << " and the error re-centering constant " << centerErrConstant;
         }
-        //cout << " guardBits=" << guardBits << " keepBits=" << keepBits << " errorBudget=" << errorBudget << " centerErrConstant=" << centerErrConstant << endl;
 
         REPORT(INFO, "IntMultiplier(): Constructing a multiplier of size " <<
-					wX << "x" << wY << " faithfully rounded to bit " << wOut <<
-					". Will use " << guardBits << " guard bits and DSP threshhold of " << dspOccupationThreshold)
+        wX << "x" << wY << ((wOut < wFullP)?trunc_info.str():"") << ", using a DSP threshold of " << dspOccupationThreshold << ".")
 
 		string xname="X";
 		string yname="Y";
@@ -98,14 +98,10 @@ namespace flopoco {
         unsigned bitHeapLSBWeight = 0;
 
 		REPORT(INFO, "Creating BaseMultiplierCollection")
-//		BaseMultiplierCollection baseMultiplierCollection(parentOp->getTarget(), wX, wY);
 		BaseMultiplierCollection baseMultiplierCollection(getTarget());
-
 //		baseMultiplierCollection.print();
 
-
 		MultiplierTileCollection multiplierTileCollection(getTarget(), &baseMultiplierCollection, wX, wY, superTiles, use2xk, useirregular, useLUT, useDSP, useKaratsuba, squarer);
-
 
 		string tilingMethod = getTarget()->getTilingMethod();
 
@@ -238,35 +234,8 @@ namespace flopoco {
         tilingStrategy->printSolution();
 		auto solLen = solution.size();
 		REPORT(DETAILED, "Found solution has " << solLen << " tiles")
-		if (target_->generateFigures()) {
-			ofstream texfile;
-			texfile.open("multiplier_tiling.tex");
-			if ((texfile.rdstate() & ofstream::failbit) != 0) {
-				cerr << "Error when opening multiplier_tiling.tex file for output. Will not print tiling configuration."
-					 << endl;
-			} else {
-				tilingStrategy->printSolutionTeX(texfile, wOut, false);
-				texfile.close();
-			}
-
-			texfile.open("multiplier_tiling.svg");
-			if ((texfile.rdstate() & ofstream::failbit) != 0) {
-				cerr << "Error when opening multiplier_tiling.svg file for output. Will not print tiling configuration."
-					 << endl;
-			} else {
-				tilingStrategy->printSolutionSVG(texfile, wOut, false);
-				texfile.close();
-			}
-
-			texfile.open("multiplier_shape.tex");
-			if ((texfile.rdstate() & ofstream::failbit) != 0) {
-				cerr << "Error when opening multiplier_shape.tex file for output. Will not print tiling configuration."
-					 << endl;
-			} else {
-				tilingStrategy->printSolutionTeX(texfile, wOut, true);
-				texfile.close();
-			}
-		}
+		if (target_->generateFigures())
+            createFigures(tilingStrategy);
 
 		schedule();
 
@@ -288,7 +257,7 @@ namespace flopoco {
                 if (bitstate) {
                     bitHeap.addConstantOneBit(i - (wFullP - wOut - guardBits));
                     REPORT(DEBUG,  "Adding constant bit with weight=" << i << " BitHeap col=" << i - (wFullP - wOut - guardBits) << "to recenter the truncation error at 0");
-                    cout << "height at pos " << i - (wFullP - wOut - guardBits) << ": " << bitHeap.getColumnHeight( i - (wFullP - wOut - guardBits)) << endl;
+                    //cout << "height at pos " << i - (wFullP - wOut - guardBits) << ": " << bitHeap.getColumnHeight( i - (wFullP - wOut - guardBits)) << endl;
                 }
                 i++;
             } while(colweight <= centerErrConstant);
@@ -297,7 +266,7 @@ namespace flopoco {
         branchToBitheap(&bitHeap, solution, bitHeapLSBWeight);
 
 		if (dynamic_cast<CompressionStrategy*>(tilingStrategy)) {
-			std::cout << "Class is derived from CompressionStrategy, passing result for compressor tree.\n";
+		    REPORT(DEBUG,  "Class is derived from CompressionStrategy, passing result for compressor tree.");
 			bitHeap.startCompression(dynamic_cast<CompressionStrategy*>(tilingStrategy));
 		} else {
 			bitHeap.startCompression();
@@ -363,7 +332,7 @@ namespace flopoco {
             deltan = delta_n_new;
             deltap = delta_p_new;
             constant = constant_new;
-            printf("l_ext=%2i, t=%2i, deltap=%lu, deltan=%lu, wlext=%lu, wlextpe=%lu, C=%lu\n", l_ext, t, deltap.get_ui(), deltan.get_ui(), wlext.get_ui(), wlextpe.get_ui(), constant.get_ui());
+            //printf("l_ext=%2i, t=%2i, deltap=%lu, deltan=%lu, wlext=%lu, wlextpe=%lu, C=%lu\n", l_ext, t, deltap.get_ui(), deltan.get_ui(), wlext.get_ui(), wlextpe.get_ui(), constant.get_ui());
             if(widthOfDiagonalOfRect(wX, wY, l_ext+1, wFull) <= t){
                 t = 0, l_ext++;
                 wlext = wlextpe;
@@ -374,12 +343,12 @@ namespace flopoco {
             constant_new = calcErcConst(errorBudget, wlext, delta_p_new, constant);
         }
 
-        cout << "posTruncError=" << deltap << " negTruncError=" << deltan << endl;
+        //cout << "posTruncError=" << deltap << " negTruncError=" << deltan << endl;
 
         g = l_P - l_ext;
         k = widthOfDiagonalOfRect(wX,wY,l_ext+1,wFull) - t;
-        printf("w=%2i, l_ext=%i, t=%i, g=%i, k=%i, ", wX, l_ext, t, g, k);
-        cout << "errorBudget=" << errorBudget << ", C=" << constant << endl;
+        //printf("w=%2i, l_ext=%i, t=%i, g=%i, k=%i, ", wX, l_ext, t, g, k);
+        //cout << "errorBudget=" << errorBudget << ", C=" << constant << endl;
     }
 
     mpz_class IntMultiplier::calcErcConst(mpz_class &errorBudget, mpz_class &wlext, mpz_class &deltap, mpz_class constant){
@@ -394,7 +363,7 @@ namespace flopoco {
     unsigned IntMultiplier::additionalError_n(unsigned wX, unsigned wY, unsigned col, unsigned t, unsigned wFull, bool signedIO){
         unsigned nvals = negValsInDiagonalOfRect(wX, wY, col + 1, wFull, signedIO);
         unsigned diagl = widthOfDiagonalOfRect(wX, wY, col + 1, wFull);
-        if( !(nvals && ( t == 1 && wX - 1 <= col || t == diagl && wY - 1 <= col) ) && !(nvals == 2 && t == diagl) ) return 1;
+        if( !(nvals && ( (t == 1 && wX - 1 <= col) || (t == diagl && wY - 1 <= col)) ) && !(nvals == 2 && t == diagl) ) return 1;
         return 0;
     }
 
@@ -402,7 +371,7 @@ namespace flopoco {
         unsigned nvals = negValsInDiagonalOfRect(wX, wY, col + 1, wFull, signedIO);
         unsigned diagl = widthOfDiagonalOfRect(wX, wY, col + 1, wFull);
         //cout << "nvals=" << nvals << " diag=" << diagl << " " << (nvals && ( t == 1 && wX - 1 <= col || t == diagl && wY - 1 <= col) ) << endl;
-        if( nvals && ( t == 1 && wX - 1 <= col || t == diagl && wY - 1 <= col) ) return 1;
+        if( nvals && ( (t == 1 && wX - 1 <= col) || (t == diagl && wY - 1 <= col)) ) return 1;
         if( nvals == 2 && t == diagl) return 1;
         return 0;
     }
@@ -432,8 +401,8 @@ namespace flopoco {
         constant = errorBudget - wlext;                                         //2^(l_P-1) - 2^(l_ext+1)
         g = l_P - l_ext;
         k = widthOfDiagonalOfRect(wX,wY,l_ext+1,wFull) - t;
-        printf("w=%2i, l_ext=%i, t=%i, g=%i, k=%i, ", wX, l_ext, t, g, k);
-        cout << "errorBudget=" << errorBudget << ", C=" << constant << endl;
+        //printf("w=%2i, l_ext=%i, t=%i, g=%i, k=%i, ", wX, l_ext, t, g, k);
+        //cout << "errorBudget=" << errorBudget << ", C=" << constant << endl;
     }
 
     unsigned int IntMultiplier::widthOfDiagonalOfRect(unsigned wX, unsigned wY, unsigned col, unsigned wFull, bool signedIO){
@@ -977,8 +946,8 @@ namespace flopoco {
             int xPos = anchor.first;
             int yPos = anchor.second;
 
-            for(int x = (0 <= xPos)?xPos:0; x < (int)((xPos + parameters.getTileXWordSize() < wX)?xPos + parameters.getTileXWordSize():wX); x++){
-                for(int y = (0 <= yPos)?yPos:0; y < (int)((yPos + parameters.getTileYWordSize() < wY)?yPos + parameters.getTileYWordSize():wY); y++){
+            for(int x = (0 <= xPos)?xPos:0; x < (int)((xPos + (int)parameters.getTileXWordSize() < wX)?xPos + parameters.getTileXWordSize():wX); x++){
+                for(int y = (0 <= yPos)?yPos:0; y < (int)((yPos + (int)parameters.getTileYWordSize() < wY)?yPos + parameters.getTileYWordSize():wY); y++){
                     if( parameters.shapeValid(x-xPos,y-yPos) || parameters.isSquarer() ){
                         if(1 < std::abs(parameters.getTilingWeight())){
                             mulAreaI[x][y] = mulAreaI[x][y] + ((0 <= parameters.getTilingWeight())?1:(-1));
@@ -1068,5 +1037,35 @@ namespace flopoco {
         cout << "min req weight is=" << col << endl;
         return col;
     }
+
+    void IntMultiplier::createFigures(TilingStrategy *tilingStrategy) const {
+	    ofstream texfile;
+	    texfile.open("multiplier_tiling.tex");
+	    if ((texfile.rdstate() & ofstream::failbit) != 0) {
+	        cerr << "Error when opening multiplier_tiling.tex file for output. Will not print tiling configuration."
+	        << endl;
+	    } else {
+	        tilingStrategy->printSolutionTeX(texfile, wOut, false);
+	        texfile.close();
+	    }
+
+	    texfile.open("multiplier_tiling.svg");
+	    if ((texfile.rdstate() & ofstream::failbit) != 0) {
+	        cerr << "Error when opening multiplier_tiling.svg file for output. Will not print tiling configuration."
+	        << endl;
+	    } else {
+	        tilingStrategy->printSolutionSVG(texfile, wOut, false);
+	        texfile.close();
+	    }
+
+	    texfile.open("multiplier_shape.tex");
+	    if ((texfile.rdstate() & ofstream::failbit) != 0) {
+	        cerr << "Error when opening multiplier_shape.tex file for output. Will not print tiling configuration."
+	        << endl;
+	    } else {
+	        tilingStrategy->printSolutionTeX(texfile, wOut, true);
+	        texfile.close();
+	    }
+	}
 
 }
