@@ -13,6 +13,4 @@ The intent of the authors is to distribute FloPoCo as free software (in the FSF 
 The build procedure is shown in the installation guide that you can find in doc/web/flopoco_installation.html 
 
 Developers welcome!
-https://gitlab.inria.fr/flopoco/flopoco is only a mirror.
-Actual development happens in https://gitlab.com/flopoco/flopoco
 
