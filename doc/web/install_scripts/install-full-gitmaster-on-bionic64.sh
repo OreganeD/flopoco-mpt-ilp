@@ -8,16 +8,10 @@ BASEDIR=$PWD
 git clone https://github.com/fixif/WCPG.git && cd WCPG && sh autogen.sh && ./configure && make && sudo make install && cd $BASEDIR
 
 #ScaLP -- see the documentation to use other backends than lpsolve
-svn checkout https://digidev.digi.e-technik.uni-kassel.de/home/svn/scalp/ && cd scalp/trunk && mkdir build && cd build && cmake -DUSE_LPSOLVE=ON -DLPSOLVE_LIBRARIES="/usr/lib/lp_solve/liblpsolve55.so" -DLPSOLVE_INCLUDE_DIRS="/usr/include/" .. && make && cd $BASEDIR
+svn checkout https://digidev.digi.e-technik.uni-kassel.de/home/svn/scalp/ && cd scalp/trunk && mkdir build && cd build && cmake -DUSE_LPSOLVE=ON -DLPSOLVE_LIBRARIES="/usr/lib/lp_solve/liblpsolve55.so" -DLPSOLVE_INCLUDE_DIRS="/usr/include/" .. && make && make install && cd $BASEDIR
 
 # PAGSuite for advanced shift-and-add SCM and MCM operators
-svn checkout  https://digidev.digi.e-technik.uni-kassel.de/home/svn/pagsuite/
-
-cd pagsuite/trunk/paglib && mkdir build && cd build && cmake .. && make -j2 && sudo make install  &&  cd $BASEDIR
-
-cd pagsuite/trunk/oscm  && mkdir build && cd build && cmake .. && make -j2 && sudo make install  &&  cd $BASEDIR
-
-cd pagsuite/trunk/rpag  && mkdir build && cd build && cmake .. && make -j2 && sudo make install  &&  cd $BASEDIR
+git clone https://gitlab.com/kumm/pagsuite.git && cd pagsuite && mkdir build && cd build && cmake .. -DSCALP_PREFIX_PATH=$BASEDIR/scalp/trunk/ && make -j2 && sudo make install  &&  cd $BASEDIR
 
 #Finally FloPoCo itself, 
 # If you have a gitlab account replace the following lines
