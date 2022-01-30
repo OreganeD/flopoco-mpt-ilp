@@ -375,7 +375,7 @@ void TilingAndCompressionOptILP::constructProblem(int s_max)
         // C = 2^i*c_i + 2^(i+1)*c_(i+1)...
         ScaLP::Term cTerm;
         vector<ScaLP::Variable> cVars(prodWidth-wOut-1);
-        for(unsigned i = 0; i < prodWidth-wOut-1; i++){
+        for(unsigned i = prodWidth-wOut-guardBits; i < prodWidth-wOut-1; i++){
             stringstream cvarName;
             cvarName << "c" << i;
             //cout << cvarName.str() << endl;
@@ -499,7 +499,7 @@ void TilingAndCompressionOptILP::constructProblem(int s_max)
                 stringstream consName0;
                 consName0 << "C0_" << s << "_" << c;
                 bitsinColumn[c].add(bitsInColAndStage[s][c], -1);      //Add variable to account for the output bits from sub-multipliers
-                if(cvBits[c] != nullptr) bitsinColumn[c].add(cvBits[c], 1);      //Output bits from constant vector
+                if(cvBits[c] != nullptr && c != prodWidth) bitsinColumn[c].add(cvBits[c], 1);      //Output bits from constant vector
                 ScaLP::Constraint c0Constraint = bitsinColumn[c] == 0;     //C0_s_c
                 c0Constraint.name = consName0.str();
                 solver->addConstraint(c0Constraint);
