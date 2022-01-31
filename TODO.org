@@ -144,7 +144,16 @@ Nobody should do this if they have read the Muller book, so... people will try t
 ** move to gitlab
 ** autotest at commit
 ** set up a performance regression test as well
-* Improvements to do, operator by operator
+* Possible improvements, operator by operator
+** Square root
+- table look ups for all the small sizes
+- initialization of the iteration by a table lookup to save the first 5-6 iterations
+- radix 4 version as in ASA book
+- low-latency version using HCRS radix 4
+- resurrect the multiplier-based version of Mioara and Bogdan
+** Division
+- low-latency version using HCRS radix 4 
+- integration of the multiplier-based version
 ** Collision
 *** manage infinities etc
 *** decompose into FPSumOf3Squares and Collision
@@ -166,8 +175,6 @@ ConstMult:
 		
 ** Shifters
 *** provide finer spec, see the TODOs inside Shifter.cpp
-
-General
 
 * Janitoring
 *** replace inPortMap and outPortMap by the modern interface newInstance()
