@@ -2,7 +2,7 @@
 #define FixFunctionByTable_HPP
 #include <vector>
 
-#include "../Table.hpp"
+#include "../Tables/Table.hpp"
 #include "FixFunction.hpp"
 
 namespace flopoco{

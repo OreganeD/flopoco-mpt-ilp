@@ -1,4 +1,13 @@
+find_program(CCACHE_PROGRAM ccache)
+if(CCACHE_PROGRAM)
+	set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_PROGRAM}")
+endif()
+
 PROJECT(FloPoCo C CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 MESSAGE("Trying to build FloPoCo on " ${CMAKE_SYSTEM_NAME} ", compiler is " ${CMAKE_C_COMPILER})
 Message("CMAKE_CURRENT_BINARY_DIR is " ${CMAKE_CURRENT_BINARY_DIR}  ", CMAKE_CURRENT_SOURCE_DIR is " ${CMAKE_CURRENT_SOURCE_DIR})
@@ -8,16 +17,7 @@ if(COMMAND cmake_policy)
   cmake_policy(SET CMP0003 NEW)
 endif(COMMAND cmake_policy)
 
-include(CheckCXXCompilerFlag)
-CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
-CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
-if(COMPILER_SUPPORTS_CXX11)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-elseif(COMPILER_SUPPORTS_CXX0X)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
-else()
-  message(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
-endif()
+
 #####################For packaging (source file distrib so far)#######
 # Use  make package_source to build a release
 # Currently it doesn't work at all
@@ -38,8 +38,6 @@ SET(CMAKE_CXX_FLAGS_DEBUG "-Wall")
 # Do you want an executable of 50MB ?
 #SET(CMAKE_BUILD_TYPE DEBUG)
 #SET(CMAKE_BUILD_TYPE release)
-
-
 
 # Detect GMP / GMPXX
 FIND_PATH(GMPXX_H
@@ -473,6 +471,11 @@ OPTION(BUILD_UNIT_TEST "Build the flopoco unit tests")
 if(BUILD_UNIT_TEST)
 	find_package(Boost 1.55 REQUIRED COMPONENTS unit_test_framework)
 	enable_testing()
+	## Testing Table class
+	add_executable(TableTest_exe tests/Table/Table.cpp)
+	target_link_libraries(TableTest_exe FloPoCoLib ${Boost_LIBRARIES})
+	add_test(TableTest TableTest_exe)
+
 	## Testing Posit format
 	add_executable(NumberFormatTest_exe tests/TestBenches/PositNumber.cpp)
 	target_include_directories(NumberFormatTest_exe PUBLIC ${Boost_INCLUDE_DIR})

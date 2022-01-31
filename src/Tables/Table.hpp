@@ -44,6 +44,9 @@ namespace flopoco{
 		public:
 		/**
 		 * The Table constructor
+		 It is an exception in FloPoCo as there is no corresponding user interface for it, because passing the vector of content on the command line would be a pain.
+		 The proper way to instanciate this component is with newUniqueInstance(), 
+		 or with one of the subclasses of Table which provide a user interface, such as FixFunctionByTable
 		 * @param[in] parentOp 	the parent operator in the component hierarchy
 		 * @param[in] target 		the target device
 		 * @param[in] values 		the values used to fill the table. Each value is a bit vector given as positive mpz_class.
@@ -55,7 +58,7 @@ namespace flopoco{
 	                        	 0 (default): let the constructor decide, depending on the size and target
 		 * @param[in] minIn			minimal input value, to which value[0] will be mapped (default 0)
 		 * @param[in] maxIn			maximal input value (default: values.size()-1)
-		 */ 
+		 */
 		Table(OperatorPtr parentOp, Target* target, vector<mpz_class> _values, string name="",
 					int _wIn = -1, int _wOut = -1, int _logicTable = 0, int _minIn = -1, int _maxIn = -1);
 
@@ -64,14 +67,15 @@ namespace flopoco{
 		virtual ~Table() {};
 
 		/** A function that does the actual constructor work, so that it can be called from operators that overload Table.  See FixFunctionByTable for an example */
-
 		void init(vector<mpz_class> _values, string name="", int _wIn = -1, int _wOut = -1, int _logicTable = 0, int _minIn = -1, int _maxIn = -1);
- 
-	
-		/** get one element of the table */
-	  mpz_class val(int x);
 
-		/** Table has no factory because passing the values vector would be a pain. This replaces it.  
+		/** actual VHDL generation */
+		void generateVHDL();
+
+		/** get one element of the table */
+		mpz_class val(int x);
+
+		/** Table has no factory because passing the values vector would be a pain. This replaces it.
 		 * @param[in] op            The Operator that will be the parent of this Table (usually "this")
 		 * @param[in] actualInput   The actual input name
 		 * @param[in] actualOutput  The actual input name
@@ -80,10 +84,11 @@ namespace flopoco{
 		static OperatorPtr newUniqueInstance(OperatorPtr op,
 																				 string actualInput, string actualOutput,
 																				 vector<mpz_class> values, string name,
-																				 int wIn = -1, int wOut = -1);
+																				 int wIn = -1, int wOut = -1,
+																				 int logicTable=0);
 
 		/** A function that returns an estimation of the size of the table in LUTs. Your mileage may vary thanks to boolean optimization */
-		int size_in_LUTs();
+		int size_in_LUTs() const;
 	private:
 		bool full; 					/**< true if there is no "don't care" inputs, i.e. minIn=0 and maxIn=2^wIn-1 */
 		bool logicTable; 			/**< true: LUT-based table; false: BRAM-based */
@@ -98,19 +103,12 @@ namespace flopoco{
 
 		/** Output width (in bits)*/
 		int wOut;
-		
+
 		/** minimal input value (default 0) */
 		mpz_class minIn;
 
 		/** maximal input value (default 2^wIn-1) */
 		mpz_class maxIn;
-
-		
-
-
-
-
-
 };
 
 }

@@ -7,7 +7,7 @@
 #include <gmpxx.h>
 #include "Target.hpp"
 #include "Operator.hpp"
-#include "Table.hpp"
+#include "Tables/Table.hpp"
 #include "BaseMultiplier.hpp"
 
 namespace flopoco {

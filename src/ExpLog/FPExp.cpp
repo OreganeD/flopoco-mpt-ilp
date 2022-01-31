@@ -1,13 +1,13 @@
 /*
   An FP exponential for FloPoCo
-  
+
   This file is part of the FloPoCo project
   developed by the Arenaire team at Ecole Normale Superieure de Lyon
-  
+
   Author : Florent de Dinechin, Florent.de.Dinechin@ens-lyon.fr
 
   Initial software.
-  Copyright © ENS-Lyon, INRIA, CNRS, UCBL,  
+  Copyright © ENS-Lyon, INRIA, CNRS, UCBL,
   2008-2010.
   All rights reserved.
 
@@ -28,6 +28,7 @@
 #include "FixFunctions/FixFunctionByTable.hpp"
 #include "utils.hpp"
 #include "IntAddSubCmp/IntAdder.hpp"
+#include "Tables/DiffCompressedTable.hpp"
 
 
 using namespace std;
@@ -42,7 +43,7 @@ check the multiplier in the case 8 27: logic only, why?
 
 Pass DSPThreshold to PolyEval
 
-replace the truncated mult and following adder with an FixedMultAdd 
+replace the truncated mult and following adder with an FixedMultAdd
 Clean up poly eval and bitheapize it
 
 
@@ -54,7 +55,7 @@ All the tables could be FixFunctionByTable...
 namespace flopoco{
 
 	//Obsolete ?
-	vector<mpz_class>	FPExp::magicTable(int sizeExpA, int sizeExpZPart, bool storeExpZmZm1) 
+	vector<mpz_class>	FPExp::magicTable(int sizeExpA, int sizeExpZPart, bool storeExpZmZm1)
 		//	DualTable(target, 9, sizeExpA_+sizeExpZPart_, 0, 511),
 	{
 		vector<mpz_class> result;
@@ -71,8 +72,8 @@ namespace flopoco{
 			mpfr_init2(a, wIn);
 			mpfr_init2(one, 16);
 			mpfr_set_d(one, 1.0, GMP_RNDN);
-			mpfr_init2(yh, LARGE_PREC); 
-			mpfr_init2(yl, LARGE_PREC); 
+			mpfr_init2(yh, LARGE_PREC);
+			mpfr_init2(yl, LARGE_PREC);
 
 
 			// First build e^a
@@ -88,15 +89,15 @@ namespace flopoco{
 			mpfr_set_ui(a, x, GMP_RNDN);
 			mpfr_div_2si(a, a, 2*wIn, GMP_RNDN); // now a in [0,1[. 2^-9
 
-			// now build e^z part 
+			// now build e^z part
 
 			mpfr_exp(yl, a, GMP_RNDN); // e^(2^-9 z)
-			if(storeExpZmZm1) 
-				mpfr_sub(yl, yl, a, GMP_RNDN); // e^(2^-9 x) -x 
-			mpfr_sub(yl, yl, one, GMP_RNDN); // e^(2^-9 x) -x -1 or e^(2^-9 x) -1, depending on the case 
-		
-			//now scale to align LSB with expA 
-			mpfr_mul_2si(yl, yl, sizeExpA-1, GMP_RNDN); 
+			if(storeExpZmZm1)
+				mpfr_sub(yl, yl, a, GMP_RNDN); // e^(2^-9 x) -x
+			mpfr_sub(yl, yl, one, GMP_RNDN); // e^(2^-9 x) -x -1 or e^(2^-9 x) -1, depending on the case
+
+			//now scale to align LSB with expA
+			mpfr_mul_2si(yl, yl, sizeExpA-1, GMP_RNDN);
 			mpfr_get_z(l.get_mpz_t(), yl,  GMP_RNDN);
 
 			// debug
@@ -114,7 +115,7 @@ namespace flopoco{
 
 	// All these functions could be removed by calling FixFunctionByTable
 	// it is somehow pedagogical, too
-	vector<mpz_class>	tableExpZm1(int k, int l) // with the notations of the ASA book: l=-wF-g 
+	vector<mpz_class>	tableExpZm1(int k, int l) // with the notations of the ASA book: l=-wF-g
 	{
 		// This table inputs Z in the format (-k-1, l) -- sizeZ and outputs e^Z-1 with LSB l
 		vector<mpz_class> result;
@@ -128,18 +129,18 @@ namespace flopoco{
 			mpfr_init2(mpz, wIn);
 			mpfr_init2(one, 16);
 			mpfr_set_d(one, 1.0, GMP_RNDN);
-			mpfr_init2(mpy, LARGE_PREC); 
+			mpfr_init2(mpy, LARGE_PREC);
 
-			// build z 
+			// build z
 			mpfr_set_ui(mpz, z, GMP_RNDN); // exact
 			mpfr_mul_2si(mpz, mpz, l, GMP_RNDN); // exact
 			// compute its exp
 			mpfr_exp(mpy, mpz, GMP_RNDN); // rounding here
-			//subtract 1 
-			mpfr_sub(mpy, mpy, one, GMP_RNDN); // exact e^z-1 
-		
-			//now scale to an int 
-			mpfr_mul_2si(mpy,mpy, -l, GMP_RNDN); 
+			//subtract 1
+			mpfr_sub(mpy, mpy, one, GMP_RNDN); // exact e^z-1
+
+			//now scale to an int
+			mpfr_mul_2si(mpy,mpy, -l, GMP_RNDN);
 			mpfr_get_z(h.get_mpz_t(), mpy,  GMP_RNDN);
 
 			// debug
@@ -155,10 +156,10 @@ namespace flopoco{
 
 
 
-	vector<mpz_class>	tableExpZmZm1(int k, int p, int l) // with the notations of the ASA book 
+	vector<mpz_class>	tableExpZmZm1(int k, int p, int l) // with the notations of the ASA book
 	{
 		vector<mpz_class> result;
-		int wIn=-k-p; 
+		int wIn=-k-p;
 		for(int x=0; x<(1<<wIn); x++){
 			mpz_class h;
 			mpfr_t mpz, mpy, one;
@@ -166,18 +167,18 @@ namespace flopoco{
 			mpfr_init2(mpz, wIn);
 			mpfr_init2(one, 16);
 			mpfr_set_d(one, 1.0, GMP_RNDN);
-			mpfr_init2(mpy, LARGE_PREC); 
+			mpfr_init2(mpy, LARGE_PREC);
 
-			// build z 
+			// build z
 			mpfr_set_ui(mpz, x, GMP_RNDN);
 			mpfr_div_2si(mpz, mpz, -p, GMP_RNDN);
 			// compute its exp
 			mpfr_exp(mpy, mpz, GMP_RNDN);
-			mpfr_sub(mpy, mpy, one, GMP_RNDN); // e^z-1 
-			mpfr_sub(mpy, mpy, mpz, GMP_RNDN); // e^z-1 -z 
-		
-			//now scale to an int 
-			mpfr_mul_2si(mpy,mpy, -l, GMP_RNDN); 
+			mpfr_sub(mpy, mpy, one, GMP_RNDN); // e^z-1
+			mpfr_sub(mpy, mpy, mpz, GMP_RNDN); // e^z-1 -z
+
+			//now scale to an int
+			mpfr_mul_2si(mpy,mpy, -l, GMP_RNDN);
 			mpfr_get_z(h.get_mpz_t(), mpy,  GMP_RNDN);
 
 			// debug
@@ -207,7 +208,7 @@ namespace flopoco{
 			mpfr_init2(a, wIn);
 			mpfr_set_si(a, xs, GMP_RNDN);
 			mpfr_div_2si(a, a, wIn, GMP_RNDN); // now a in [-1/2, 1/2[
-			mpfr_init2(y, LARGE_PREC); 
+			mpfr_init2(y, LARGE_PREC);
 			mpfr_exp(y, a, GMP_RNDN); // in [0.6, 1.7], MSB position is 0
 
 			mpfr_mul_2si(y, y, wOut-1, GMP_RNDN);
@@ -230,15 +231,15 @@ namespace flopoco{
 
 
 	FPExp::FPExp(
-							 OperatorPtr parentOp, Target* target, 
+							 OperatorPtr parentOp, Target* target,
 							 int wE_, int wF_,
-							 int k_, int d_, int guardBits, bool fullInput   
+							 int k_, int d_, int guardBits, bool fullInput
 							 ):
-		Operator(parentOp, target), 
-		wE(wE_), 
-		wF(wF_), 
-		k(k_), 
-		d(d_), 
+		Operator(parentOp, target),
+		wE(wE_),
+		wF(wF_),
+		k(k_),
+		d(d_),
 		g(guardBits)
 	{
 		// Paperwork
@@ -251,13 +252,13 @@ namespace flopoco{
 		srcFileName="FPExp";
 
 
-		/*  We have the following cases. 
+		/*  We have the following cases.
 
 			 wF is really small. Then Y is small enough that e^Y can be
 			 tabulated in a blockram.  In this case g=2.
-		    
+
 			 10/11 < sizeY < ?? Y is still split into A and Z, but e^Z is simply
-			 tabulated 
+			 tabulated
 
 			 ?? < sizeY <= 26 Y  is small enough that we can use the magic table
 			 + 1-DSP reconstruction 3/
@@ -271,11 +272,11 @@ namespace flopoco{
 			 int sizeY;
 			 int sizeZ;
 			 int sizeExpY;
-			 int sizeExpA; 
+			 int sizeExpA;
 		// The following only useful in the generic case
 			 int sizeZtrunc;
 			 int sizeExpZmZm1;
-		int sizeExpZm1; // 
+		int sizeExpZm1; //
 		int sizeMultIn; // sacrificing accuracy where it costs
 		int blockRAMSize=getTarget()->sizeOfMemoryBlock();
 
@@ -293,8 +294,8 @@ namespace flopoco{
 			REPORT(DETAILED, "Tabulating e^Y in a blockRAM, using " << sizeExpATable << " bits");
 			expYTabulated=true;
 			REPORT(DETAILED, "g=" << g );
-			REPORT(DETAILED, "sizeY=" << sizeY);		
-			REPORT(DETAILED, "sizeExpY=" << sizeExpY);		
+			REPORT(DETAILED, "sizeY=" << sizeY);
+			REPORT(DETAILED, "sizeExpY=" << sizeExpY);
 		}
 		else if (wF<=23) {
 			REPORT(DETAILED, "We will split Y into A and Z, using a table for the Z part");
@@ -303,9 +304,9 @@ namespace flopoco{
 			k=10;
 			sizeY=wF+g;
 			sizeExpY = wF+g+1; // e^Y has MSB weight 1
-			sizeExpA = sizeExpY; 
-			sizeZ = wF+g-k; 
-			sizeExpZm1 = sizeZ+1; // 
+			sizeExpA = sizeExpY;
+			sizeZ = wF+g-k;
+			sizeExpZm1 = sizeZ+1; //
 			sizeMultIn = sizeZ; // sacrificing accuracy where it costs
 			if (sizeZ<=k) {
 				REPORT(DETAILED, "Z is small, simpler table tabulating e^Z-1");
@@ -319,8 +320,8 @@ namespace flopoco{
 				sizeMultIn = sizeZ; // sacrificing accuracy where it costs
 				REPORT(DETAILED, "g=" << g);
 				REPORT(DETAILED, "k=" << k);
-				REPORT(DETAILED, "sizeY=" << sizeY);		
-				REPORT(DETAILED, "sizeExpY=" << sizeExpY);		
+				REPORT(DETAILED, "sizeY=" << sizeY);
+				REPORT(DETAILED, "sizeExpY=" << sizeExpY);
 				REPORT(DETAILED, "sizeZ=" << sizeZ);
 				REPORT(DETAILED, "sizeZtrunc=" << sizeZtrunc);
 				REPORT(DETAILED, "sizeExpZmZm1=" << sizeExpZmZm1);
@@ -355,7 +356,7 @@ namespace flopoco{
 			}
 			else if(k!=0 && d==0) {
 				// The idea here is that if k only was provided then we just do a single polynomial with no further table.
-				d = wF/k; // because Y<2^(-k) hence y^k<2^(-dk)				
+				d = max(wF/k-2, 0) ; // because Y<2^(-k) hence y^k<2^(-dk)				
 				REPORT(DETAILED, "k=" << k << " provided, chosing sensible default for d: d="<<d);
 			}
 			else if(k==0 && d!=0) {
@@ -367,16 +368,16 @@ namespace flopoco{
 			// redefine all the parameters because g depends on the branch
 			sizeY=wF+g;
 			sizeExpY = wF+g+1; // e^Y has MSB weight 1
-			sizeExpA = sizeExpY; 
-			sizeZ = wF+g-k; 
+			sizeExpA = sizeExpY;
+			sizeZ = wF+g-k;
 			sizeZtrunc=wF+g-2*k;
 			sizeExpZmZm1 = wF+g - 2*k +1;
-			sizeExpZm1 = sizeZ+1; // 
+			sizeExpZm1 = sizeZ+1; //
 			sizeMultIn = sizeZ; // sacrificing accuracy where it costs
 			REPORT(DETAILED, "k=" << k << " d=" << d);
 			REPORT(DETAILED, "g=" << g);
-			REPORT(DETAILED, "sizeY=" << sizeY);		
-			REPORT(DETAILED, "sizeExpY=" << sizeExpY);		
+			REPORT(DETAILED, "sizeY=" << sizeY);
+			REPORT(DETAILED, "sizeExpY=" << sizeExpY);
 			REPORT(DETAILED, "sizeZ=" << sizeZ);
 			REPORT(DETAILED, "sizeZtrunc=" << sizeZtrunc);
 			REPORT(DETAILED, "sizeExpZmZm1=" << sizeExpZmZm1);
@@ -388,10 +389,10 @@ namespace flopoco{
 		// nY is in [-1/2, 1/2]
 
 
-		int wFIn; // The actual size of the input 
-		if(fullInput) 
+		int wFIn; // The actual size of the input
+		if(fullInput)
 			wFIn=wF+wE+g;
-		else 
+		else
 			wFIn=wF;
 
 		addFPInput("X", wE, wFIn);
@@ -414,7 +415,7 @@ namespace flopoco{
 		// All this mostly useless now that we have FixReal KCM
 		mpfr_init2(mplog2, 3*(wE+wF+g));	// way too much precision
 		mpfr_log(mplog2, mp2, GMP_RNDN);
-		mpfr_init2(mpinvlog2, sizeFirstKCM);	
+		mpfr_init2(mpinvlog2, sizeFirstKCM);
 		mpfr_div(mpinvlog2, mp1, mplog2, GMP_RNDN);
 		mpfr_mul_2si(mpinvlog2, mpinvlog2, sizeFirstKCM-1, GMP_RNDN); //Exact
 		mpfr_get_z(mpzInvLog2.get_mpz_t(), mpinvlog2, GMP_RNDN);
@@ -464,7 +465,7 @@ namespace flopoco{
 
 		// left shift
 		vhdl << tab  << "-- Partial overflow detection" << endl;
-		int maxshift = wE-2+ wF+g; // maxX < 2^(wE-1); 
+		int maxshift = wE-2+ wF+g; // maxX < 2^(wE-1);
 		vhdl << tab  << declare("maxShift", wE+1) << " <= conv_std_logic_vector(" << maxshift << ", wE+1);  -- wE-2 + wF+g" << endl;
 		vhdl << tab  << declare(getTarget()->adderDelay(wE+1),"overflow0") << " <= not shiftVal(wE+1) when shiftVal(wE downto 0) > maxShift else '0';" << endl;
 
@@ -479,16 +480,16 @@ namespace flopoco{
 		int sizeShiftOut=maxshift + wFIn+1;
 		int sizeXfix = wE-2 +wF+g +1; // still unsigned; msb=wE-1; lsb = -wF-g
 
-		vhdl << tab << declareFixPoint("ufixX", false, wE-2, -wF-g) << " <= " << " unsigned(fixX0" << 
-			range(sizeShiftOut -1, sizeShiftOut- sizeXfix) << 
-			") when resultWillBeOne='0' else " << zg(sizeXfix) <<  ";" << endl;		
+		vhdl << tab << declareFixPoint("ufixX", false, wE-2, -wF-g) << " <= " << " unsigned(fixX0" <<
+			range(sizeShiftOut -1, sizeShiftOut- sizeXfix) <<
+			") when resultWillBeOne='0' else " << zg(sizeXfix) <<  ";" << endl;
 #if 0
 		// TODO here it doesn't match exactly the error analysis in the ASA Book, but it works
-		int lsbXforFirstMult=-3;   
+		int lsbXforFirstMult=-3;
 		int msbXforFirstMult = wE-2;
 		int sizeXMulIn = msbXforFirstMult - lsbXforFirstMult +1; // msb=wE-2, lsb=-3
-		vhdl << tab <<	declare("xMulIn", sizeXMulIn) << " <=  std_logic_vector(ufixX" << 
-			range(sizeXfix-2, sizeXfix - sizeXMulIn-1  ) << 
+		vhdl << tab <<	declare("xMulIn", sizeXMulIn) << " <=  std_logic_vector(ufixX" <<
+			range(sizeXfix-2, sizeXfix - sizeXMulIn-1  ) <<
 			"); -- truncation, error 2^-3" << endl;
 #else
 		int lsbXforFirstMult = -3;
@@ -496,19 +497,19 @@ namespace flopoco{
 		resizeFixPoint("xMulIn", "ufixX", msbXforFirstMult, lsbXforFirstMult);
 #endif
 
-		//***************** Multiplication by 1/log2 to get approximate result ******** 
+		//***************** Multiplication by 1/log2 to get approximate result ********
 
 		newInstance("FixRealKCM",
 								"MulInvLog2",
 								 // unsigned here, the conversion to signed comes later
 								 "signedIn=0 msbIn=" + to_string(msbXforFirstMult)
 								+ " lsbIn=" + to_string(lsbXforFirstMult)
-								+ " lsbOut=0" 
+								+ " lsbOut=0"
 								+ " constant=1/log(2)"
 								+ " targetUlpError=" + to_string(0.5 + 0.12), // we have 0.125 on X, and target is 0.5+0.22
 								"X=>xMulIn",
 								"R=>absK");
-				
+
 
 
 		// Now I have two things to do in parallel: compute K, and compute absKLog2
@@ -526,12 +527,12 @@ namespace flopoco{
 								// unsigned here, the conversion to signed comes later
 								 "signedIn=0 msbIn=" + to_string(wE-1)
 								+ " lsbIn=0"
-								+ " lsbOut=" + to_string(-wF-g) 
+								+ " lsbOut=" + to_string(-wF-g)
 								+ " constant=log(2)"
 								+ " targetUlpError=1.0",
 								"X=>absK",
 								"R=>absKLog2");
-				
+
 
 
 		// absKLog2: msb wE-2, lsb -wF-g
@@ -542,7 +543,7 @@ namespace flopoco{
 				 << " else not (std_logic_vector(ufixX" << range(sizeY-1, 0) << "));"<<endl;
 		vhdl << tab << declare("subOp2",sizeY) << " <= absKLog2" << range(sizeY-1, 0) << " when XSign='1'"
 				 << " else not (absKLog2" << range(sizeY-1, 0) << ");"<<endl;
-		
+
 		newInstance("IntAdder",
 								"theYAdder",
 								"wIn=" + to_string(sizeY),// we know the leading bits will cancel out
@@ -554,16 +555,16 @@ namespace flopoco{
 		vhdl << tab << "-- Now compute the exp of this fixed-point value" <<endl;
 
 
-		
+
 		if(expYTabulated) {
-			
+
 #if 0 // both work, not sure which is the simplest to read
 			// tabulate e^Y with Y in sfix(-1, -wF-g) ie in -0.5, 0.5.
 			newInstance("FixFunctionByTable",
 									"ExpYTable",
 									"f=exp(2*x) signedIn=true lsbIn=" + to_string(-wF-g) + " lsbOut="+to_string(-wF-g),
 									"X=>Y",
-									"Y=>expY");			
+									"Y=>expY");
 
 #else
 			vector<mpz_class> expYTableContent = ExpATable(sizeY, sizeExpY);
@@ -577,14 +578,27 @@ namespace flopoco{
 		else{ // expY not plainly tabulated, splitting it into A and Z
 			vhdl << tab << declare("A", k) << " <= Y" << range(sizeY-1, sizeY-k) << ";\n";
 			vhdl << tab << declare("Z", sizeZ) << " <= Y" << range(sizeZ-1, 0) << ";\n";
-			
+
 			vector<mpz_class> expYTableContent = ExpATable(k, sizeExpA); // e^A-1 has MSB weight 1
-			Table::newUniqueInstance(this, "A", "expA",
-															 expYTableContent,
-															 "ExpATable",
-															 k, sizeExpA);
-			
-				
+			if(getTarget()->tableCompression() == false) {
+				Table::newUniqueInstance(this, "A", "expA",
+																 expYTableContent,
+																 "ExpATable",
+																 k, sizeExpA);
+			} else {
+				Table::newUniqueInstance(this, "A", "expARef",
+																 expYTableContent,
+																 "ExpATableRef",
+																 k, sizeExpA);
+				auto op_ptr = reinterpret_cast<DiffCompressedTable*>(
+					DiffCompressedTable::newUniqueInstance(this, "A", "expA",
+																								expYTableContent,
+																								"ExpATable",
+																								k, sizeExpA));
+				op_ptr->report_compression_gain();
+			}
+
+
 
 				//should be				int p = -wF-g+k-1; as in the ASA book  TODO investigate
 				int p = -wF-g+k; // ASA book notation
@@ -598,7 +612,7 @@ namespace flopoco{
 																	 sizeZ+1);
 				}
 
-				else if (useTableExpZmZm1)  { 
+				else if (useTableExpZmZm1)  {
 					vhdl << tab << declare("Ztrunc", sizeZtrunc) << " <= Z" << range(sizeZ-1, sizeZ-sizeZtrunc) << ";\n";
 					vector<mpz_class> expYTableContent = tableExpZmZm1(k, p, -wF-g);
 					Table::newUniqueInstance(this, "Ztrunc", "expZmZm1",
@@ -607,11 +621,11 @@ namespace flopoco{
 																	 -k-p,
 																	 -2*k-wF-g);
 				}
-				
+
 
 
 				else { // generic case, use a polynomial evaluator
-					
+
 					vhdl << tab << declare("Ztrunc", sizeZtrunc) << " <= Z" << range(sizeZ-1, sizeZ-sizeZtrunc) << ";\n";
 					REPORT(LIST, "Generating the polynomial approximation, this may take some time");
 					// We want the LSB value to be  2^(wF+g)
@@ -625,10 +639,10 @@ namespace flopoco{
 											+" d=" + to_string(d),
 											"X=>Ztrunc",
 											"Y=>expZmZm1");
-					
+
 			}// end if table/poly
 
-			// Do we need the adder that adds back Z to e^Z-Zm1? 
+			// Do we need the adder that adds back Z to e^Z-Zm1?
 			if(!useTableExpZm1) {
 				// here we have in expZmZm1 e^Z-Z-1
 				// Alignment of expZmZm10:  MSB has weight -2*k, LSB has weight -(wF+g).
@@ -636,16 +650,16 @@ namespace flopoco{
 				//		sizeExpZmZm1)) << " <= expZmZm1_0" << range(sizeExpY-1,
 				//		sizeExpZmZm1)  << "; -- for debug to check it is always
 				//		0" <<endl;
-				
+
 				vhdl << tab << "-- Computing Z + (exp(Z)-1-Z)" << endl;
 
-				vhdl << tab << declare( "expZm1adderX", sizeExpZm1) << 
+				vhdl << tab << declare( "expZm1adderX", sizeExpZm1) <<
 				" <= '0' & Z;"<<endl;
 
 				int sizeActualexpZmZm1 = getSignalByName("expZmZm1")->width(); // if faithful it will be one bit more... be on the safe size
 				vhdl << tab << declare( "expZm1adderY", sizeExpZm1) << " <= " <<
 					rangeAssign(sizeExpZm1-sizeActualexpZmZm1-1, 0, "'0'") << " & expZmZm1 ;" << endl;
-				
+
 		newInstance("IntAdder",
 								"Adder_expZm1",
 								"wIn=" + to_string(sizeExpZm1),
@@ -682,18 +696,18 @@ namespace flopoco{
 			int sizeProd;
 			sizeProd = sizeMultIn + sizeExpZm1;
 			Operator* lowProd;
-			lowProd = new IntMultiplier(target, sizeMultIn, sizeExpZm1,  
+			lowProd = new IntMultiplier(target, sizeMultIn, sizeExpZm1,
 			                            0,  // untruncated
 			                            false  /*unsigned*/
 			                            );
 			addSubComponent(lowProd);
-			
+
 			inPortMap(lowProd, "X", "expArounded");
 			inPortMap(lowProd, "Y", "expZm1");
 			outPortMap(lowProd, "R", "lowerProduct");
-			
+
 			vhdl << instance(lowProd, "TheLowerProduct")<<endl;
-			vhdl << tab << declare("extendedLowerProduct",sizeExpY) << " <= (" << rangeAssign(sizeExpY-1, sizeExpY-k+1, "'0'") 
+			vhdl << tab << declare("extendedLowerProduct",sizeExpY) << " <= (" << rangeAssign(sizeExpY-1, sizeExpY-k+1, "'0'")
 			     << " & lowerProduct" << range(sizeProd-1, sizeProd - (sizeExpY-k+1)) << ");" << endl;
 
 
@@ -711,7 +725,7 @@ namespace flopoco{
 											 "R=>lowerProduct");
 
 
-			vhdl << tab << declare("extendedLowerProduct",sizeExpY) << " <= (" << rangeAssign(sizeExpY-1, sizeExpY-k+1, "'0'") 
+			vhdl << tab << declare("extendedLowerProduct",sizeExpY) << " <= (" << rangeAssign(sizeExpY-1, sizeExpY-k+1, "'0'")
 			<< " & lowerProduct" << range(sizeProd-1, 0) << ");" << endl;
 
 #endif
@@ -725,17 +739,17 @@ namespace flopoco{
 									"X=>expA,Y=>extendedLowerProduct",
 									"R=>expY",
 									"Cin=>'0'");
-		
+
 		} // end if(expYTabulated)
 
 
-		// The following is generic normalization/rounding code if we have in expY an approx of exp(y) of size 	sizeExpY 
+		// The following is generic normalization/rounding code if we have in expY an approx of exp(y) of size 	sizeExpY
 		// with MSB of weight 2^1
 		// We start a cycle here
 //		nextCycle();
 
 		vhdl << tab << declare("needNoNorm") << " <= expY(" << sizeExpY-1 << ");" << endl;
-		vhdl << tab << "-- Rounding: all this should consume one row of LUTs" << endl; 
+		vhdl << tab << "-- Rounding: all this should consume one row of LUTs" << endl;
 		vhdl << tab << declare(getTarget()->logicDelay(), "preRoundBiasSig", wE+wF+2)
 		<< " <= conv_std_logic_vector(" << bias << ", wE+2)  & expY" << range(sizeExpY-2, sizeExpY-2-wF+1) << " when needNoNorm = '1'" << endl
 		<< tab << tab << "else conv_std_logic_vector(" << bias-1 << ", wE+2)  & expY" << range(sizeExpY-3, sizeExpY-3-wF+1) << " ;" << endl;
@@ -743,7 +757,7 @@ namespace flopoco{
 		vhdl << tab << declare("roundBit") << " <= expY(" << sizeExpY-2-wF << ")  when needNoNorm = '1'    else expY(" <<  sizeExpY-3-wF << ") ;" << endl;
 		vhdl << tab << declare("roundNormAddend", wE+wF+2) << " <= K(" << wE << ") & K & "<< rangeAssign(wF-1, 1, "'0'") << " & roundBit;" << endl;
 
-		
+
 		newInstance("IntAdder",
 								"roundedExpSigOperandAdder",
 								"wIn=" + to_string(wE+wF+2),
@@ -768,10 +782,10 @@ namespace flopoco{
 		<< tab << tab << "else \"10\" when ofl='1'" << endl
 		<< tab << tab << "else \"00\" when ufl='1'" << endl
 		<< tab << tab << "else \"01\";" << endl;
-		
+
 		vhdl << tab << "R <= Rexn & '0' & roundedExpSig" << range(wE+wF-1, 0) << ";" << endl;
 
-	}	
+	}
 
 	FPExp::~FPExp()
 	{
@@ -790,7 +804,7 @@ namespace flopoco{
 		mpfr_t x, ru,rd;
 		mpfr_init2(x,  1+wF);
 		mpfr_init2(ru, 1+wF);
-		mpfr_init2(rd, 1+wF); 
+		mpfr_init2(rd, 1+wF);
 		fpx.getMPFR(x);
 		mpfr_exp(rd, x, GMP_RNDD);
 		mpfr_exp(ru, x, GMP_RNDU);
@@ -817,54 +831,54 @@ namespace flopoco{
 
 
 
-		tc = new TestCase(this); 
+		tc = new TestCase(this);
 		tc->addFPInput("X", log(2));
 		emulate(tc);
 		tcl->add(tc);
 
-		tc = new TestCase(this); 
+		tc = new TestCase(this);
 		tc->addFPInput("X", FPNumber::plusDirtyZero);
 		emulate(tc);
 		tcl->add(tc);
 
-		tc = new TestCase(this); 
+		tc = new TestCase(this);
 		tc->addFPInput("X", FPNumber::minusDirtyZero);
 		emulate(tc);
 		tcl->add(tc);
 
 
 
-		tc = new TestCase(this); 
+		tc = new TestCase(this);
 		tc->addFPInput("X", 1.0);
 		emulate(tc);
 		tcl->add(tc);
 
-		tc = new TestCase(this); 
+		tc = new TestCase(this);
 		tc->addFPInput("X", 2.0);
 		emulate(tc);
 		tcl->add(tc);
 
-		tc = new TestCase(this); 
+		tc = new TestCase(this);
 		tc->addFPInput("X", 1.5);
 		emulate(tc);
 		tcl->add(tc);
 
-		tc = new TestCase(this); 
+		tc = new TestCase(this);
 		tc->addFPInput("X", -1.0);
 		emulate(tc);
 		tcl->add(tc);
 
-		tc = new TestCase(this); 
+		tc = new TestCase(this);
 		tc->addFPInput("X", -2.0);
 		emulate(tc);
 		tcl->add(tc);
 
-		tc = new TestCase(this); 
+		tc = new TestCase(this);
 		tc->addFPInput("X", -3.0);
 		emulate(tc);
 		tcl->add(tc);
 
-		tc = new TestCase(this); 
+		tc = new TestCase(this);
 		tc->addComment("The largest number whose exp is finite");
 		fx = new FPNumber(wE, wF, FPNumber::largestPositive);
 		fx->getMPFR(x);
@@ -874,16 +888,16 @@ namespace flopoco{
 		// cout << d << endl;
 		// d = mpfr_get_d(y, GMP_RNDN);
 		// cout << d << endl;
-		fy = new FPNumber(wE, wF, y); 
+		fy = new FPNumber(wE, wF, y);
 		tc->addFPInput("X", fy);
 		emulate(tc);
 		tcl->add(tc);
-		delete(fx); 
+		delete(fx);
 
-		tc = new TestCase(this); 
+		tc = new TestCase(this);
 		tc->addComment("The first number whose exp is infinite");
 		mpfr_nextabove(y);
-		fy = new FPNumber(wE, wF, y); 
+		fy = new FPNumber(wE, wF, y);
 		tc->addFPInput("X", fy);
 		emulate(tc);
 		tcl->add(tc);
@@ -892,7 +906,7 @@ namespace flopoco{
 
 
 
-		tc = new TestCase(this); 
+		tc = new TestCase(this);
 		tc->addComment("The last number whose exp is nonzero");
 		fx = new FPNumber(wE, wF, FPNumber::smallestPositive);
 		fx->getMPFR(x);
@@ -904,16 +918,16 @@ namespace flopoco{
 		// d = mpfr_get_d(y, GMP_RNDN);
 		// cout << d << endl;
 
-		fy = new FPNumber(wE, wF, y); 
+		fy = new FPNumber(wE, wF, y);
 		tc->addFPInput("X", fy);
 		emulate(tc);
 		tcl->add(tc);
-		delete(fx); 
+		delete(fx);
 
-		tc = new TestCase(this); 
+		tc = new TestCase(this);
 		tc->addComment("The first number whose exp flushes to zero");
 		mpfr_nextbelow(y);
-		fy = new FPNumber(wE, wF, y); 
+		fy = new FPNumber(wE, wF, y);
 		tc->addFPInput("X", fy);
 		emulate(tc);
 		tcl->add(tc);
@@ -928,11 +942,11 @@ namespace flopoco{
 
 	// One test out of 8 fully random (tests NaNs etc)
 	// All the remaining ones test numbers with exponents between -wF-3 and wE-2,
-	// For numbers outside this range, exp over/underflows or flushes to 1. 
+	// For numbers outside this range, exp over/underflows or flushes to 1.
 
 	TestCase* FPExp::buildRandomTestCase(int i){
 		TestCase *tc;
-		tc = new TestCase(this); 
+		tc = new TestCase(this);
 		mpz_class x;
 		mpz_class normalExn = mpz_class(1)<<(wE+wF+1);
 		mpz_class bias = ((1<<(wE-1))-1);
@@ -970,19 +984,19 @@ namespace flopoco{
 		}
 
 
-	
+
 		TestList FPExp::unitTest(int index)
 		{
 		// the static list of mandatory tests
 			TestList testStateList;
 			vector<pair<string,string>> paramList;
-			
-			if(index==-1) 
+
+			if(index==-1)
 		{ // The unit tests
 
 			// First test with plainVHDL, then with cool multipliers
 			for(int wF=5; wF<53; wF+=1) // test various input widths
-			{ 
+			{
 				int nbByteWE = 6+(wF/10);
 				while(nbByteWE>wF){
 					nbByteWE -= 2;
@@ -990,12 +1004,12 @@ namespace flopoco{
 
 				paramList.push_back(make_pair("wF",to_string(wF)));
 				paramList.push_back(make_pair("wE",to_string(nbByteWE)));
-				paramList.push_back(make_pair("plainVHDL","true")); 
+				paramList.push_back(make_pair("plainVHDL","true"));
 				testStateList.push_back(paramList);
 				paramList.clear();
 			}
 			for(int wF=5; wF<53; wF+=1) // test various input widths
-			{ 
+			{
 				int nbByteWE = 6+(wF/10);
 				while(nbByteWE>wF){
 					nbByteWE -= 2;
@@ -1007,10 +1021,10 @@ namespace flopoco{
 				paramList.clear();
 			}
 		}
-		else     
+		else
 		{
 				// finite number of random test computed out of index
-		}	
+		}
 
 		return testStateList;
 	}

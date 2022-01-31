@@ -1,7 +1,7 @@
 #ifndef COTRAN_TABLES_HPP
 #define COTRAN_TABLES_HPP
 
-#include "../Table.hpp"
+#include "../Tables/Table.hpp"
 #include "../Operator.hpp"
 #include <cmath>
 #include <gmpxx.h>
@@ -16,7 +16,7 @@ namespace flopoco{
 	{
 	public:
 		CotranF1Table(Target* target, int wF, int j, int wE);
-		
+
 		virtual ~CotranF1Table() {}
 
 		virtual mpz_class function(int x);
@@ -25,7 +25,7 @@ namespace flopoco{
 		static int esszero(int wF, int j, int wE);
 		static int addrLen(int wF, int j, int wE);
 		static int dataLen(int wF, int j, int wE);
-	
+
 		int wF;
 		int j;
 		int k;
@@ -38,7 +38,7 @@ namespace flopoco{
 	{
 	public:
 		CotranF2Table(Target* target, int wF, int j);
-		
+
 		virtual ~CotranF2Table() {}
 
 		virtual mpz_class function(int x);
@@ -46,7 +46,7 @@ namespace flopoco{
 	private:
 		static int addrLen(int wF, int j);
 		static int dataLen(int wF, int j);
-	
+
 		int wF;
 		int j;
 		int k;
@@ -58,7 +58,7 @@ namespace flopoco{
 	{
 	public:
 		CotranF3Table(Target* target, int wF, int j);
-		
+
 		virtual ~CotranF3Table() {}
 
 		virtual mpz_class function(int x);
@@ -69,7 +69,7 @@ namespace flopoco{
 		static int begin(int wF, int j);
 		static int end(int wF, int j);
 		double SbArg(int z);
-	
+
 		int wF;
 		int j;
 		int k;

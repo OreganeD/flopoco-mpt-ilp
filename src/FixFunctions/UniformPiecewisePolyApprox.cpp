@@ -25,6 +25,10 @@
 
 */
 #include "UniformPiecewisePolyApprox.hpp"
+#include "Tables/Table.hpp"
+#include "Tables/DiffCompressedTable.hpp"
+
+#include <cassert>
 #include <sstream>
 #include <iomanip>
 #include <limits.h>
@@ -89,7 +93,7 @@ namespace flopoco{
 #endif
 
 
-	
+
 	// split into smaller and smaller intervals until the function can be approximated by a polynomial of degree given by degree.
 	void UniformPiecewisePolyApprox::build()
 	{
@@ -198,7 +202,7 @@ namespace flopoco{
 						if (  (!p->getCoeff(j)->isZero())  &&  (p->getCoeff(j)->MSB > MSB[j])  )
 							MSB[j] = p->getCoeff(j)->MSB;
 					}
-					
+
 					// Now set the MSB and LSB of the zero coefficients, for consistency
 					// This prevents a future crash in this case
 					for (int j=0; j<=degree; j++) {
@@ -209,7 +213,7 @@ namespace flopoco{
 							p->getCoeff(j)->width = MSB[j]-LSB+1;
 						}
 					}
-					
+
 				} // end for loop on i
 
 				if (approxErrorBound < targetAccuracy) {
@@ -282,10 +286,10 @@ namespace flopoco{
 			cout << "} ;" << endl
 					 <<  "\\legend{$C_" << k << "$} ;" << endl;
 		}
-#endif		
+#endif
 	}
 
-	
+
 	mpz_class UniformPiecewisePolyApprox::getCoeffAsPositiveMPZ(int i, int d){
 		BasicPolyApprox* p = poly[i];
 		FixConstant* c = p->getCoeff(d);
@@ -383,7 +387,7 @@ namespace flopoco{
 					coeffSigns[j] = 0;
 				// the following line is probably never useful: if one of the coeff is the unique
 				// negative number that has no positive opposite in two's complement,
-				// then there is nothing to win to convert it to unsigned			 
+				// then there is nothing to win to convert it to unsigned
 				if (poly[i]->getCoeff(j)->getBitVectorAsMPZ() == (mpz_class(1) << (MSB[j]-LSB)))
 					coeffSigns[j] = 0;
 			}
@@ -391,7 +395,7 @@ namespace flopoco{
 		// Currently we just report the constant signs in this class.
 		// Their actual exploitation is delegated to the hardware-generating classes
 	}
-	
+
 
 	void UniformPiecewisePolyApprox::createPolynomialsReport()
 	{
@@ -402,11 +406,11 @@ namespace flopoco{
 				<< "    maxApproxErrorBound=" << approxErrorBound  << "    common coeff LSB="  << LSB);
 
 		totalOutputSize=0;
-		for (int j=0; j<=degree; j++) {
-			int size = MSB[j]-LSB + (coeffSigns[j] == 0);
+		for (size_t j=0; j<=degree; j++) {
+			size_t size = MSB[j]-LSB + (coeffSigns[j] == 0);
 			totalOutputSize += size ;
 			REPORT(INFO,"  Coeff"<<setw(2) << j<<":  signedMSB =" <<setw(3)<< MSB[j]
-						 << (coeffSigns[j]==0? ",  variable sign " : ", constant sign "+string(coeffSigns[j]==1?"+":"-") ) 
+						 << (coeffSigns[j]==0? ",  variable sign " : ", constant sign "+string(coeffSigns[j]==1?"+":"-") )
 						 << "   => stored size ="<<setw(3) << size << " bits"
 						 );
 		}

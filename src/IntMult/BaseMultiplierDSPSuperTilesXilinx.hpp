@@ -9,7 +9,7 @@
 #include "mpfr.h"
 #include "Target.hpp"
 #include "Operator.hpp"
-#include "Table.hpp"
+#include "Tables/Table.hpp"
 #include "BaseMultiplierCategory.hpp"
 
 namespace flopoco {

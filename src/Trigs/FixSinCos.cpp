@@ -193,7 +193,9 @@ namespace flopoco{
 	OperatorPtr FixSinCos::parseArguments(OperatorPtr parentOp, Target *target, vector<string> &args) {
 		int lsb;
 		int method;
+		int wA;
 		// TODO test if wIn!=wOut works for CORDIC
+		UserInterface::parseInt(args, "wA", &wA); 
 		UserInterface::parseInt(args, "lsb", &lsb); 
 		if(lsb>=0) {
 			cerr << " ERROR in FixSinCos::parseArguments: lsb should be negative" << endl<<  UserInterface::getFactoryByName("FixSinCos") -> getFullDoc();
@@ -202,7 +204,7 @@ namespace flopoco{
 		
 		UserInterface::parseInt(args, "method", &method);
 		if(method==0)
-			return new FixSinCosPoly(parentOp, target, lsb);
+			return new FixSinCosPoly(parentOp, target, lsb, wA);
 		else if (method==1)
 			return new FixSinCosCORDIC(parentOp, target, -lsb+1, -lsb+1, 0);  // TODO we want to expose the constructor parameters in the new  interface, so these "-" are a bug
 		else if (method==2)
@@ -216,11 +218,12 @@ namespace flopoco{
 
 	void FixSinCos::registerFactory(){
 		UserInterface::add("FixSinCos", // name
-											 "Computes (1-2^(-w)) sin(pi*x) and (1-2^(-w)) cos(pi*x) for x in -[1,1[, using tables and multipliers.",
+											 "Computes (1-2^(-w)) sin(pi*x) and (1-2^(-w)) cos(pi*x) for x in -[1,1[",
 											 "ElementaryFunctions",
 											 "", // seeAlso
 											 "lsb(int): weight of the LSB of the input and outputs; \
-                        method(int)=0: 0 for table- and mult-based, 1 for traditional CORDIC, 2 for reduced-iteration CORDIC",
+                        method(int)=0: 0 for table- and mult-based, 1 for traditional CORDIC, 2 for reduced-iteration CORDIC; \
+                        wA(int)=0: input size to the table. 0 choses a sensible value matching the target block RAM size.",
 											 "For a fixed-point 2's complement input x in [-1,1[, evaluates (1-2^(lsbIn))*{sin,cos}(pi*x). <br>For more details, see <a href=\"bib/flopoco.html#DinIstSer2013-HEART-SinCos\">this article</a>.",
 											 FixSinCos::parseArguments,
 											 FixSinCos::unitTest

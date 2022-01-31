@@ -16,6 +16,7 @@
 #include <string.h>
 #include <sstream>
 #include <vector>
+#include <cassert>
 #include <cmath> //for abs(double)
 
 #include <gmp.h>
@@ -30,14 +31,21 @@
 #include "FixFunctionByMultipartiteTable.hpp"
 #include "Multipartite.hpp"
 #include "../BitHeap/BitHeap.hpp"
-#include "../Table.hpp"
+#include "../Tables/Table.hpp"
+#include "../Tables/DiffCompressedTable.hpp"
 
 /*
 To replicate the functions used in the 2017 Hsiao paper
+-> good match, only the TIV has one MSB constant 0, I don't know why
+./flopoco FixFunctionByMultipartiteTable f="1/(x+1)-0.5" signedIn=0 lsbIn=-15 lsbOut=-16
 
-./flopoco FixFunctionByMultipartiteTable f="sin(pi/4*x)"  msbOut=-1 lsbIn=-24 lsbOut=-24
-./flopoco FixFunctionByMultipartiteTable f="2^x-1" lsbIn=-16 lsbOut=-15 msbOut=-1 
-./flopoco FixFunctionByMultipartiteTable f="1/(x+1)-0.5" lsbIn=-15 lsbOut=-15 msbOut=-1 
+perfect match with the "MP" lines of table 5
+./flopoco FixFunctionByMultipartiteTable f="sin(pi/4*x)" signedIn=0 lsbIn=-16 lsbOut=-16
+./flopoco FixFunctionByMultipartiteTable f="sin(pi/4*x)" signedIn=0 lsbIn=-24 lsbOut=-24
+(et sur le 24 bits on est bien meilleurs que le résultat HMP !)
+
+absolutely no match
+./flopoco FixFunctionByMultipartiteTable f="2^x-1"       signedIn=0 lsbIn=-16 lsbOut=-15
 
 >
 */
@@ -67,15 +75,15 @@ namespace flopoco
 	 @param[int]	nbTOi_	number of tables which will be created
 	 @param[bool]	signedIn_	true if the input range is [-1,1)
 	 */
-	FixFunctionByMultipartiteTable::FixFunctionByMultipartiteTable(OperatorPtr parentOp, Target *target, string functionName_, int nbTOi_, bool signedIn_, int lsbIn_, int lsbOut_, bool compressTIV_):
-		Operator(parentOp, target), nbTOi(nbTOi_), compressTIV(compressTIV_)
+	FixFunctionByMultipartiteTable::FixFunctionByMultipartiteTable(OperatorPtr parentOp, Target *target, string functionName_, int nbTOi_, bool signedIn_, int lsbIn_, int lsbOut_):
+		Operator(parentOp, target), nbTOi(nbTOi_)
 {
+		compressTIV = target->tableCompression();
 		srcFileName="FixFunctionByMultipartiteTable";
 
 		ostringstream name;
 		name << "FixFunctionByMultipartiteTable_" << getNewUId();
 		setNameWithFreqAndUID(name.str());
-
 		f = new FixFunction(functionName_, signedIn_, lsbIn_, lsbOut_);
 		if(f->signedOut) {
 			THROWERROR("Sorry there is a known bug if the function output can get negative. If this is important to you we will get it fixed of course")
@@ -92,10 +100,11 @@ namespace flopoco
 		addOutput("Y" ,outputSize , 2);
 		useNumericStd();
 
+
 		int sizeMax = f->wOut<<f->wIn; // size of a plain table
 		topTen=vector<Multipartite*>(ten);
 		for (int i=0; i<ten; i++){
-			topTen[i] = new Multipartite(this, f, f->wIn, f->wOut);
+			topTen[i] = new Multipartite(this, f, f->wIn, f->wOut, target);
 			topTen[i]-> totalSize =	sizeMax;
 		}
 
@@ -116,7 +125,7 @@ namespace flopoco
 					REPORT(INFO, "Exploring nbTO=" << nbTOi);
 					buildOneTableError();
 					buildGammaiMin();
-					decompositionFound = enumerateDec(); 
+					decompositionFound = enumerateDec();
 					if(!decompositionFound)
 						REPORT(INFO, "No decomposition found for nbTOi=" << nbTOi << ", stopping search.");
 					nbTOi ++;
@@ -126,7 +135,7 @@ namespace flopoco
 				}
 			}
 			else	{ // nbTOi was given
- 				// build the required tables of errors
+				// build the required tables of errors
 				buildOneTableError();
 				buildGammaiMin();
 				decompositionFound = enumerateDec();
@@ -143,11 +152,11 @@ namespace flopoco
 				if(bestMP->totalSize==sizeMax) { // This is one of the dummy mpts
 					tryAgain=false;
 				}
-				else {						
+				else {
 					REPORT(INFO, "Now running exhaustive test on candidate #" << rank << " :" << endl
 								 << tab << bestMP->descriptionString() << endl
 								 << tab<< bestMP->descriptionStringLaTeX()  );
-					bestMP->mkTables(target);
+					bestMP->mkTables();
 					if (bestMP->exhaustiveTest()) {
 						REPORT(INFO, "... passed, now building the operator");
 						tryAgain = false;
@@ -158,11 +167,11 @@ namespace flopoco
 					}
 				}
 			}
-				
+
 			if(rank==ten || bestMP->totalSize==sizeMax) {
 				REPORT(INFO, "It seems we have to use the safe value of g... starting again");
 				for (int i=0; i<ten; i++){
-					topTen[i]-> totalSize =	sizeMax; 
+					topTen[i]-> totalSize =	sizeMax;
 				}
 				guardBitsSlack ++;
 				//REPORT(0,"guardBitsSlack now " << guardBitsSlack);
@@ -179,26 +188,28 @@ namespace flopoco
 
 		bestMP = topTen[rank];
 
-		REPORT(DEBUG,"Full table dump:" <<endl << bestMP->fullTableDump()); 
-
-		if(bestMP->rho==-1) { // uncompressed TIV
+		REPORT(DEBUG,"Full table dump:" <<endl << bestMP->fullTableDump());
+		vector<mpz_class> mpzTIV;
+		for (auto i : bestMP->tiv) {
+			mpzTIV.push_back(mpz_class((long) i));
+		}
+		if(!target->tableCompression()) { // uncompressed TIV
 			vhdl << tab << declare("inTIV", bestMP->alpha) << " <= X" << range(f->wIn-1, f->wIn-bestMP->alpha) << ";" << endl;
-			vector<mpz_class> mpzTIV;
-			for (auto i : bestMP->tiv)
-				mpzTIV.push_back(mpz_class((long) i));
+
 			Table::newUniqueInstance(this, "inTIV", "outTIV",
-															 mpzTIV, "TIV", bestMP->alpha, f->wOut );
+															 mpzTIV, "TIV", bestMP->alpha, f->wOut+bestMP->guardBits );
 				vhdl << endl;
 		}else
 			{ // Hsiao-compressed TIV
-				vhdl << tab << declare("inATIV", bestMP->rho) << " <= X" << range(f->wIn-1, f->wIn-bestMP->rho) << ";" << endl;
-				vector<mpz_class> mpzaTIV;
-				for (auto i : bestMP->aTIV)
-					mpzaTIV.push_back(mpz_class((long) i));
-				Table::newUniqueInstance(this, "inATIV", "outATIV",
-																 mpzaTIV, "ATIV", bestMP->rho, bestMP->outputSizeATIV );
+				REPORT (INFO, "TIV compression report:" << endl << bestMP->dcTIV.report()); 
+				vhdl << tab << declare("inSSTIV", bestMP->dcTIV.subsamplingIndexSize) << " <= X" << range(f->wIn-1, f->wIn-bestMP->dcTIV.subsamplingIndexSize) << ";" << endl;
+				vector<mpz_class> mpzssTIV;
+				for (auto i : bestMP->ssTIV)
+					mpzssTIV.push_back(mpz_class((long) i));
+				Table::newUniqueInstance(this, "inSSTIV", "outSSTIV",
+																 mpzssTIV, "SSTIV", bestMP->dcTIV.subsamplingIndexSize, bestMP->dcTIV.subsamplingWordSize );
 				vhdl << endl;
-				
+
 				vhdl << tab << declare("inDiffTIV", bestMP->alpha) << " <= X" << range(f->wIn-1, f->wIn-bestMP->alpha) << ";" << endl;
 				vector<mpz_class> mpzDiffTIV;
 				//cerr << " Starting enum"  << endl;
@@ -206,14 +217,14 @@ namespace flopoco
 					mpzDiffTIV.push_back(mpz_class((long) i));
 					//cerr  << " " <<mpz_class((long) i) << endl;
 				}
-				//cerr << "bestMP->outputSizeDiffTIV=" <<bestMP->outputSizeDiffTIV << endl;
+				//cerr << "bestMP->dcTIV.diffWordSize=" <<bestMP->dcTIV.diffWordSize << endl;
 				Table::newUniqueInstance(this, "inDiffTIV", "outDiffTIV",
-																 mpzDiffTIV, "DiffTIV", bestMP->alpha, bestMP->outputSizeDiffTIV );
+																 mpzDiffTIV, "DiffTIV", bestMP->alpha, bestMP->dcTIV.diffWordSize );
 				// TODO need to sign-extend for 1/(1+x), but it makes an error for sin(x)
 				//  getSignalByName("outDiffTIV")->setIsSigned(); // so that it is sign-extended in the bit heap
 				// No need to sign-extend it, it is already taken care of in the construction of the table.
 			}
-		
+
 		int p = 0;
 		for(unsigned int i = 0; i < bestMP->toi.size(); ++i)		{
 			string ai = join("a", i);
@@ -238,17 +249,16 @@ namespace flopoco
 			vhdl << tab << declare(deltai, bestMP->outputSizeTOi[i]+1) << " <= " << trueSign << " & (" <<  outTOi  << " xor " << rangeAssign(bestMP->outputSizeTOi[i]-1,0, trueSign)<< ");" << endl;
 			getSignalByName(deltai)->setIsSigned(); // so that it is sign-extended in the bit heap
 		}
-		
+
 		// Throwing everything into a bit heap
 
 		BitHeap *bh = new BitHeap(this, bestMP->outputSize + bestMP->guardBits); // TODO this is using an adder tree
 
-		if(bestMP->rho==-1) { // uncompressed TIV
+		if(!target->tableCompression()) { // uncompressed TIV
 			bh->addSignal("outTIV");
 		}else
 			{ // Hsiao-compressed TIV
-				bh->addSignal("outATIV", bestMP->nbZeroLSBsInATIV); // shifted because its LSB bits were shaved in the Hsiao compression
-				//bh->addSignal("outATIV"); // shifted because its LSB bits were shaved in the Hsiao compression
+				bh->addSignal("outSSTIV", bestMP->dcTIV.subsamplingShift()); // shifted because its LSB bits were shaved in the Hsiao compression
 				bh->addSignal("outDiffTIV");
 			}
 
@@ -298,7 +308,7 @@ namespace flopoco
 	}
 
 	//------------------------------------------------------------------------------------ Private classes
-	
+
 	// enumerating the alphas is much simpler
 	vector<vector<int>> FixFunctionByMultipartiteTable::alphaenum(int alpha, int m)
 	{
@@ -486,6 +496,28 @@ namespace flopoco
 	}
 
 
+
+#if 0 //REMOVE ME
+
+	void	 FixFunctionByMultipartiteTable::buildDiffTIVCache(){
+		for (auto g=0; g<2+intlog2(f->wIn); g++) {
+			vector<DifferentialCompression*> v;
+			for (auto alpha=0; alpha<f->wIn; alpha++) {
+				// build the TIV
+				vector<mpz_class> mptiv;
+				for (auto i=0; i<(1<<alpha); i++) {
+					mptiv.push_back(mpz_class(TIVFunction(i)));
+				}
+				// then compress it and store it
+				auto d=DifferentialCompression::find_differential_compression(mptiv, alpha, f->wOut + g);
+				v.push_back(d);
+			}
+			DCTIV.push_back(v);
+		}
+	}
+
+#endif
+
 	/**
 	 * @brief enumerateDec : This function enumerates all the decompositions and returns the smallest one
 	 * @return The smallest Multipartite decomposition.
@@ -508,7 +540,7 @@ namespace flopoco
 		int sizeMax = f->wOut <<f->wIn; // size of a plain table
 
 		bool decompositionFound=false;
-		
+
 		for (int alpha = alphamin; alpha <= alphamax; alpha++)		{
 			beta = n-alpha;
 			betaEnum = betaenum(beta, nbTOi);
@@ -561,7 +593,7 @@ namespace flopoco
 		int sizeMax = f->wOut <<f->wIn; // size of a plain table
 
 		bool decompositionFound=false;
-		
+
 		for (int alpha = alphamin; alpha <= alphamax; alpha++)		{
 			beta = n-alpha;
 			betaEnum = betaenum(beta, nbTOi);
@@ -580,7 +612,7 @@ namespace flopoco
 					gammai = alphaEnum[ae];
 					mpt = new Multipartite(f, nbTOi,
 																 alpha, beta,
-																 gammai, betai, this);
+																 gammai, betai, this, getTarget());
 					if(mpt->mathError < epsilonT){
 						decompositionFound=true;
 						mpt->buildGuardBitsAndSizes();
@@ -596,11 +628,11 @@ namespace flopoco
 		}
 		return decompositionFound;
 	}
-	
+
 #endif
 
 
-	
+
 	/** 5th equation implementation */
 	double FixFunctionByMultipartiteTable::epsilon(int ci_, int gammai, int betai, int pi)
 	{
@@ -661,16 +693,16 @@ namespace flopoco
 		return eps;
 	}
 
-	
+
 	void  FixFunctionByMultipartiteTable::insertInTopTen(Multipartite* mp) {
 		REPORT(DEBUG, "Entering  insertInTopTen");
 		int rank=ten-1;
 		Multipartite* current = topTen[rank];
-		while(rank >= 0 &&  // mp strictly smaller than current 
+		while(rank >= 0 &&  // mp strictly smaller than current
 						(mp->totalSize < current->totalSize   ||    (mp->totalSize == current->totalSize &&  mp->m < current->m))) {
 			rank--;
 			if(rank>=0) current = topTen[rank];
-		} 
+		}
 
 		if(rank<ten-1) { // this mp belongs to the top ten,
 			rank ++; // the last rank for which mp was strictly smaller than topTen[rank]
@@ -692,50 +724,50 @@ namespace flopoco
 		// the static list of mandatory tests
 		TestList testStateList;
 		vector<pair<string,string>> paramList;
-		
-		if(index==-1) 
+
+		if(index==-1)
 		{ // The unit tests
 			vector<string> function;
-			vector<bool> signedIn;		  
+			vector<bool> signedIn;
 			vector<int> msbOut;
-			vector<bool> scaleOutput;			// multiply output by (1-2^lsbOut) to prevent it  reaching 2^(msbOut+1) due to faithful rounding  
+			vector<bool> scaleOutput;			// multiply output by (1-2^lsbOut) to prevent it  reaching 2^(msbOut+1) due to faithful rounding
 			function.push_back("2^x-1");			// input in [0,1) output in [0, 1) : need scaleOutput
 			signedIn.push_back(false);
 			msbOut.push_back(0);
 			scaleOutput.push_back(true);
-			
+
 			function.push_back("1/(x+1)");  // input in [0,1) output in [0.5,1] but we don't want scaleOutput
 			signedIn.push_back(false);
 			msbOut.push_back(0);
-			scaleOutput.push_back(false); 
+			scaleOutput.push_back(false);
 			msbOut.push_back(0);
 
-			function.push_back("sin(pi/4*x)"); 
+			function.push_back("sin(pi/4*x)");
 			signedIn.push_back(false);
 			msbOut.push_back(-1);
-			scaleOutput.push_back(false); 
+			scaleOutput.push_back(false);
 
-			function.push_back("sin(pi/2*x)"); 
+			function.push_back("sin(pi/2*x)");
 			signedIn.push_back(false);
 			msbOut.push_back(-1);
-			scaleOutput.push_back(true); 
+			scaleOutput.push_back(true);
 
 #if 0
 			// It seems we don't manage yet the case when the function may get negative
 			// but the code has been elegantly fixed: it now THROWERRORs
-			function.push_back("log(0.5+x)"); 
+			function.push_back("log(0.5+x)");
 			signedIn.push_back(false);
 			msbOut.push_back(-1);
-			scaleOutput.push_back(true); 
+			scaleOutput.push_back(true);
 #endif
-			
+
 			for (int lsbIn=-8; lsbIn >= -16; lsbIn--) {
 				for (size_t i =0; i<function.size(); i++) {
 					paramList.clear();
 					string f = function[i];
 					int lsbOut = lsbIn + msbOut[i]; // to have inputSize=outputSize
 					if(scaleOutput[i]) {
-						f = "(1-1b"+to_string(lsbOut) + ")*(" + f + ")";				
+						f = "(1-1b"+to_string(lsbOut) + ")*(" + f + ")";
 					}
 					f="\"" + f + "\"";
 					paramList.push_back(make_pair("f", f));
@@ -746,29 +778,28 @@ namespace flopoco
 						paramList.push_back(make_pair("TestBench n=","-2"));
 					testStateList.push_back(paramList);
 				}
-			}			
+			}
 		}
-		else     
+		else
 		{
 				// finite number of random test computed out of index
-		}	
+		}
 
 		return testStateList;
 	}
 
-	
+
 
 	OperatorPtr FixFunctionByMultipartiteTable::parseArguments(OperatorPtr parentOp, Target *target, vector<string> &args) {
 		string f;
-		bool signedIn, compressTIV;
+		bool signedIn;
 		int lsbIn, lsbOut, nbTO;
 		UserInterface::parseString(args, "f", &f);
 		UserInterface::parsePositiveInt(args, "nbTO", &nbTO);
 		UserInterface::parseInt(args, "lsbIn", &lsbIn);
 		UserInterface::parseInt(args, "lsbOut", &lsbOut);
 		UserInterface::parseBoolean(args, "signedIn", &signedIn);
-		UserInterface::parseBoolean(args, "compressTIV", &compressTIV);
-		return new FixFunctionByMultipartiteTable(parentOp, target, f, nbTO, signedIn, lsbIn, lsbOut, compressTIV);
+		return new FixFunctionByMultipartiteTable(parentOp, target, f, nbTO, signedIn, lsbIn, lsbOut);
 	}
 
 	void FixFunctionByMultipartiteTable::registerFactory(){
@@ -780,8 +811,7 @@ namespace flopoco
 signedIn(bool): if true the function input range is [-1,1), if false it is [0,1);\
 lsbIn(int): weight of input LSB, for instance -8 for an 8-bit input;\
 lsbOut(int): weight of output LSB;\
-nbTO(int)=0: number of Tables of Offsets, between 1 (bipartite) to 4 or 5 for large input sizes -- 0: let the tool choose ;\
-compressTIV(bool)=true: use Hsiao TIV compression, or not",
+nbTO(int)=0: number of Tables of Offsets, between 1 (bipartite) to 4 or 5 for large input sizes -- 0: let the tool choose",
 
 											 "This operator uses the multipartite table method as introduced in <a href=\"http://perso.citi-lab.fr/fdedinec/recherche/publis/2005-TC-Multipartite.pdf\">this article</a>, with the improvement described in <a href=\"http://ieeexplore.ieee.org/xpls/abs_all.jsp?arnumber=6998028&tag=1\">this article</a>. ",
 											 FixFunctionByMultipartiteTable::parseArguments,

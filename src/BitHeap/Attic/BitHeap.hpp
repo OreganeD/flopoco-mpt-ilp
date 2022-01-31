@@ -18,8 +18,8 @@
 #include <sstream>
 #include "WeightedBit.hpp"
 #include "Operator.hpp"
-#include "Table.hpp"
-#include "DualTable.hpp"
+#include "Tables/Table.hpp"
+#include "Tables/DualTable.hpp"
 #include "IntAddSubCmp/IntAdder.hpp"
 #include "IntAddSubCmp/BasicCompressor.hpp"
 #include "IntMult//MultiplierBlock.hpp"
@@ -32,7 +32,7 @@
    Each bit in the bit heap is flagged with the cycle at which it is produced.
    Compression works as follows:
 
-   First check if there are DSP blocks, chain them into supertiles, generate 
+   First check if there are DSP blocks, chain them into supertiles, generate
    the corresponding VHDL, and add the result to the bit heap
    Then, compress the bit heap
 
@@ -66,19 +66,19 @@ namespace flopoco{
 
 		/**
 		 * @brief The constructor
-		 * @param op                the operator in which this bit heap is 
+		 * @param op                the operator in which this bit heap is
 		 * 							beeing built
-		 * @param maxWeight         the maximum weight of the heap (it should 
+		 * @param maxWeight         the maximum weight of the heap (it should
 		 * 							be known statically, shouldn't it?)
-		 * @param enableSuperTiles  if true, the bit heap compression will try 
+		 * @param enableSuperTiles  if true, the bit heap compression will try
 		 * 							and supertile DSP blocks
-		 * @param name              a description of the heap that will be 
+		 * @param name              a description of the heap that will be
 		 * 							integrated into its unique name
 		 * @param compressionType	the type of compression applied to the bit heap:
 		 *								0 = using only compressors (default),
 		 *								1 = using only an adder tree,
-		 *								2 = using a mix of the two, with an 
-		 *									addition tree at the end of the 
+		 *								2 = using a mix of the two, with an
+		 *									addition tree at the end of the
 		 *									compression
 		 */
 		BitHeap(Operator* op, int maxWeight, bool enableSuperTiles = true, string name = "", int compressionType = COMPRESSION_TYPE);
@@ -123,11 +123,11 @@ namespace flopoco{
 		 * only add the bits between indices msb and lsb, including
 		 */
 		void addUnsignedBitVector(
-				int weight, 
-				string x, 
-				unsigned size, 
-				int msb, 
-				int lsb, 
+				int weight,
+				string x,
+				unsigned size,
+				int msb,
+				int lsb,
 				bool negativeWeight=false
 			);
 

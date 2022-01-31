@@ -1,5 +1,5 @@
 #include "BaseMultiplierIrregularLUTXilinx.hpp"
-#include "Table.hpp"
+#include "Tables/Table.hpp"
 #include "IntMultiplier.hpp"
 
 namespace flopoco

@@ -19,11 +19,11 @@
 
 #include "Operator.hpp"
 #include "Target.hpp"
-#include "Table.hpp"
+#include "Tables/Table.hpp"
 
 #define INTCONSTDIV_LINEAR_ARCHITECTURE 0      // from the ARC 2012 paper by Dinechin Didier
-#define INTCONSTDIV_LOGARITHMIC_ARCHITECTURE 1 // from the 2015 Arith paper by Udurgag et al 
-#define INTCONSTDIV_RECIPROCAL_ARCHITECTURE 2 // From the 2102 TCAS paper by Drane et al  
+#define INTCONSTDIV_LOGARITHMIC_ARCHITECTURE 1 // from the 2015 Arith paper by Udurgag et al
+#define INTCONSTDIV_RECIPROCAL_ARCHITECTURE 2 // From the 2102 TCAS paper by Drane et al
 namespace flopoco{
 
 
@@ -60,7 +60,7 @@ namespace flopoco{
 
 		/** @brief the code generation method for an atomic divider */
 		void generateVHDL();
-		
+
 		// Overloading the virtual functions of Operator
 		// void outputVHDL(std::ostream& o, std::string name);
 
@@ -71,7 +71,7 @@ namespace flopoco{
 
 		static TestList unitTest(int index);
 
-		/** Factory register method */ 
+		/** Factory register method */
 		static void registerFactory();
 
 	public:

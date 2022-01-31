@@ -15,6 +15,7 @@
 
 #include "../utils.hpp"
 #include "FixFunctionByTable.hpp"
+#include <Tables/DiffCompressedTable.hpp>
 
 using namespace std;
 
@@ -44,7 +45,14 @@ namespace flopoco{
 			v.push_back(rn);
 			//cerr <<   f-> getDescription()<< " : f("<< i << ") = " << rn <<endl;
 		};
+
 		Table::init(v, join("f", getNewUId()), wIn, wOut);
+		if(target_->tableCompression()) {
+			DiffCompressedTable::newUniqueInstance(this,	"X", "Y", v , "compressedTable", wIn, wOut);
+		}
+		else {
+			Table::generateVHDL();
+		}
 	}
 
 

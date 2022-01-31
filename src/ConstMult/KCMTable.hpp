@@ -1,7 +1,7 @@
 #ifndef KCMTable_HPP
 #define KCMTable_HPP
 
-#include "../Table.hpp"
+#include "../Tables/Table.hpp"
 
 namespace flopoco{
 
@@ -9,14 +9,14 @@ namespace flopoco{
 	{
 	public:
 		KCMTable(
-				Target* target, 
-				int wIn, 
-				int wOut, 
-				mpz_class C, 
-				bool inputSigned, 
+				Target* target,
+				int wIn,
+				int wOut,
+				mpz_class C,
+				bool inputSigned,
 				map<string, double> inputDelays = emptyDelayMap
 			);
-	
+
 		~KCMTable();
 
 		mpz_class function(int x);

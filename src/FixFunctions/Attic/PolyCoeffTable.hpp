@@ -9,7 +9,7 @@
 #include <sollya.h>
 
 #include "../Operator.hpp"
-#include "../Table.hpp"
+#include "../Tables/Table.hpp"
 #include "PolynomialEvaluator.hpp"
 
 #include "Function.hpp"

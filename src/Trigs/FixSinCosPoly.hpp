@@ -16,7 +16,7 @@
 namespace flopoco{
 	class FixSinCosPoly: public FixSinCos {
 	public:
-		FixSinCosPoly(OperatorPtr parentOp, Target * target, int lsb);
+		FixSinCosPoly(OperatorPtr parentOp, Target * target, int lsb, int wA=0);
 	
 		~FixSinCosPoly();
 
@@ -27,7 +27,7 @@ namespace flopoco{
 				argRedCase=1 for full table, 4 for quadrant reduction, 8 for octant reduction.
 				Result is signed if argRedCase=1 (msbWeight=0=sign bit), unsigned positive otherwise (msbWeight=-1).
 		*/
-		vector<mpz_class> buildSinCosTable(int wA, int lsbOut, int g, int argRedCase);
+		pair<vector<mpz_class>,vector<mpz_class>> buildSinCosTable(int wA, int lsbOut, int g, int argRedCase);
 		int w; // should be removed when refactored for lsb
 	};
 

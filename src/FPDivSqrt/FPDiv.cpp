@@ -50,7 +50,7 @@ In short when nDigits is not reduced we have a  mantissa comparison that is a st
 #include "Operator.hpp"
 
 #include "FPDiv.hpp"
-#include "Table.hpp"
+#include "Tables/Table.hpp"
 
 using namespace std;
 
@@ -148,7 +148,6 @@ namespace flopoco{
 		}
 		return t;
 	}
-	
 
 	
 	FPDiv::FPDiv(OperatorPtr parentOp, Target* target, int wE, int wF, int srt) :
@@ -183,7 +182,7 @@ namespace flopoco{
 		addFPInput ("X", wE, wF);
 		addFPInput ("Y", wE, wF);
 		addFPOutput("R", wE, wF);
-			
+
 
 		vhdl << tab << declare("fX",wF+1) << " <= \"1\" & X(" << wF-1 << " downto 0);" << endl;
 		vhdl << tab << declare("fY",wF+1) << " <= \"1\" & Y(" << wF-1 << " downto 0);" << endl;
@@ -194,7 +193,7 @@ namespace flopoco{
 		vhdl << tab << declare(getTarget()->lutDelay(), "sR") << " <= X(" << wE+wF << ") xor Y(" << wE+wF<< ");" << endl;
 		vhdl << tab << "-- early exception handling " <<endl;
 		vhdl << tab << declare("exnXY",4) << " <= X(" << wE+wF+2 << " downto " << wE+wF+1  << ") & Y(" << wE+wF+2 << " downto " << wE+wF+1 << ");" <<endl;
-		
+
 		vhdl << tab << "with exnXY select" <<endl
 				 << tab << tab << declare(getTarget()->lutDelay(),"exnR0", 2) << " <= " << endl
 				 << tab << tab << tab << "\"01\"	 when \"0101\",										-- normal" <<endl
@@ -206,7 +205,6 @@ namespace flopoco{
 		int nbBitsD, nbBitsW;
 		int qSize; // size in bits of Q
 		int qMsbToDiscard; // how many known MSB zeroes in Q due to initial alignment to respect R0<rho D
-	
 		/*****************************RADIX 8 SRT **********************************************/
 		if(srt==87)
 		{
@@ -264,10 +262,10 @@ namespace flopoco{
 
 				newSharedInstance(selfunctiontable , tInstance, "X=>"+seli.str(), "Y=>"+ qi);
 				// REPORT(DEBUG, "After table instance " << i);
-				
+
 				vhdl << tab << declare(wipad.str(), wF+7) << " <= " << wi.str() << " & '0';" << endl;
 
-				// qui has a fanout of(wF+7), which we add to both its uses 
+				// qui has a fanout of(wF+7), which we add to both its uses
 				vhdl << tab << "with " << qi << range(1,0) << " select " << endl
 						 << tab << declare(getTarget()->adderDelay(wF+7)+getTarget()->fanoutDelay(2*(wF+7)), wim1fulla.str(), wF+7) << " <= " << endl
 						 << tab << tab << wipad.str() << " - (\"0000\" & prescaledfY)			when \"01\"," << endl
@@ -292,7 +290,6 @@ namespace flopoco{
 						 << tab << tab << "(\"00\" & prescaledfY & \"00\")			when \"001\" | \"010\" | \"110\"| \"101\"," << endl
 						 << tab << tab << "(\"0\" & prescaledfY & \"000\")			when \"011\"| \"100\"," << endl
 						 << tab << tab << rangeAssign(wF+6,0,"'0'") << "when others;" << endl;
-				
 				vhdl << tab << "with " << qi << of(3) << " select" << endl; // Remark here: seli(6)==qi(3) but it we get better results using the latter.
 				vhdl << tab << declare(getTarget()->adderDelay(wF+7), wim1full.str(), wF+7) << " <= " << endl;
 				vhdl << tab << tab << wim1fulla.str() << " - " << fYdec << "			when '0'," << endl;
@@ -340,9 +337,9 @@ namespace flopoco{
 
 
 
-		
 
-		else 
+
+		else
 			/*****************************RADIX 4 SRT **********************************************/
 			// For alpha=3, we need 2 LUTs/bit in the recurrence but the table is small 
 			// For alpha=2 with no prescaling we have a large sel table (10 bits in) but 1 LUT/bit recurrence.
@@ -499,7 +496,7 @@ rox P						or wi is 26 bits long
 					
 					vhdl << tab << tab << declare(getTarget()->adderDelay(subSize), qiTimesD,subSize)
 							 << " <= " << join("addendA",i) << " + " << join("addendB",i) << ";"<< endl << endl;
-#endif				
+#endif
 
 					vhdl << tab << "with " << qi << "(2) select" << endl;
 					vhdl << tab << declare(getTarget()->adderDelay(subSize), wim1full, subSize)
@@ -910,7 +907,7 @@ rox P						or wi is 26 bits long
 		cout<<"Cost of this configuration = "<<res<<endl;
 		return res/flopocoCost;
 	}
-	
+
 	void FPDiv::emulate(TestCase * tc)
 	{
 		/* Get I/O values */
@@ -972,8 +969,8 @@ rox P						or wi is 26 bits long
 		// the static list of mandatory tests
 		TestList testStateList;
 		vector<pair<string,string>> paramList;
-		
-		if(index==-1) 
+
+		if(index==-1)
 		{ // The unit tests
 
 			for(int wF=5; wF<53; wF+=1) // test various input widths
@@ -1000,15 +997,15 @@ rox P						or wi is 26 bits long
 					paramList.clear();
 			}
 		}
-		else     
+		else
 		{
 				// finite number of random test computed out of index
-		}	
+		}
 		return testStateList;
 	}
 
 
-	
+
 	void FPDiv::registerFactory(){
 		UserInterface::add("FPDiv", // name
 											 "A correctly rounded floating-point division.",

@@ -1,5 +1,5 @@
 # Makefile for flopoco/src
-SUBDIRS = 
+SUBDIRS =
 DIST_SUBDIRS =
 
 EXTRA_DIST = VHDLLexerRule.l FPExpressions/ExpressionScanner.l FPExpressions/ExpressionParser.y $(top_srcdir)/src/FPExpressions/ExpressionParser.h \
@@ -9,7 +9,7 @@ ACLOCAL_AMFLAGS = -I ../m4
 BUILT_SOURCES = VHDLLexer.cpp \
                 ExpressionParser.cpp \
                 ExpressionScanner.cpp
-                
+
 CLEANFILES = $(BUILT_SOURCES) lex.yy.c *.output
 
 noinst_LTLIBRARIES = libflopoco.la
@@ -71,7 +71,7 @@ noinst_HEADERS = \
           Targets/Virtex5.hpp \
           Targets/Virtex6.hpp \
           DotProduct.hpp \
-          DualTable.hpp \
+          Tables/DualTable.hpp \
           DualTable2.hpp \
           Fix2FP.hpp \
           FP2Fix.hpp \
@@ -154,7 +154,7 @@ noinst_HEADERS = \
           FixedPointFunctions/GenericEvaluator.hpp \
           Complex/FixedComplexAdder.hpp \
           Complex/FixedComplexMultiplier.hpp \
-          Table.hpp \
+          Tables/Table.hpp \
           Target.hpp \
           TestBench.hpp \
           TestCase.hpp \
@@ -326,7 +326,7 @@ libflopoco_la_SOURCES = \
                         random/random_main.cpp \
                         random/urng/LutSrRng.cpp
 
-libflopoco_la_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/FPExpressions 
+libflopoco_la_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/FPExpressions
 
 VHDLLexer.cpp:$(top_srcdir)/src/VHDLLexerRule.l
 	${LEX} -o VHDLLexer.cpp $(top_srcdir)/src/VHDLLexerRule.l

@@ -6,11 +6,11 @@
 #include <mpfr.h>
 #include <gmpxx.h>
 #include "Operator.hpp"
-#include "Table.hpp"
+#include "Tables/Table.hpp"
 
 namespace flopoco{
 
-	/** The Leading zero counter class.  
+	/** The Leading zero counter class.
 	 * Recursive structure with intlog2(wIn) stages.
 	 */
 	class LZOC3 : public Operator{
@@ -23,16 +23,16 @@ namespace flopoco{
 		 * size
 		 */
 		LZOC3(Operator* parentOp, Target* target, int wIn, bool useMaxLut);
-	
+
 		/** The LZOC3 destructor	*/
 		~LZOC3();
 
 		/**
 		 * Emulate a correctly rounded division using MPFR.
-		 * @param tc a TestCase partially filled with input values 
+		 * @param tc a TestCase partially filled with input values
 		 */
 		void emulate(TestCase * tc);
-	
+
 	protected:
 		int wIn_;    /**< The width of the input */
 		int wOut_;   /**< The width of the output */
@@ -63,7 +63,7 @@ namespace flopoco{
 		 * the output
 		 * @param entryName the name of the signal to read from
 		 * @param outName the name of the signal to plug the output to
-		 * @param totalSize 
+		 * @param totalSize
 		 */
 		void generateFinalBits(const string & entryName, const string& outName, int totalSize);
 
@@ -73,7 +73,7 @@ namespace flopoco{
 		/** Factory method that parses arguments and calls the constructor */
 		static OperatorPtr parseArguments(OperatorPtr parentOp, Target *target , vector<string> &args);
 
-		/** Factory register method */ 
+		/** Factory register method */
 		static void registerFactory();
 	};
 

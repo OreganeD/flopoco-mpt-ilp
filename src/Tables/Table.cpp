@@ -13,15 +13,16 @@
 
  */
 
-
+#include <algorithm>
 #include <iostream>
 #include <sstream>
+#include <cassert>
 #include <cstdlib>
 #include "utils.hpp"
 #include "Table.hpp"
 
 using namespace std;
-
+using std::begin;
 
 namespace flopoco{
 
@@ -32,15 +33,14 @@ namespace flopoco{
 	}
 #endif
 
-	
-
 	Table::Table(OperatorPtr parentOp_, Target* target_, vector<mpz_class> _values, string _name, int _wIn, int _wOut, int _logicTable, int _minIn, int _maxIn) :
 		Operator(parentOp_, target_)
 	{
 		srcFileName = "Table";
 		setNameWithFreqAndUID(_name);
 		setCopyrightString("Florent de Dinechin, Bogdan Pasca (2007-2020)");
-		init(_values, _name, _wIn, _wOut,  _logicTable,  _minIn,  _maxIn); 
+		init(_values, _name, _wIn, _wOut,  _logicTable,  _minIn,  _maxIn);
+		generateVHDL(); 
 	}
 
 
@@ -74,10 +74,10 @@ namespace flopoco{
 			REPORT(0,"value["<<i<<"] = " << values[i]);
 	}
 #endif
-		
+
 		//determine the lowest and highest values stored in the table
 		mpz_class maxValue = values[0], minValue = values[0];
-		
+
 		//this assumes that the values stored in the values array are all positive
 		for(unsigned int i=0; i<values.size(); i++)		{
 			if(values[i] < 0)
@@ -155,12 +155,16 @@ namespace flopoco{
 		//user warnings
 		if(wIn > 12)
 			REPORT(FULL, "WARNING: FloPoCo is building a table with " << wIn << " input bits, it will be large.");
+	}
 
+
+	
+		void	Table::generateVHDL()	{
 
 		//create the code for the table
 		REPORT(DEBUG,"Table.cpp: Filling the table");
 
-		
+
 		if(logicTable){
 			int lutsPerBit;
 			if(wIn < getTarget()->lutInputs())
@@ -175,14 +179,14 @@ namespace flopoco{
 		REPORT(DEBUG, "logicTable=" << logicTable << "   table delay is "<< cpDelay << "ns");
 		
 		vhdl << tab << "with X select Y0 <= " << endl;;
-		
+
 		for(unsigned int i=minIn.get_ui(); i<=maxIn.get_ui(); i++)
 			vhdl << tab << tab << "\"" << unsignedBinary(values[i-minIn.get_ui()], wOut) << "\" when \"" << unsignedBinary(i, wIn) << "\"," << endl;
 		vhdl << tab << tab << "\"";
 		for(int i=0; i<wOut; i++)
 			vhdl << "-";
 		vhdl <<  "\" when others;" << endl;
-		
+
 		// TODO there seems to be several possibilities to make a BRAM; the following seems ineffective
 		std::string tableAttributes;
 		//set the table attributes
@@ -192,7 +196,7 @@ namespace flopoco{
 			tableAttributes =  "attribute rom_extract: string;\nattribute rom_style: string;\nattribute rom_extract of Y0: signal is \"yes\";\nattribute rom_style of Y0: signal is ";
 		else
 			tableAttributes =  "attribute ram_extract: string;\nattribute ram_style: string;\nattribute ram_extract of Y0: signal is \"yes\";\nattribute ram_style of Y0: signal is ";
-		
+
 		if((logicTable == 1) || (wIn <= getTarget()->lutInputs())){
 			//logic
 			if(getTarget()->getID() == "Virtex6")
@@ -205,7 +209,7 @@ namespace flopoco{
 		}
 		getSignalByName("Y0") -> setTableAttributes(tableAttributes);
 		schedule();
-		vhdl << declare("Y1", wOut) << " <= Y0; -- for the possible blockram register" << endl;
+		vhdl << tab << declare("Y1", wOut) << " <= Y0; -- for the possible blockram register" << endl;
 
 		if(!logicTable && getTarget()->registerLargeTables()){ // force a register so that a blockRAM can be infered
 			setSequential();
@@ -213,11 +217,11 @@ namespace flopoco{
 			getSignalByName("Y1") -> setSchedule(cycleY0+1, 0);
 			getSignalByName("Y0") -> updateLifeSpan(1) ;
 		}
-		
+
 		vhdl << tab << "Y <= Y1;" << endl;
 	}
 
-	
+
 	Table::Table(OperatorPtr parentOp, Target* target) :
 		Operator(parentOp, target){
 		setCopyrightString("Florent de Dinechin, Bogdan Pasca (2007, 2018)");
@@ -226,13 +230,46 @@ namespace flopoco{
 	mpz_class Table::val(int x){
 		if(x<minIn || x>maxIn) {
 			THROWERROR("Error in table: input index " << x
-								 << " out of range ["<< minIn << " " << maxIn << "]" << endl);	
+								 << " out of range ["<< minIn << " " << maxIn << "]" << endl);
 		}
 		return values[x];
 	}
 
+    // DifferentialCompression Table::compress() const {
+    //     REPORT(INFO, "Performing differential compression on table.");
+    //     REPORT(INFO, "Initial cost is " << wOut << "x2^" << wIn << "=" << (wOut << wIn));
+    //     REPORT(INFO, "Initial estimated lut cost is :" << size_in_LUTs());
+    //     DifferentialCompression ret = TableCompressor::find_differential_compression(values, wIn, wOut);
+    //     REPORT(INFO, "Best compression split found: " << (wIn - ret.subsamplingIndexSize));
+    //     auto subsamplingCost = ret.subsamplingWordSize << ret.subsamplingIndexSize;
+    //     REPORT(INFO, "Best compression subsampling storage cost: " << ret.subsamplingWordSize <<
+    //            "x2^" << ret.subsamplingIndexSize << "=" << subsamplingCost);
+    //     auto lutinputs = getTarget()->lutInputs();
+    //     auto lutcost = [lutinputs](int wIn, int wOut)->int {
+    //         auto effwIn = ((wIn - lutinputs) > 0) ? wIn - lutinputs : 0;
+    //         return wOut << effwIn;
+    //     };
 
-	int Table::size_in_LUTs() {
+    //     auto subsamplingLUTCost = lutcost(ret.subsamplingIndexSize, ret.subsamplingWordSize);
+    //     REPORT(INFO, "Best subsampling LUT cost:" << subsamplingLUTCost);
+    //     auto diffCost = ret.diffWordSize << ret.diffIndexSize;
+    //     auto diffLutCost = lutcost(ret.diffIndexSize, ret.diffWordSize);
+    //     REPORT(INFO, "Best compression diff cost: " << ret.diffWordSize << "x2^" <<
+    //            ret.diffIndexSize << "=" << diffCost);
+    //     REPORT(INFO, "Best diff LUT cost: "<< diffLutCost);
+    //     REPORT(INFO, "Total cost: " << (diffCost + subsamplingCost));
+    //     REPORT(INFO, "Total LUT cost: " << (diffLutCost + subsamplingLUTCost));
+    //     REPORT(INFO, "Latex table line : & $" << wOut << "\\times 2^{" << wIn << "}$ & $" << (wOut << wIn) << "$ & $" <<
+    //         size_in_LUTs() << "$ & $" << ret.diffWordSize << "\\times 2^{" << ret.diffIndexSize << "} + " <<
+    //         ret.subsamplingWordSize << "\\times 2^{" << ret.subsamplingIndexSize << "}$ & $" <<
+    //         (ret.subsamplingWordSize << ret.subsamplingIndexSize) << "$ & $" << diffLutCost + subsamplingLUTCost <<
+    //         "$ \\\\");
+    //     return ret;
+    // }
+
+
+
+	int Table::size_in_LUTs() const {
 		return wOut*int(intpow2(wIn-getTarget()->lutInputs()));
 	}
 
@@ -240,15 +277,20 @@ namespace flopoco{
 	OperatorPtr Table::newUniqueInstance(OperatorPtr op,
 																			 string actualInput, string actualOutput,
 																			 vector<mpz_class> values, string name,
-																			 int wIn, int wOut){
+																			 int wIn, int wOut, int logicTable){
 		op->schedule();
 		op->inPortMap("X", actualInput);
 		op->outPortMap("Y", actualOutput);
-		Table* t = new Table(op, op->getTarget(), values, name, wIn, wOut); 
+		Table* t = new Table(op, op->getTarget(), values, name, wIn, wOut,logicTable);
+#if 0 /// Unplugged because it segfaults on  ./flopoco frequency=1 FixSinCos method=0 lsb=-5  
+		auto diffcompress = t->compress();
+		auto decompress = diffcompress.getInitialTable();
+		assert(decompress == values);
+#endif
 		op->vhdl << op->instance(t, name, false);
 		return t;
 	}
-	
 
-	
+
+
 }

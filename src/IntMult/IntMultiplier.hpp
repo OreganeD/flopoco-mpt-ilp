@@ -6,7 +6,7 @@
 #include <gmpxx.h>
 #include "utils.hpp"
 #include "Operator.hpp"
-#include "Table.hpp"
+#include "Tables/Table.hpp"
 #include "BitHeap/BitHeap.hpp"
 
 #include "IntMult/MultiplierBlock.hpp"

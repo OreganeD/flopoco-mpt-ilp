@@ -1,13 +1,13 @@
 /*
   Integer division by a small constant.
-  
+
   This file is part of the FloPoCo project
   developed by the Arenaire team at Ecole Normale Superieure de Lyon
-  
+
   Author : Florent de Dinechin, Florent.de.Dinechin@ens-lyon.fr
 
   Initial software.
-  Copyright © ENS-Lyon, INRIA, CNRS, UCBL,  
+  Copyright © ENS-Lyon, INRIA, CNRS, UCBL,
   2008-2010.
   All rights reserved.
 
@@ -20,7 +20,7 @@
 
 #include "Operator.hpp"
 #include "Target.hpp"
-#include "Table.hpp"
+#include "Tables/Table.hpp"
 
 
 namespace flopoco{
@@ -30,14 +30,14 @@ namespace flopoco{
 	{
 	public:
 
-		/** 
-		 * This table inputs a number X on alpha + gammma bits, and computes its 
-		 * Euclidean division by d: X=dQ+R, which it returns as the bit string 
+		/**
+		 * This table inputs a number X on alpha + gammma bits, and computes its
+		 * Euclidean division by d: X=dQ+R, which it returns as the bit string
 		 * Q & R
-		 */ 
+		 */
 		vector<mpz_class> buildEuclideanDiv3Table(int delta_, bool lastTable_);
 #if 0
-		class EuclideanDiv3Table: public Table 
+		class EuclideanDiv3Table: public Table
 		{
 		public:
 			int d;
@@ -51,8 +51,8 @@ namespace flopoco{
 
 
 
-		/** 
-		 * The constructor 
+		/**
+		 * The constructor
 		 * @param d The divisor.
 		 * @param n The size of the input X.
 		 * @param alpha The size of the chunk, or, use radix 2^alpha
@@ -60,10 +60,10 @@ namespace flopoco{
 
 		ConstDiv3ForSinPoly(Operator* parentOp, Target* target, int wIn, int d=3, int alpha=-1, int nbZeros=0, bool remainderOnly=false);
 		~ConstDiv3ForSinPoly();
-		
+
 		// Overloading the virtual functions of Operator
 		// void outputVHDL(std::ostream& o, std::string name);
-		
+
 		void emulate(TestCase * tc);
 
 	public:
@@ -78,7 +78,7 @@ namespace flopoco{
 		int nbZeros;															/**< Number of zero bits that should be interleaved between the bits of the number */
 		int gamma;																/**< Size in bits of a remainder; gamma=ceil(log2(d-1)) */
 		int qSize;																/**< Size in bits of the quotient output */
-		
+
 	};
 
 }

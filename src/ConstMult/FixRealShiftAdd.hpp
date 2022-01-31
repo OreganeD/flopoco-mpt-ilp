@@ -4,7 +4,7 @@
 #if defined(HAVE_PAGLIB) && defined(HAVE_RPAGLIB) && defined(HAVE_SCALP)
 
 #include "FixRealConstMult.hpp"
-#include "../Table.hpp"
+#include "../Tables/Table.hpp"
 #include "../BitHeap/BitHeap.hpp"
 
 #include "pagsuite/types.h"
@@ -19,7 +19,7 @@ namespace flopoco{
 		 * @brief Standalone version of KCM. Input size will be msbIn-lsbIn+1
 		 * @param target : target on which we want the KCM to run
 		 * @param signedIn : true if input are 2'complement fixed point numbers
-		 * @param msbin : power of two associated with input msb. For unsigned 
+		 * @param msbin : power of two associated with input msb. For unsigned
 		 * 				  input, msb weight will be 2^msb, for signed input, it
 		 * 				  will be -2^msb
 		 * 	@param lsbIn :  Weight of the least significant bit of the input
@@ -35,12 +35,12 @@ namespace flopoco{
 		 */
 		FixRealShiftAdd(
 							 OperatorPtr thisOp,
-							 Target* target, 
-							 bool signedIn, 
-							 int msbIn, 
-							 int lsbIn, 
-							 int lsbOut, 
-							 string constant, 
+							 Target* target,
+							 bool signedIn,
+							 int msbIn,
+							 int lsbIn,
+							 int lsbOut,
+							 string constant,
 							 double targetUlpError = 1.0
 							 );
 
@@ -51,15 +51,15 @@ namespace flopoco{
 		static OperatorPtr parseArguments(OperatorPtr parentOp, Target* target, vector<string>& args			);
 
 		static void registerFactory();
-		
+
 
 
 		/** The heap of weighted bits that will be used to do the additions */
-		BitHeap*	bitHeap;    	
+		BitHeap*	bitHeap;
 
 		/** The input signal. */
 		string inputSignalName;
-		
+
 		int numberOfTables;
 		vector<int> m; /**< MSB of chunk i; m[0] == msbIn */
 		vector<int> l; /**< LSB of chunk i; l[numberOfTables-1] = lsbIn, or maybe >= lsbIn if not all the input bits are used due to a small constant */

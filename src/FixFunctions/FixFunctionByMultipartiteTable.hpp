@@ -15,6 +15,7 @@ using namespace std;
 
 #include "FixFunction.hpp"
 #include "../Operator.hpp"
+#include "../Tables/DifferentialCompression.hpp"
 
 
 namespace flopoco
@@ -38,7 +39,7 @@ namespace flopoco
 		 * @param[bool]	signedIn_	true if the input range is [-1,1)
 		 */
 		FixFunctionByMultipartiteTable(OperatorPtr parentOp, Target* target, string function, int nbTOi, bool signedIn,
-																	 int lsbIn, int lsbOut, bool compressTIV);
+																	 int lsbIn, int lsbOut);
 
 		virtual ~FixFunctionByMultipartiteTable();
 
@@ -92,9 +93,10 @@ namespace flopoco
 		bool compressTIV; /**< use Hsiao TIV compression or not */
 		vector<vector<vector<double>>> oneTableError;   /** for nbTOi fixed, the errors of each possible table configuration, precomputed  here to speed up exploration  */
 		vector<vector<int>> gammaiMin;  /** for nbTOi fixed, the min value of gamma, precomputed  here to speed up exploration */
+		map<pair<int, int>, DifferentialCompression> DCTIV; /** differential TIV compression cache. The two ints are DCTIV[g][alpha]  */  
 
 	private:
-		const int ten=10;
+		const int ten=10; /**> sounds silly, doesn't it? We may want to change it eventually, but a top Ten is a top Ten  */
 		vector<Multipartite*> topTen; /**< the top 10 best candidates (for some value of ten), sorted by size */ 
 		int guardBitsSlack; /* this allows first to try the exploration with one guard bit less than the safe value */ 
 		void insertInTopTen(Multipartite* mp);

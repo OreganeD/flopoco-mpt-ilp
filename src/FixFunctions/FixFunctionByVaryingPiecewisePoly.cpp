@@ -1,15 +1,15 @@
 /*
   Polynomial Function Evaluator for FloPoCo
 	This version uses piecewise polynomial approximation for a trade-off between tables and multiplier hardware.
-	
+
   Authors: Florent de Dinechin (rewrite from scratch of original code by Mioara Joldes and Bogdan Pasca, see the attic directory)
 
   This file is part of the FloPoCo project
 	launched by the Arénaire/AriC team of Ecole Normale Superieure de Lyon
   currently developed by the Socrate team at CITILab/INSA de Lyon
- 
+
   Initial software.
-  Copyright © ENS-Lyon, INSA-Lyon, INRIA, CNRS, UCBL,  
+  Copyright © ENS-Lyon, INSA-Lyon, INRIA, CNRS, UCBL,
   2008-2014.
   All rights reserved.
 
@@ -30,7 +30,7 @@
 
 
 #include "FixFunctionByVaryingPiecewisePoly.hpp"
-#include "Table.hpp"
+#include "Tables/Table.hpp"
 #include "FixFunctionByTable.hpp"
 #include "FixHornerEvaluator.hpp"
 #include "ShiftersEtc/Shifters.hpp"
@@ -46,20 +46,20 @@ rattrapper les erreurs sur guess degree des fonctions très méchantes
 
 	 */
 
-	
+
 	/* Error analysis:
 		 Target error is exp2(lsbOut).
 		 Final rounding may entail up to exp2(lsbOut-1).
 		 So approximation+rounding error budget is  exp2(lsbOut-1).
 		 We call PiecewisePolyApprox with approximation target error bound exp2(lsbOut-2).
-		 It reports polyApprox->LSB: may be lsbOut-2, may be up to lsbOut-2- intlog2(degree) 
+		 It reports polyApprox->LSB: may be lsbOut-2, may be up to lsbOut-2- intlog2(degree)
 		 It also reports polyApprox->approxErrorBound
 		 so rounding error budget is  exp2(lsbOut-1) - polyApprox->approxErrorBound
 		 Staying within this budget is delegated to FixHornerEvaluator: see there for the details
-			 
+
 	 */
 
-	
+
 #define DEBUGVHDL 0
 
 
@@ -76,25 +76,25 @@ rattrapper les erreurs sur guess degree des fonctions très méchantes
 
 		f=new FixFunction(func, false, lsbIn, lsbOut); // this will provide emulate etc.
 		msbOut=f->msbOut;
-		
+
 		srcFileName="FixFunctionByVaryingPiecewisePoly";
-		
+
 		ostringstream name;
 
 		name<<"FixFunctionByVaryingPiecewisePoly";
-		setNameWithFreqAndUID(name.str()); 
+		setNameWithFreqAndUID(name.str());
 
 
 		setCopyrightString("Florent de Dinechin (2014,2018)");
-		addHeaderComment("-- Evaluator for " +  f-> getDescription() + "\n"); 
+		addHeaderComment("-- Evaluator for " +  f-> getDescription() + "\n");
 		REPORT(DETAILED, "Entering: FixFunctionByVaryingPiecewisePoly \"" << func << "\" " << lsbIn << " " << msbOut << " " << lsbOut);
  		int wX=-lsbIn;
 		addInput("X", wX);
-		int outputSize = msbOut-lsbOut+1; 
+		int outputSize = msbOut-lsbOut+1;
 		addOutput("Y" ,outputSize , 2);
 		useNumericStd();
-		        
-			
+
+
 		// Build the polynomial approximation
 		double targetAcc= approxErrorBudget*pow(2, lsbOut);
 		REPORT(INFO, "Computing polynomial approximation for target accuracy "<< targetAcc);
@@ -103,8 +103,8 @@ rattrapper les erreurs sur guess degree des fonctions très méchantes
 		degree = polyApprox->degree;
 		nbIntervals = polyApprox-> nbInterval;
 		alpha = intlog2(nbIntervals); // coeff table input size
-	      			
-		// Resize its MSB to the one input by the user. 
+
+		// Resize its MSB to the one input by the user.
 		for (int i=0; i<nbIntervals; i++) {
 		  polyApprox -> poly[i] -> getCoeff(0) -> changeMSB(msbOut);
 		}
@@ -121,18 +121,18 @@ rattrapper les erreurs sur guess degree des fonctions très méchantes
 		if (tabulateRest==true) {
 		  nbIntervals++; //parce que dans l'autre truc on avait fait en sorte que ce soit la taille de la table qui compte
 		}
-		
+
 		// The VHDL that splits the input into A and Z
 		// here is the difference between Varying and not varying, the address comes out of LZC
 		int wCount = intlog2(wX);
 		ostringstream param, inmap, outmap;
 		param << "wIn=" << wX;
 		param << " countType=0";
-			
+
 		inmap << "I=>X";
-			
+
 		outmap << "O=>pre_A";
-			
+
 		newInstance("LZOC", "lzc", param.str(), inmap.str(), outmap.str());
 
 
@@ -144,21 +144,21 @@ rattrapper les erreurs sur guess degree des fonctions très méchantes
 
 		ostringstream param2, inmap2, outmap2;
 		param2 << "wIn=" << wX;
-		param2 << " maxshift=" << nbIntervals; 
+		param2 << " maxshift=" << nbIntervals;
 		param2 << " dir=0";
-					
+
 		inmap2 << "X=>X,S=>input_shifter";
-			  
+
 		outmap2 << "R=>pre_Z";
-				
+
 		newInstance("Shifter", "shift", param2.str(), inmap2.str(), outmap2.str());
 
 		vhdl << "with overflow select " << declare(0., "A", alpha) << "<=" << endl <<
 		  tab << "std_logic_vector(to_unsigned("<<  nbIntervals -1 << ","<< alpha+1 <<"))" << range(alpha-1, 0) << " when '1'," << endl <<
 		  tab << "input_shifter when '0'," << endl <<
 		  tab << "\"" << string(alpha, '-') << "\" when others;" << endl;
-		
-		
+
+
 		vhdl << declare(0., "Z", wX-1) << "<= pre_Z" << range(wX-2, 0) << ";" << endl;
 		vhdl << tab << declare("Zs", wX-1)  << " <= (not Z" << of(wX-2) << ") & Z" << range(wX-3, 0) << "; -- centering the interval" << endl;
 
@@ -175,13 +175,13 @@ rattrapper les erreurs sur guess degree des fonctions très méchantes
 		schedule();
 		inPortMap("X", "A");
 		outPortMap("Y", "Coeffs");
-		Table* coeffTable = new Table(parentOp, target, coeffTableVector, "coeffTable", alpha, polyTableOutputSize); 
+		Table* coeffTable = new Table(parentOp, target, coeffTableVector, "coeffTable", alpha, polyTableOutputSize);
 		vhdl << instance(coeffTable, "coeffTable", false);
 #else
 		Table::newUniqueInstance(this, "A", "Coeffs",
 					 coeffTableVector, "coeffTable", alpha, polyTableOutputSize );
 #endif
-			
+
 		// Split the table output into each coefficient
 		int currentShift=0;
 		for(int i=polyApprox->degree; i>=0; i--) {
@@ -189,15 +189,15 @@ rattrapper les erreurs sur guess degree des fonctions très méchantes
 		  vhdl << tab << declare(join("A",i), polyApprox->MSB[i] - polyApprox->LSB +1)
 		       << " <= ";
 		  if (polyApprox->coeffSigns[i]!=0) // add constant sign back
-		    vhdl << (polyApprox->coeffSigns[i]==1? "\"0\"" :  "\"1\"") << " & " ;				
+		    vhdl << (polyApprox->coeffSigns[i]==1? "\"0\"" :  "\"1\"") << " & " ;
 		  vhdl << "Coeffs" << range(currentShift + actualSize-1, currentShift) << ";" << endl;
 		  currentShift += actualSize;
 		}
-			
-		// What follows is related to Horner evaluator
-		// Here I wish I could plug other (more parallel) evaluators. 
 
-		//  compute the size of the intermediate terms sigma_i  (Horner-specific)  
+		// What follows is related to Horner evaluator
+		// Here I wish I could plug other (more parallel) evaluators.
+
+		//  compute the size of the intermediate terms sigma_i  (Horner-specific)
 		computeSigmaSignsAndMSBs(); // TODO make it a method of FixHornerEvaluator?
 		// the previous has computed the min value of msbOut.
 		if(msbOut<sigmaMSB[0])
@@ -209,9 +209,9 @@ rattrapper les erreurs sur guess degree des fonctions très méchantes
 #if 0
 		// This builds an architecture such as eps_finalround < 2^(lsbOut-1) and eps_round<2^(lsbOut-2)
 #if 0 // This constructor computes sigma and msbs only out of the formats
-		FixHornerEvaluator* horner = new FixHornerEvaluator(target, lsbIn+2, msbOut, lsbOut, degree, polyApprox->MSB, polyApprox->LSB, roundingErrorBudget);		
+		FixHornerEvaluator* horner = new FixHornerEvaluator(target, lsbIn+2, msbOut, lsbOut, degree, polyApprox->MSB, polyApprox->LSB, roundingErrorBudget);
 #else // This constructor uses the more accurate data computed out of the actual polynomials
-		FixHornerEvaluator* horner = new FixHornerEvaluator(target, lsbIn+2, msbOut, lsbOut, degree, polyApprox->MSB, polyApprox->LSB, sigmaSign, sigmaMSB, roundingErrorBudget);		
+		FixHornerEvaluator* horner = new FixHornerEvaluator(target, lsbIn+2, msbOut, lsbOut, degree, polyApprox->MSB, polyApprox->LSB, sigmaSign, sigmaMSB, roundingErrorBudget);
 #endif
 
 		inPortMap("X", "Zs");
@@ -229,19 +229,19 @@ rattrapper les erreurs sur guess degree des fonctions très méchantes
 		  inPortMap(join("A",i),  join("A",i));
 		}
 		outPortMap("R", "Ys");
-		OperatorPtr h = new  FixHornerEvaluator(this, target, 
+		OperatorPtr h = new  FixHornerEvaluator(this, target,
 							lsbIn+2,
 							msbOut,
 							lsbOut,
-							degree, 
-							polyApprox->MSB, 
+							degree,
+							polyApprox->MSB,
 							polyApprox->LSB // it is the smaller LSB
 							);
 		vhdl << instance(h, "horner", false);
 
 		if (tabulateRest == true ) {
 		  vhdl << tab << declare(0.,"R", outputSize) << "<= " << "std_logic_vector(Ys);" << endl;
-		  
+
 		  vhdl << "with overflow select Y <= " << endl <<
 		    tab << "R_t when '1'," << endl <<
 		    tab << "R when '0'," << endl <<
@@ -250,7 +250,7 @@ rattrapper les erreurs sur guess degree des fonctions très méchantes
 		else {
 		  vhdl << tab << "Y <= " << "std_logic_vector(Ys);" << endl;
 		}
-		
+
 	}
 
 
@@ -263,13 +263,13 @@ rattrapper les erreurs sur guess degree des fonctions très méchantes
 
 
 
-	
+
 	void FixFunctionByVaryingPiecewisePoly::buildCoeffTable() {
 		// First compute the table output size
 		polyTableOutputSize=0;
 		for (int i=0; i<=degree; i++) {
 			polyTableOutputSize += polyApprox->MSB[i] - polyApprox->LSB + (polyApprox->coeffSigns[i]==0? 1 : 0);
-		} 
+		}
 		REPORT(DETAILED, "Poly table input size  = " << alpha);
 		REPORT(DETAILED, "Poly table output size = " << polyTableOutputSize);
 
@@ -282,7 +282,7 @@ rattrapper les erreurs sur guess degree des fonctions très méchantes
 				mpz_class coeff = polyApprox-> getCoeff(x, i); // coeff of degree i from poly number x
 				if (polyApprox->coeffSigns[i] != 0) {// sign is constant among all the coefficients: remove it from here, it will be added back as a constant in the VHDL
 					mpz_class mask = (mpz_class(1)<<(polyApprox->MSB[i] - polyApprox->LSB) ) - 1; // size is msb-lsb+1
-					coeff = coeff & mask; 
+					coeff = coeff & mask;
 				}
 				z += coeff << currentShift; // coeff of degree i from poly number x
 				// REPORT(DEBUG, "i=" << i << "   z=" << unsignedBinary(z, 64));
@@ -308,15 +308,15 @@ rattrapper les erreurs sur guess degree des fonctions très méchantes
 
 
 
-	
-	
+
+
 
 	void FixFunctionByVaryingPiecewisePoly::computeSigmaSignsAndMSBs(){
 		mpfr_t res_left, res_right;
 		sollya_obj_t rangeS;
 		mpfr_init2(res_left, 10000); // should be enough for anybody
 		mpfr_init2(res_right, 10000); // should be enough for anybody
-		rangeS = sollya_lib_parse_string("[-1;1]");		
+		rangeS = sollya_lib_parse_string("[-1;1]");
 
 		REPORT(DEBUG, "Computing sigmas, signs and MSBs");
 
@@ -334,7 +334,7 @@ rattrapper les erreurs sur guess degree des fonctions très méchantes
 			if (msb>sigmaMSB[degree])
 				sigmaMSB[degree]=msb;
 			sigmaSign[degree] = polyApprox -> coeffSigns[degree];
-			
+
 			for (int j=degree-1; j>=0; j--) {
 				// interval eval of sigma_j
 				// get the output range of sigma
@@ -367,7 +367,7 @@ rattrapper les erreurs sur guess degree des fonctions très méchantes
 				}
 				else
 					sigmaSign[j] = 0;
-				
+
 
 				// now finally the MSB computation
 				int msb;
@@ -388,10 +388,10 @@ rattrapper les erreurs sur guess degree des fonctions très méchantes
 				if (msb > sigmaMSB[j])
 					sigmaMSB[j] = msb;
 			} // for j
-			
-			
+
+
 			sollya_lib_clear_obj(sigmaS);
-		
+
 		} // for i
 		mpfr_clear(res_left);
 		mpfr_clear(res_right);
@@ -399,11 +399,11 @@ rattrapper les erreurs sur guess degree des fonctions très méchantes
 
 		for (int j=degree; j>=0; j--) {
 			REPORT(DETAILED, "Horner step " << j << ":   sigmaSign = " << sigmaSign[j] << " \t sigmaMSB = " << sigmaMSB[j]);
-		}	
+		}
 
 	}
 
- 
+
 
 
 	void FixFunctionByVaryingPiecewisePoly::emulate(TestCase* tc){
@@ -413,42 +413,42 @@ rattrapper les erreurs sur guess degree des fonctions très méchantes
 	void FixFunctionByVaryingPiecewisePoly::buildStandardTestCases(TestCaseList* tcl){
 		TestCase *tc;
 
-		tc = new TestCase(this); 
+		tc = new TestCase(this);
 		tc->addInput("X", 0);
 		emulate(tc);
 		tcl->add(tc);
 
-		tc = new TestCase(this); 
+		tc = new TestCase(this);
 		tc->addInput("X", (mpz_class(1) << f->wIn) -1);
 		emulate(tc);
 		tcl->add(tc);
 
-		tc = new TestCase(this); 
+		tc = new TestCase(this);
 		tc->addInput("X", mpz_class(1) << (f->wIn-1));
 		emulate(tc);
 		tcl->add(tc);
 
-		tc = new TestCase(this); 
+		tc = new TestCase(this);
 		tc->addInput("X", mpz_class(1) << (f->wIn-2));
 		emulate(tc);
 		tcl->add(tc);
 
-		tc = new TestCase(this); 
+		tc = new TestCase(this);
 		tc->addInput("X", mpz_class(1) << (f->wIn-3));
 		emulate(tc);
 		tcl->add(tc);
 
-		tc = new TestCase(this); 
+		tc = new TestCase(this);
 		tc->addInput("X", mpz_class(1) << (f->wIn-4));
 		emulate(tc);
 		tcl->add(tc);
 
-		tc = new TestCase(this); 
+		tc = new TestCase(this);
 		tc->addInput("X", mpz_class(1) << (f->wIn-5));
 		emulate(tc);
 		tcl->add(tc);
-		
-		tc = new TestCase(this); 
+
+		tc = new TestCase(this);
 		tc->addInput("X", mpz_class(1) << (f->wIn-6));
 		emulate(tc);
 		tcl->add(tc);
@@ -460,10 +460,10 @@ rattrapper les erreurs sur guess degree des fonctions très méchantes
 		// the static list of mandatory tests
 		TestList testStateList;
 		vector<pair<string,string>> paramList;
-		
-		if(index==-1) 
+
+		if(index==-1)
 		{ // The unit tests
-			// A few regression tests, first deg2, exhaustive on 15 bits, then deg 3 for 24 bits 
+			// A few regression tests, first deg2, exhaustive on 15 bits, then deg 3 for 24 bits
 			paramList.push_back(make_pair("f","\"sin(x)\""));
 			paramList.push_back(make_pair("plainVHDL","true"));
 			paramList.push_back(make_pair("lsbIn","-15"));
@@ -478,7 +478,7 @@ rattrapper les erreurs sur guess degree des fonctions très méchantes
 			paramList.push_back(make_pair("lsbOut","-25"));
 			testStateList.push_back(paramList);
 			paramList.clear();
-			
+
 			paramList.push_back(make_pair("f","\"exp(x)\""));
 			paramList.push_back(make_pair("plainVHDL","true"));
 			paramList.push_back(make_pair("lsbIn","-16"));
@@ -486,7 +486,7 @@ rattrapper les erreurs sur guess degree des fonctions très méchantes
 			paramList.push_back(make_pair("TestBench n=","-2"));
 			testStateList.push_back(paramList);
 			paramList.clear();
-		 
+
 			paramList.push_back(make_pair("f","\"exp(x)\""));
 			paramList.push_back(make_pair("plainVHDL","true"));
 			paramList.push_back(make_pair("lsbIn","-26"));
@@ -494,20 +494,20 @@ rattrapper les erreurs sur guess degree des fonctions très méchantes
 			testStateList.push_back(paramList);
 
 		}
-		else     
+		else
 		{
 				// finite number of random test computed out of index
-		}	
+		}
 
 		return testStateList;
 	}
 
-	
+
 	OperatorPtr FixFunctionByVaryingPiecewisePoly::parseArguments(OperatorPtr parentOp, Target *target, vector<string> &args) {
 		int lsbIn, lsbOut;
 		string f;
 		double approxErrorBudget;
-		UserInterface::parseString(args, "f", &f); 
+		UserInterface::parseString(args, "f", &f);
 		UserInterface::parseInt(args, "lsbIn", &lsbIn);
 		UserInterface::parseInt(args, "lsbOut", &lsbOut);
 		UserInterface::parseFloat(args, "approxErrorBudget", &approxErrorBudget);
@@ -522,14 +522,14 @@ rattrapper les erreurs sur guess degree des fonctions très méchantes
 				   "f(string): function to be evaluated between double-quotes, for instance \"exp(x*x)\";\
                         lsbIn(int): weight of input LSB, for instance -8 for an 8-bit input;\
                         lsbOut(int): weight of output LSB;\
-                        approxErrorBudget(real)=0.25: error budget in ulp for the approximation, between 0 and 0.5",                        
+                        approxErrorBudget(real)=0.25: error budget in ulp for the approximation, between 0 and 0.5",
 				   "This operator uses a table for coefficients, and Horner evaluation with truncated multipliers sized just right.<br>For more details, see <a href=\"bib/flopoco.html#DinJolPas2010-poly\">this article</a>.",
 				   FixFunctionByVaryingPiecewisePoly::parseArguments,
 				   FixFunctionByVaryingPiecewisePoly::unitTest
 				   ) ;
-		
+
 	}
 
 }
-	
+
 

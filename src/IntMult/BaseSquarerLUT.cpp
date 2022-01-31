@@ -1,5 +1,5 @@
 #include "BaseSquarerLUT.hpp"
-#include "Table.hpp"
+#include "Tables/Table.hpp"
 
 namespace flopoco
 {

@@ -67,6 +67,7 @@ namespace flopoco{
 		bool finalRounding;
 		double approxErrorBudget;
 		vector<mpz_class> coeffTableVector;
+		vector<vector<mpz_class>> SplitCoeffTableVector; // for the experiment with table compression
 		vector <int> sigmaSign; /** +1 if sigma is always positive, -1 if sigma is always negative, O if sigma needs to be signed */
 		vector<int> sigmaMSB;   /**< vector of MSB weights for each sigma term. Note that these MSB consider that sigma is signed: one may remove 1 if sigmaSign is +1 or -1  */
 

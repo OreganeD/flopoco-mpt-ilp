@@ -7,9 +7,9 @@
 
   Initial software.
   Copyright © INSA-Lyon, INRIA, CNRS, UCBL,
-  2008-2014.
+  2008-2020.
   All rights reserved.
-  */
+*/
 
 #include "Multipartite.hpp"
 #include "FixFunctionByMultipartiteTable.hpp"
@@ -30,15 +30,15 @@ using namespace flopoco;
 namespace flopoco
 {
 	//--------------------------------------------------------------------------------------- Constructors
-	Multipartite::Multipartite(FixFunctionByMultipartiteTable* mpt_, FixFunction *f_, int inputSize_, int outputSize_):
-		f(f_), inputSize(inputSize_), outputSize(outputSize_), rho(-1), mpt(mpt_)
+	Multipartite::Multipartite(FixFunctionByMultipartiteTable* mpt_, FixFunction *f_, int inputSize_, int outputSize_, Target* target):
+		f(f_), inputSize(inputSize_), outputSize(outputSize_),  mpt(mpt_), _target(target)
 	{
 		inputRange = 1<<inputSize_;
 		epsilonT = 1.0 / (1<<(outputSize+1));
 	}
 
-	Multipartite::Multipartite(FixFunction *f_, int m_, int alpha_, int beta_, vector<int> gammai_, vector<int> betai_, FixFunctionByMultipartiteTable *mpt_):
-		f(f_), m(m_), alpha(alpha_), rho(-1), beta(beta_), gammai(gammai_), betai(betai_), mpt(mpt_)
+	Multipartite::Multipartite(FixFunction *f_, int m_, int alpha_, int beta_, vector<int> gammai_, vector<int> betai_, FixFunctionByMultipartiteTable *mpt_, Target* target):
+		f(f_), m(m_), alpha(alpha_),  beta(beta_), gammai(gammai_), betai(betai_), mpt(mpt_), _target(target)
 	{
 		inputRange = 1 << f->wIn;
 		inputSize = f->wIn;
@@ -54,10 +54,12 @@ namespace flopoco
 		// poor encapsulation: mpt will test it it is low enough
 		mathError=0;
 		for (int i=0; i<m; i++)
-		{
-			mathError += mpt->oneTableError[pi[i]][betai[i]][gammai[i]];
-		}
+			{
+				mathError += mpt->oneTableError[pi[i]][betai[i]][gammai[i]];
+			}
 	}
+
+
 
 	//------------------------------------------------------------------------------------ Private methods
 
@@ -101,13 +103,13 @@ namespace flopoco
 	{
 		int wi = inputSize;
 		double xleft = (f->signedIn ? -1 : 0)
-				+ (f->signedIn ? 2 : 1) * intpow2(-gammai[i])  * ((double)Ai);
+			+ (f->signedIn ? 2 : 1) * intpow2(-gammai[i])  * ((double)Ai);
 		double xright= (f->signedIn ? -1 : 0) + (f->signedIn ? 2 : 1) * ((intpow2(-gammai[i]) * ((double)Ai+1)) - intpow2(-wi+pi[i]+betai[i]));
 		double delta = deltai(i);
 		double si =  (f->eval(xleft + delta)
-					  - f->eval(xleft)
-					  + f->eval(xright+delta)
-					  - f->eval(xright) )    / (2*delta);
+									- f->eval(xleft)
+									+ f->eval(xright+delta)
+									- f->eval(xright) )    / (2*delta);
 		return si;
 	}
 
@@ -115,23 +117,25 @@ namespace flopoco
 	int64_t min(int64_t x, int64_t y) { // ?? it doesn't seem to exist
 		return (x>y? y:x);
 	}
-	
+
 	int64_t max(int64_t x, int64_t y) { // ?? it doesn't seem to exist
 		return (x>y? x:y);
 	}
-	
+
+#if 0
+	// This version works just as well but is less generic. Vae victis
 	void Multipartite::computeTIVCompressionParameters() {
 		string srcFileName = mpt->getSrcFileName(); // for REPORT to work
-
-		REPORT(FULL, "Entering computeTIVCompressionParameters: alpha=" << alpha << "  uncompressed size=" << sizeTIV); 
+		REPORT(FULL, "Entering computeTIVCompressionParameters: alpha=" << alpha << "  uncompressed size=" << sizeTIV);
+		// OLD
 		int64_t bestS,bestSizeTIV;
 		// compression using only positive numbers
-		bestS = 0; 
+		bestS = 0;
 		bestSizeTIV=sizeTIV;
 		for(int s = 1; s < alpha-1; s++) {
 			// Under convexity hypothesis, the maximum slack is either left or right of the interval
 			// (maybe we assume here convexity of the first derivative, too)
-			int64_t  yLL, yLR, yRL, yRR, deltaLeft, deltaRight, deltaMax, deltaBits, slack, saved_LSBs_in_ATIV, tempRho, tempSizeATIV, tempSizeDiffTIV, tempCompressedSize;
+			int64_t  yLL, yLR, yRL, yRR, deltaLeft, deltaRight, deltaMax, deltaBits, slack, saved_LSBs_in_SSTIV, tempRho, tempSizeSSTIV, tempSizeDiffTIV, tempCompressedSize;
 			int i = 0; // compute extremal values on the left of the interval
 			yLL	 = TIVFunction( i<<s );
 			yLR = TIVFunction( ((i+1)<<s)-1 );
@@ -144,97 +148,86 @@ namespace flopoco
 			deltaMax = max(deltaLeft,deltaRight);   // for instance s=1 and we find deltaMax=21
 			deltaBits = intlog2(deltaMax);          // 21 fits on 5 bits. The deltaTIV will have 5 output bits.
 			REPORT(FULL, "trying s=" << s << " deltaleft deltaright = "<< deltaLeft << " " << deltaRight << "  \tdeltaBits="<<deltaBits);
-			// Now how many bits can we shave from the ATIV?
+			// Now how many bits can we shave from the SSTIV?
 			slack = (1<<deltaBits)-1 - deltaMax; // so the deltaTIV may represent values between 0 and 31, therefore we have a slack of 31-21=10
-			saved_LSBs_in_ATIV = intlog2(slack)-1; // for instance if slack=10 we may save 3 bits, because it will offset the TIV at most by 7 which is smaller than 10
+			saved_LSBs_in_SSTIV = intlog2(slack)-1; // for instance if slack=10 we may save 3 bits, because it will offset the TIV at most by 7 which is smaller than 10
 			// This is the number of bits we are sure we can shave, but this is only a worst-case analysis:  we could be more lucky
 			// However it will save very little: TODO if somebody wants to try
 
 			tempRho = alpha - s;
-			tempSizeATIV = (outputSize+guardBits-saved_LSBs_in_ATIV)<<tempRho;
+			tempSizeSSTIV = (outputSize+guardBits-saved_LSBs_in_SSTIV)<<tempRho;
 			tempSizeDiffTIV = deltaBits<<alpha;
-			tempCompressedSize = tempSizeATIV + tempSizeDiffTIV; 
+			tempCompressedSize = tempSizeSSTIV + tempSizeDiffTIV;
 			REPORT(DETAILED, "computeTIVCompressionParameters, unsigned: alpha=" << alpha << "  s=" << s << " compressedSize=" << tempCompressedSize
-						 << " =" << outputSize+guardBits-saved_LSBs_in_ATIV << ".2^" << tempRho
+						 << " =" << outputSize+guardBits-saved_LSBs_in_SSTIV << ".2^" << tempRho
 						 << " + " << deltaBits << ".2^" << alpha
-						 << "  ( slack=" << slack <<"  saved_LSBs_in_ATIV=" << saved_LSBs_in_ATIV <<" )"); 
-			
+						 << "  ( slack=" << slack <<"  saved_LSBs_in_SSTIV=" << saved_LSBs_in_SSTIV <<" )");
+
 			if (tempCompressedSize < bestSizeTIV) {
 				bestSizeTIV = tempCompressedSize;
 				bestS = s;
 				// tentatively set the attributes of the Multipartite class
 				rho = alpha - s;
-				sizeATIV = tempSizeATIV;
+				sizeSSTIV = tempSizeSSTIV;
 				sizeDiffTIV = tempSizeDiffTIV;
 				sizeTIV = tempCompressedSize;
-				totalSize = sizeATIV + sizeDiffTIV;
+				totalSize = sizeSSTIV + sizeDiffTIV;
 				for (int i=0; i<m; i++)		{
 					totalSize += sizeTOi[i];
 				}
-				
-				nbZeroLSBsInATIV = saved_LSBs_in_ATIV; 
-				outputSizeATIV = outputSize+guardBits-nbZeroLSBsInATIV;				
+
+				nbZeroLSBsInSSTIV = saved_LSBs_in_SSTIV;
+				dcTIV.subsamplingWordSize = outputSize+guardBits-nbZeroLSBsInSSTIV;
 				outputSizeDiffTIV = deltaBits;
 			}
 		}
-		REPORT(DETAILED, "computeTIVCompressionParameters, bestS=" << bestS); 
+		REPORT(FULL, "Old computeTIVCompressionParameters: alpha=" << alpha << "  ssTIVIn=" << rho  << "  dcTIV.subsamplingWordSize=" << dcTIV.subsamplingWordSize << "  outputSizeDiffTIV=" <<  outputSizeDiffTIV);
+		REPORT(FULL, "    total TIV size before=" << ((outputSize+guardBits)<<alpha) << "    compressed=" <<  sizeSSTIV + sizeDiffTIV);
 
-#if 0 // Unplugged for now because it actually increases size for 16-bit operands
-		// compression using symmetry and a second-order term: will require one more table and a row of xors on the output
-		bestS = 0; 
-		for(int s = 1; s < alpha-1; s++) {
-			// Under convexity hypothesis, the maximum slack is either left or right of the interval
-			// (I think we assume here convexity of the first derivative, too)
-			int64_t  yLL, yLR, yRL, yRR, deltaLeft, deltaRight, deltaMax, deltaBits, slack, saved_LSBs_in_ATIV, tempRho, tempSizeATIV, tempSizeDiffTIV, tempCompressedSize;
-			int i = 0; // compute extremal yues on the left of the interval
-			yLL	 = TIVFunction( i<<s );
-			yLR = TIVFunction( ((i+1)<<s)-1 );
-			deltaLeft = abs(yLL-yLR);
-			i = (1<<(alpha - s))-1; // compute extremal values on the right of the interval
-			yRL	 = TIVFunction( i<<s );
-			yRR = TIVFunction( ((i+1)<<s)-1 );
-
-			int64_t centerL, centerR;
-			centerL = (yLL+yLR)>>1;
-			centerR = (yRL+yRR)>>1;
-			deltaLeft = max( abs(yLL-centerL), abs(yLR-centerL));
-			deltaRight = max( abs(yRL-centerR), abs(yRR-centerR));
-			deltaMax = max(deltaLeft,deltaRight);
-			deltaBits = intlog2(deltaMax);
-			slack = (1<<deltaBits)-1 - deltaMax;			
-			saved_LSBs_in_ATIV = intlog2(slack);
-			tempRho = alpha - s;
-			tempSizeATIV = (outputSize+guardBits-saved_LSBs_in_ATIV)<<tempRho;
-			tempSizeDiffTIV = deltaBits<<alpha;
-			tempCompressedSize = tempSizeATIV + tempSizeDiffTIV; 
-			REPORT(DETAILED, "computeTIVCompressionParameters,   signed: alpha=" << alpha << "  s=" << s << " compressedSize=" << tempCompressedSize
-						 << " =" << outputSize+guardBits-saved_LSBs_in_ATIV << ".2^" << tempRho
-						 << " + " << deltaBits << ".2^" << alpha
-						 << "  ( slack=" << slack <<"  saved_LSBs_in_ATIV=" << saved_LSBs_in_ATIV <<" )"); 
-			
-			if (tempCompressedSize < sizeTIV) {
-				bestS = s;
-				// tentatively set the attributes of the Multipartite class
-				rho = alpha - s;
-				sizeATIV = tempSizeATIV;
-				sizeDiffTIV = tempSizeDiffTIV;
-				sizeTIV = tempCompressedSize;
-				totalSize = sizeATIV + sizeDiffTIV;
-				for (int i=0; i<m; i++)		{
-					totalSize += sizeTOi[i];
-				}
-				
-				nbZeroLSBsInATIV = saved_LSBs_in_ATIV; 
-				outputSizeATIV = outputSize+guardBits-nbZeroLSBsInATIV;				
-				outputSizeDiffTIV = deltaBits;
-			}
-		}
-#endif
-
-
-		REPORT(FULL, "Exiting computeTIVCompressionParameters: bestS=" << bestS << "  rho=" << rho  << "  nbZeroLSBsInATIV=" << nbZeroLSBsInATIV<< "  sizeTIV=" << sizeTIV  << "  outputSizeATIV" << outputSizeATIV); 
 	}
 
+#else
+	void Multipartite::computeTIVCompressionParameters() {
+		string srcFileName = mpt->getSrcFileName(); // for REPORT to work
+		REPORT(FULL, "Entering computeTIVCompressionParameters: alpha=" << alpha << "  uncompressed size=" << sizeTIV);
+
+
+		// NEW : this is mostly a wrapper to the different (and better) notations of Luc's code
+		// First convert the ints to mpzclass
+		// As long as it was only for TIVs, 64 bits should be enough for anybody.
+		// but we billgatesed there. Differential compression may indeed be applied to wider tables
+
+
+		pair<int, int> key (guardBits,alpha);
+		if(mpt->DCTIV.count(key)==0) {
+
+			vector<mpz_class> mptiv;
+			for (auto i=0; i<(1<<alpha); i++) {
+				mptiv.push_back(mpz_class(TIVFunction(i)));
+			}
+			REPORT(FULL, "Computing new compression for  alpha=" << alpha << "   wOut=" << outputSize + guardBits);
+			dcTIV = DifferentialCompression::find_differential_compression(mptiv, alpha, outputSize + guardBits, _target);
+			// Trick to save memory: we won't need the complete tables, they take up more than 16Gb for 24 bit functions
+			// better free them now, and recompute at the end only the winner
+			dcTIV.subsampling.clear();
+			dcTIV.diffs.clear();
+			mpt->DCTIV[key]=dcTIV;
+		}
+		else {
+			REPORT(DETAILED, "Using cached TIV compression for g=" << guardBits << " and alpha=" << alpha);
+			dcTIV = mpt->DCTIV[key];
+		}
+
+		totalSize = dcTIV.subsamplingStorageSize() + dcTIV.diffsStorageSize();
+		for (int i=0; i<m; i++)		{
+			totalSize += sizeTOi[i];
+		}
+		REPORT(FULL, "New computeTIVCompressionParameters: alpha=" << alpha << "  ssTIVIn=" << dcTIV.subsamplingIndexSize  << "  dcTIV.subsamplingWordSize=" << dcTIV.subsamplingWordSize << "  dcTIV.diffWordSize=" <<  dcTIV.diffWordSize);
+		REPORT(FULL, "    total TIV size before=" << ((outputSize+guardBits)<<alpha) << "    compressed=" <<  dcTIV.subsamplingStorageSize() + dcTIV.diffsStorageSize());
+		REPORT(FULL, "Exiting computeTIVCompressionParameters");
+	}
+
+#endif
 
 
 
@@ -245,11 +238,11 @@ namespace flopoco
 
 		if(computeGuardBits) {
 			guardBits =  (int) ceil(-outputSize - 1
-															 + log2(m /(intpow2(-outputSize - 1) - mathError)));
+															+ log2(m /(intpow2(-outputSize - 1) - mathError)));
 			// With a slack of 1 it works 97% of the time
-			guardBits += mpt->guardBitsSlack; 
+			guardBits += mpt->guardBitsSlack;
 		}
-		
+
 		sizeTIV = (outputSize + guardBits)<<alpha;
 		int size = sizeTIV;
 		outputSizeTOi = vector<int>(m);
@@ -259,84 +252,94 @@ namespace flopoco
 			size += sizeTOi[i];
 		}
 		totalSize = size;
-
+#if 1 // COMPRESSION_IN_EXPLORATION
 		if(mpt->compressTIV)
 			computeTIVCompressionParameters(); // may change sizeTIV and totalSize
-		// else leave rho=-1
+#endif
 	}
 
 
-	void Multipartite::mkTables(Target* target)
+	void Multipartite::mkTables()
 	{
 		// The TIV
 		tiv.clear();
 		for (int j=0; j < 1<<alpha; j++) {
-				tiv.push_back(TIVFunction(j));
+			tiv.push_back(TIVFunction(j));
 		}
-		
+
 		// The TOIs
 		//toi = vector<Table*>(m);
 		toi.clear();
 		for(int i = 0; i < m; ++i)
-		{
-			vector<int64_t> values;
-			for (int j=0; j < 1<<(gammai[i]+betai[i]-1); j++) {
-				values.push_back(TOiFunction(j, i));
-			}
-			// If the TOi values are negative, we will store their opposite
-			bool allnegative=true;
-			bool allpositive=true;
-			for (size_t j=0; j < values.size(); j++) {
-				if(values[j]>0)
-					allnegative=false;
-				if(values[j]<0)
-					allpositive=false;
-			}
-			if((!allnegative) && (!allpositive)) {
-				const string srcFileName="Multipartite";
-				THROWERROR("TO"<< i << " doesn't have a constant sign, please report this as a bug");
-			}
-			if(allnegative) {
-				negativeTOi.push_back(true);
-				for (size_t j=0; j < values.size(); j++) {
-					values[j] = -values[j];
+			{
+				vector<int64_t> values;
+				for (int j=0; j < 1<<(gammai[i]+betai[i]-1); j++) {
+					values.push_back(TOiFunction(j, i));
 				}
+				// If the TOi values are negative, we will store their opposite
+				bool allnegative=true;
+				bool allpositive=true;
+				for (size_t j=0; j < values.size(); j++) {
+					if(values[j]>0)
+						allnegative=false;
+					if(values[j]<0)
+						allpositive=false;
+				}
+				if((!allnegative) && (!allpositive)) {
+					const string srcFileName="Multipartite";
+					THROWERROR("TO"<< i << " doesn't have a constant sign, please report this as a bug");
+				}
+				if(allnegative) {
+					negativeTOi.push_back(true);
+					for (size_t j=0; j < values.size(); j++) {
+						values[j] = -values[j];
+					}
+				}
+				else {
+					negativeTOi.push_back(false);
+				}
+				toi.push_back(values);
+
+				//			string name = mpt->getName() + join("_TO",i);
+				//toi[i] = new Table(mpt, target, values, name, gammai[i] + betai[i] - 1, outputSizeTOi[i]-1);
 			}
-			else {
-				negativeTOi.push_back(false);
-			}
-			toi.push_back(values);
-			
-			//			string name = mpt->getName() + join("_TO",i);
-			//toi[i] = new Table(mpt, target, values, name, gammai[i] + betai[i] - 1, outputSizeTOi[i]-1);
-		}
+
+
+#if 1 // Florent's version
 
 		if(mpt->compressTIV) {
-			aTIV.clear();
+			ssTIV.clear();
 			diffTIV.clear();
 			// TIV compression as per Hsiao with improvements
-			int s = alpha-rho;
-			for(int i = 0; i < (1<<rho); i++)	{
+			int s = alpha-dcTIV.subsamplingIndexSize;
+			for(int i = 0; i < (1<<dcTIV.subsamplingIndexSize); i++)	{
 				int64_t valLeft  = TIVFunction( i<<s );
 				int64_t valRight = TIVFunction( ((i+1)<<s)-1 );
 				int64_t refVal;
 				// life is simpler if the diff table is always positive
-				if(valLeft<=valRight) 
+				if(valLeft<=valRight)
 					refVal=valLeft;
-				else  
+				else
 					refVal=valRight;
 				// the improvement: we may shave a few bits from the LSB
-				//			int64_t mask = ((1<<outputSize)-1) - ((1<<nbZeroLSBsInATIV)-1);
-				refVal = refVal >> nbZeroLSBsInATIV ;
-				aTIV.push_back(refVal);
-				//cerr << " i=" << i << "  ATIV=" << refVal << "<<" << nbZeroLSBsInATIV << endl;
+				//			int64_t mask = ((1<<outputSize)-1) - ((1<<dcTIV.subsamplingShift())-1);
+				refVal = refVal >> dcTIV.subsamplingShift() ;
+				ssTIV.push_back(refVal);
+				//cerr << " i=" << i << "  SSTIV=" << refVal << "<<" << dcTIV.subsamplingShift() << endl;
 				for(int j = 0; j < (1<<s); j++)		{
-					int64_t diff = tiv[ (i<<s) + j] - (refVal << nbZeroLSBsInATIV);
+					int64_t diff = tiv[ (i<<s) + j] - (refVal << dcTIV.subsamplingShift());
 					diffTIV.push_back(diff);
 					//cerr << "    j=" <<j  << " diffTIV=" << diff << endl;
-				}	
+				}
 			}
 		}
+#else // The previous code is in principle redundant with code in DifferentialCompression
+		if(mpt->compressTIV) {
+			computeTIVCompressionParameters(); // may change sizeTIV and totalSize
+			... TODO
+		}
+#endif
+
 	}
 
 
@@ -391,9 +394,9 @@ namespace flopoco
 		offsetX = offsetX / ((double)inputRange);
 
 		if (m % 2 == 1) // odd
-					offsetMatula = 0.5*(m-1);
-				else //even
-					offsetMatula = 0.5 * m;
+			offsetMatula = 0.5*(m-1);
+		else //even
+			offsetMatula = 0.5 * m;
 
 		offsetMatula += intpow2(g-1); //for the final rounding
 
@@ -419,14 +422,14 @@ namespace flopoco
 	string 	Multipartite::descriptionString(){
 		ostringstream s;
 		s << "m=" << m << " alpha=" << alpha;
-		if(rho!=-1)
-			s << " rho=" << rho << " nbZeroLSBsInATIV=" << nbZeroLSBsInATIV << " ";
+		if(mpt->compressTIV)
+			s << " dcTIV.subsamplingIndexSize=" << dcTIV.subsamplingIndexSize << " dcTIV.subsamplingShift()=" << dcTIV.subsamplingShift() << " ";
 		for (size_t i =0; i< gammai.size(); i++) {
-			s << "  gamma" << i << "=" << gammai[i] << " beta"<<i<<"=" << betai[i]; 
+			s << "  gamma" << i << "=" << gammai[i] << " beta"<<i<<"=" << betai[i];
 		}
 		s << "  g=" << guardBits << endl;
-		if(rho!=-1){
-			s << "  sizeATIV=" << sizeATIV << " sizeDiffTIV=" << sizeDiffTIV ;
+		if(mpt->compressTIV){
+			s << "  dcTIV.subsamplingStorageSize()=" << dcTIV.subsamplingStorageSize() << " dcTIV.diffsStorageSize()=" << dcTIV.diffsStorageSize() ;
 		}
 		s << "  sizeTIV=" << sizeTIV << " totalSize = " << totalSize ;
 		return s.str();
@@ -436,17 +439,17 @@ namespace flopoco
 		ostringstream s;
 #if 0
 		s << "    \\alpha=" << alpha;
-		if(rho!=-1)
-			s << ", rho=" << rho << ", nbZeroLSBsInATIV=" << nbZeroLSBsInATIV << "   ";
+		if(mpt->compressTIV)
+			s << ", dcTIV.subsamplingIndexSize=" << dcTIV.subsamplingIndexSize << ", dcTIV.subsamplingShift()=" << dcTIV.subsamplingShift() << "   ";
 		for (size_t i =0; i< gammai.size(); i++) {
-			s << "   \\gamma_" << i << "=" << gammai[i] << " \\beta_"<<i<<"=" << betai[i]; 
+			s << "   \\gamma_" << i << "=" << gammai[i] << " \\beta_"<<i<<"=" << betai[i];
 		}
 		s << endl;
 #endif
 		s << "         totalSize = " << totalSize << "   =   " ;
 
-		if(rho!=-1){
-			s << "    " << outputSizeATIV << ".2^" << rho << " + " << outputSizeDiffTIV << ".2^" << alpha;
+		if(mpt->compressTIV){
+			s << "    " << dcTIV.subsamplingWordSize << ".2^" << dcTIV.subsamplingIndexSize << " + " << dcTIV.diffWordSize << ".2^" << alpha;
 		}
 		else
 			s << "    " << outputSize+guardBits << ".2^" << alpha;
@@ -462,14 +465,14 @@ namespace flopoco
 
 	string 	Multipartite::fullTableDump(){
 		ostringstream s;
-		if(rho==-1) { //uncompressed TIV
+		if(!mpt->compressTIV) { //uncompressed TIV
 			for(size_t i=0; i<tiv.size(); i++ ) {
 				s << "TIV[" << i << "] \t= " << tiv[i] <<endl;
 			}
 		}
 		else {// compressed TIV
-			for(size_t i=0; i<aTIV.size(); i++ ) {
-				s << "aTIV[" << i << "] \t= " << aTIV[i] <<endl;
+			for(size_t i=0; i<ssTIV.size(); i++ ) {
+				s << "ssTIV[" << i << "] \t= " << ssTIV[i] <<endl;
 			}
 			s << endl;
 			for(size_t i=0; i<diffTIV.size(); i++ ) {
@@ -486,7 +489,7 @@ namespace flopoco
 		return s.str();
 	}
 
-	
+
 #define ETDEBUG 0
 	bool Multipartite::exhaustiveTest(){
 		double maxError=0;
@@ -499,41 +502,41 @@ namespace flopoco
 			rulp =  (double) (1<<lsbOut);
 		for (int x=0; x<(1<<inputSize); x++) {
 			int64_t result;
-			if(rho==-1) {
+			if(!mpt->compressTIV) {
 				int a = x>>(inputSize-alpha);
 				int64_t yTIV = tiv[a];
 				result = yTIV;
-#if ETDEBUG 
+#if ETDEBUG
 				cerr 	<< "  x=" << x<< " tiv=" << result;
 #endif
 			}
 			else { //compressed table
-				int aa = x>>(inputSize-rho);
-				int64_t yATIV = aTIV[aa];
+				int aa = x>>(inputSize-dcTIV.subsamplingIndexSize);
+				int64_t ySSTIV = ssTIV[aa];
 
 				int adiff = x>>(inputSize-alpha);
 				int64_t yDiffTIV = diffTIV[adiff];
-				result = (yATIV << nbZeroLSBsInATIV) + yDiffTIV;
-#if ETDEBUG 
-				cerr 	<< "  x=" << x<< " yaTIV=" << yATIV << " yDiffTIV=" << yDiffTIV ;
+				result = (ySSTIV << dcTIV.subsamplingShift()) + yDiffTIV;
+#if ETDEBUG
+				cerr 	<< "  x=" << x<< " yssTIV=" << ySSTIV << " yDiffTIV=" << yDiffTIV ;
 #endif
 			}
 			for(int i=0; i<m; i++) {
 				int aTOi = (x>>pi[i]) & ((1<<betai[i])-1);
 				int sign = 1-(aTOi >> (betai[i]-1) );
-#if ETDEBUG 
+#if ETDEBUG
 				cerr << "  aTO" << i << "I=" << aTOi << "  s=" << sign << "  ";
 #endif
 				aTOi = (aTOi & ((1<<(betai[i]-1))-1));
 				if(sign==1)
-					aTOi =  ((1<<(betai[i]-1))-1)  - aTOi; 
+					aTOi =  ((1<<(betai[i]-1))-1)  - aTOi;
 				aTOi +=   ((x>>(inputSize-gammai[i])) << (betai[i]-1));
 				int64_t yTOi = toi[i][aTOi];
-#if ETDEBUG 
+#if ETDEBUG
 				cerr << " aTO" << i << "F=" << aTOi << " yTOi="  << yTOi;
 #endif
 				if(negativeTOi[i])
-					sign=1-sign; 
+					sign=1-sign;
 				if(sign==1)
 					yTOi = ~yTOi;
 				result += yTOi;
@@ -544,7 +547,7 @@ namespace flopoco
 			double ref = f->eval(   ((double)x) / ((double)(1<<(-lsbIn))) );
 			double error = abs(fresult-ref);
 			maxError = max(maxError, error);
-#if ETDEBUG 
+#if ETDEBUG
 			cerr //<< ((double)x) / ((double)(1<<(-lsbIn)))
 			  << "  sum=" << result<< " fresult=" << fresult << "ref=" <<ref << "   e=" << error << " u=" <<rulp << (error > rulp ? " *******  Error here":"") <<  endl;
 #endif

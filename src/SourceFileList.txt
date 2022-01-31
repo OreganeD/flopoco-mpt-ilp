@@ -121,8 +121,11 @@ ExpLog/FPPow
 IEEE/IEEEFMA
 IEEE/IEEEAdd
 IEEE/IEEEFloatFormat
-Table
-DualTable
+Tables/Table
+Tables/TableCostModel.cpp
+Tables/DiffCompressedTable
+Tables/DifferentialCompression
+Tables/DualTable
 FixConstant
 FixFunctions/FixFunction
 FixFunctions/FixFunctionByTable

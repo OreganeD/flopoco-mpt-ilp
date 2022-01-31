@@ -1,15 +1,15 @@
 /*
   Polynomial Function Evaluator for FloPoCo
 	This version uses piecewise polynomial approximation for a trade-off between tables and multiplier hardware.
-	
+
   Authors: Florent de Dinechin (rewrite from scratch of original code by Mioara Joldes and Bogdan Pasca, see the attic directory)
 
   This file is part of the FloPoCo project
 	launched by the Arénaire/AriC team of Ecole Normale Superieure de Lyon
   currently developed by the Socrate team at CITILab/INSA de Lyon
- 
+
   Initial software.
-  Copyright © ENS-Lyon, INSA-Lyon, INRIA, CNRS, UCBL,  
+  Copyright © ENS-Lyon, INSA-Lyon, INRIA, CNRS, UCBL,
   2008-2014.
   All rights reserved.
 
@@ -30,7 +30,8 @@
 
 
 #include "FixFunctionByPiecewisePoly.hpp"
-#include "Table.hpp"
+#include "Tables/Table.hpp"
+#include "Tables/DifferentialCompression.hpp"
 #include "FixFunctionByTable.hpp"
 #include "FixHornerEvaluator.hpp"
 
@@ -48,20 +49,20 @@ namespace flopoco{
 
 	 */
 
-	
+
 	/* Error analysis:
 		 Target error is exp2(lsbOut).
 		 Final rounding may entail up to exp2(lsbOut-1).
 		 So approximation+rounding error budget is  exp2(lsbOut-1).
 		 We call PiecewisePolyApprox with approximation target error bound exp2(lsbOut-2).
-		 It reports pwp->LSB: may be lsbOut-2, may be up to lsbOut-2- intlog2(degree) 
+		 It reports pwp->LSB: may be lsbOut-2, may be up to lsbOut-2- intlog2(degree)
 		 It also reports pwp->approxErrorBound
 		 so rounding error budget is  exp2(lsbOut-1) - pwp->approxErrorBound
 		 Staying within this budget is delegated to FixHornerEvaluator: see there for the details
-			 
+
 	 */
 
-	
+
 #define DEBUGVHDL 0
 
 
@@ -69,7 +70,7 @@ namespace flopoco{
 		Operator(parentOp, target), degree(degree_), lsbIn(lsbIn_), lsbOut(lsbOut_), finalRounding(finalRounding_), approxErrorBudget(approxErrorBudget_){
 
 		srcFileName="FixFunctionByPiecewisePoly";
-		setNameWithFreqAndUID("FixFunctionByPiecewisePoly"); 
+		setNameWithFreqAndUID("FixFunctionByPiecewisePoly");
 		setCopyrightString("Florent de Dinechin (2014-2020)");
 
 		if(finalRounding==false){
@@ -80,13 +81,13 @@ namespace flopoco{
 		f=new FixFunction(func, false, lsbIn, lsbOut); // this will provide emulate etc.
 		msbOut = f->msbOut;
 		signedOut = f->signedOut;
-		
+
 		addHeaderComment("Evaluator for " +  f-> getDescription() + "\n");
 		REPORT(DETAILED, "Entering constructor, FixFunction description: " << f-> getDescription());
- 		int wX=-lsbIn;
+		int wX=-lsbIn;
 		addInput("X", wX); // TODO manage signedIn
 
-		int outputSize = msbOut-lsbOut+1; // OK both for signed and unsigned out 
+		int outputSize = msbOut-lsbOut+1; // OK both for signed and unsigned out
 		addOutput("Y" ,outputSize , 2);
 
 		if(degree==0){ // This is a simple table
@@ -94,27 +95,27 @@ namespace flopoco{
 			ostringstream params;
 			params << "f="<<func
 						 << " signedIn=false" << " lsbIn=" << lsbIn
-						 << " lsbOut=" << lsbOut; 
+						 << " lsbOut=" << lsbOut;
 			newInstance("FixFunctionByTable",
 									"simpleTable",
 									params.str(),
 									"X=>X",
 									"Y=>YY" );
 
-			vhdl << tab << "Y <= YY;" << endl; 
+			vhdl << tab << "Y <= YY;" << endl;
 		}
 		else{
 			if(degree==1){ // For degree 1, MultiPartite could work better
 			REPORT(INFO, "Degree 1: You should consider using FixFunctionByMultipartiteTable");
 			}
 
-			
+
 			// Build the polynomial approximation
 			double targetAcc= approxErrorBudget*pow(2, lsbOut);
 			REPORT(INFO, "Computing polynomial approximation of degree " << degree << " for target accuracy "<< targetAcc);
 			pwp = new UniformPiecewisePolyApprox(func, targetAcc, degree);
-			alpha =  pwp-> alpha; // coeff table input size 
-						
+			alpha =  pwp-> alpha; // coeff table input size
+
 			// Build the coefficient table out of the vector of polynomials. This is also where we add the final rounding bit
 			buildCoeffTable();
 
@@ -131,7 +132,7 @@ namespace flopoco{
 
 			Table::newUniqueInstance(this, "A", "Coeffs",
 															 coeffTableVector, "coeffTable", alpha, polyTableOutputSize );
-			
+
 			addComment(" Split the table output into each coefficient, adding back the constant signs if any");
 			int currentShift=0;
 			for(int i=pwp->degree; i>=0; i--) {
@@ -139,14 +140,14 @@ namespace flopoco{
 				vhdl << tab << declare(join("A",i), pwp->MSB[i] - pwp->LSB +1)
 						 << " <= ";
 				if (pwp->coeffSigns[i]!=0) // add constant sign back
-					vhdl << (pwp->coeffSigns[i]==1? "\"0\"" :  "\"1\"") << " & " ;				
+					vhdl << (pwp->coeffSigns[i]==1? "\"0\"" :  "\"1\"") << " & " ;
 				vhdl << "Coeffs" << range(currentShift + actualSize-1, currentShift) << ";" << endl;
 				currentShift += actualSize;
 			}
 
-			
+
 			// What follows is related to Horner evaluator
-			// Here I wish I could plug other (more parallel) evaluators. 
+			// Here I wish I could plug other (more parallel) evaluators.
 
 
 			REPORT(INFO, "Now building the Horner evaluator for rounding error budget "<< roundingErrorBudget);
@@ -158,7 +159,7 @@ namespace flopoco{
 			inPortMap(join("A",i),  join("A",i));
 		}
 		outPortMap("R", "HornerOutput");
-		OperatorPtr h = new  FixHornerEvaluator(this, target, 
+		OperatorPtr h = new  FixHornerEvaluator(this, target,
 																						lsbIn+alpha+1,
 																						msbOut,
 																						lsbOut,
@@ -167,7 +168,7 @@ namespace flopoco{
 																						// and everybody is signed.
 																						);
 		vhdl << instance(h, "Horner", false);
-			
+
 		vhdl << tab << "Y <= " << "std_logic_vector(HornerOutput);" << endl;
 
 		}
@@ -183,13 +184,17 @@ namespace flopoco{
 
 
 
-	
+
 	void FixFunctionByPiecewisePoly::buildCoeffTable() {
 		// First compute the table output size
 		polyTableOutputSize=0;
 		for (int i=0; i<=degree; i++) {
 			polyTableOutputSize += pwp->MSB[i] - pwp->LSB + (pwp->coeffSigns[i]==0? 1 : 0);
-		} 
+
+			// initialize the table of coeffs
+			vector<mpz_class> v;
+			SplitCoeffTableVector.push_back(v);
+		}
 		REPORT(DETAILED, "Poly table input size  = " << alpha);
 		REPORT(DETAILED, "Poly table output size = " << polyTableOutputSize);
 
@@ -201,8 +206,9 @@ namespace flopoco{
 				mpz_class coeff = pwp-> getCoeffAsPositiveMPZ(x, i); // coeff of degree i from poly number x
 				if (pwp->coeffSigns[i] != 0) {// sign is constant among all the coefficients: remove it from here, it will be added back as a constant in the VHDL
 					mpz_class mask = (mpz_class(1)<<(pwp->MSB[i] - pwp->LSB) ) - 1; // size is msb-lsb+1
-					coeff = coeff & mask; 
+					coeff = coeff & mask;
 				}
+				SplitCoeffTableVector[i].push_back(coeff); // TODO if this is to be used: integrate the rounding bit below into coeff before storing it in SplitCoeffTable
 				z += coeff << currentShift; // coeff of degree i from poly number x
 				// REPORT(DEBUG, "i=" << i << "   z=" << unsignedBinary(z, 64));
 				if(i==0 && finalRounding){ // coeff of degree 0
@@ -218,15 +224,26 @@ namespace flopoco{
 			}
 			coeffTableVector.push_back(z);
 		}
+		// report the potential of compression
+		int initialCost=0;
+		int compressedCost=0;
+		for (int i=0; i<=degree; i++) {
+			auto dc = DifferentialCompression::find_differential_compression(SplitCoeffTableVector[i], alpha, pwp->MSB[i] - pwp->LSB + (pwp->coeffSigns[i]==0? 1: 0), getTarget());
+			REPORT(0, "Differential compression of coeff table for degree " << i << endl << dc.report());
+			initialCost += (dc.originalWout)<< alpha;
+			compressedCost += dc.subsamplingStorageSize() + dc.diffsStorageSize();
+		}
+		REPORT(0, "For the full table of coeffs, initial cost is: " << initialCost <<   ", compressed cost is: " << compressedCost <<   "   Saved: " << 100*((double)initialCost-compressedCost)/ ((double)initialCost) << " %");
+
 
 	}
 
 
 
-	
-	
 
- 
+
+
+
 
 
 	void FixFunctionByPiecewisePoly::emulate(TestCase* tc){
@@ -236,11 +253,11 @@ namespace flopoco{
 	void FixFunctionByPiecewisePoly::buildStandardTestCases(TestCaseList* tcl){
 		TestCase *tc;
 
-		tc = new TestCase(this); 
+		tc = new TestCase(this);
 		tc->addInput("X", 0);
 		emulate(tc);
 		tcl->add(tc);
-		tc = new TestCase(this); 
+		tc = new TestCase(this);
 		tc->addInput("X", (mpz_class(1) << f->wIn) -1);
 		emulate(tc);
 		tcl->add(tc);
@@ -260,10 +277,10 @@ namespace flopoco{
 		functionList.push_back("tanh(4*x)");
 
 		vector<pair<string,string>> paramList;
-		if(index==-1) 
+		if(index==-1)
 			{ // The unit tests
 				for (size_t i=0; i<functionList.size(); i++) {
-					// first deg 2 and 3, 15 bits, exhaustive test, then deg 5 for 25 bits 
+					// first deg 2 and 3, 15 bits, exhaustive test, then deg 5 for 25 bits
 					string f = functionList[i];
 					paramList.push_back(make_pair("f","\"" + f + "\""));
 					paramList.push_back(make_pair("plainVHDL","true"));
@@ -299,20 +316,20 @@ namespace flopoco{
 					paramList.clear();
 				}
 			}
-		else     
+		else
 		{
 				// finite number of random test computed out of index
-		}	
+		}
 
 		return testStateList;
 	}
 
-	
+
 	OperatorPtr FixFunctionByPiecewisePoly::parseArguments(OperatorPtr parentOp, Target *target, vector<string> &args) {
 		int lsbIn, lsbOut, d;
 		string f;
 		double approxErrorBudget;
-		UserInterface::parseString(args, "f", &f); 
+		UserInterface::parseString(args, "f", &f);
 		UserInterface::parseInt(args, "lsbIn", &lsbIn);
 		UserInterface::parseInt(args, "lsbOut", &lsbOut);
 		UserInterface::parsePositiveInt(args, "d", &d);
@@ -326,17 +343,17 @@ namespace flopoco{
 											 "FunctionApproximation",
 											 "",
 											 "f(string): function to be evaluated between double-quotes, for instance \"exp(x*x)\";\
-                        lsbIn(int): weight of input LSB, for instance -8 for an 8-bit input;\
-                        lsbOut(int): weight of output LSB;\
-                        d(int): degree of the polynomial;\
-                        approxErrorBudget(real)=0.25: error budget in ulp for the approximation, between 0 and 0.5",                        
+						lsbIn(int): weight of input LSB, for instance -8 for an 8-bit input;\
+						lsbOut(int): weight of output LSB;\
+						d(int): degree of the polynomial;\
+						approxErrorBudget(real)=0.25: error budget in ulp for the approximation, between 0 and 0.5",
 											 "This operator uses a table for coefficients, and Horner evaluation with truncated multipliers sized just right.<br>For more details, see <a href=\"bib/flopoco.html#DinJolPas2010-poly\">this article</a>.",
 											 FixFunctionByPiecewisePoly::parseArguments,
 											 FixFunctionByPiecewisePoly::unitTest
 											 ) ;
-		
+
 	}
 
 }
-	
+
 

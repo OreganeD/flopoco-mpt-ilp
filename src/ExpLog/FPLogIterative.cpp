@@ -26,7 +26,7 @@
 #include "ShiftersEtc/LZOC.hpp"
 #include "ShiftersEtc/Normalizer.hpp"
 #include "ShiftersEtc/Shifters.hpp"
-#include "Table.hpp"
+#include "Tables/Table.hpp"
 #include "ConstMult/FixRealKCM.hpp"
 #include "utils.hpp"
 //#include "IntMult/IntSquarer.hpp"

@@ -6,7 +6,7 @@
 #include <gmpxx.h>
 #include "utils.hpp"
 #include "Operator.hpp"
-#include "Table.hpp"
+#include "Tables/Table.hpp"
 #include "BitHeap/BitHeap.hpp"
 
 #include "IntMult//MultiplierBlock.hpp"
@@ -130,12 +130,12 @@ namespace flopoco {
 		void emulate ( TestCase* tc );
 
 		void buildStandardTestCases(TestCaseList* tcl);
-		
+
 
 		/** Factory method that parses arguments and calls the constructor */
 		static OperatorPtr parseArguments(OperatorPtr parentOp, Target *target , vector<string> &args);
 
-		/** Factory register method */ 
+		/** Factory register method */
 		static void registerFactory();
 
 

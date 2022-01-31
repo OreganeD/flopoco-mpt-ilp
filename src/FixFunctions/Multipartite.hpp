@@ -6,6 +6,7 @@
 
 #include "FixFunction.hpp"
 #include "../Operator.hpp"
+#include "../Tables/DifferentialCompression.hpp"
 
 
 using namespace std;
@@ -21,9 +22,10 @@ namespace flopoco
 		const string uniqueName_=""; // for REPORT to work
 		//---------------------------------------------------------------------------- Constructors/Destructor
 
-		Multipartite(FixFunction *f_, int m_, int alpha_, int beta_, vector<int> gammai_, vector<int> betai_, FixFunctionByMultipartiteTable* mpt_);
+		Multipartite(FixFunction *f_, int m_, int alpha_, int beta_, vector<int> gammai_, vector<int> betai_, FixFunctionByMultipartiteTable* mpt_, Target* target);
 
-		Multipartite(FixFunctionByMultipartiteTable* mpt_, FixFunction* f_, int inputSize_, int outputSize_);
+		Multipartite(FixFunctionByMultipartiteTable* mpt_, FixFunction* f_, int inputSize_, int outputSize_, Target* target);
+
 
 		int64_t TIVFunction(int x);
 		int64_t TOiFunction(int x, int ti);
@@ -38,7 +40,7 @@ namespace flopoco
 		 * @brief mkTables : fill  the TIV and TOs tables
 		 * @param target : The target FPGA
 		 */
-		void mkTables(Target* target);
+		void mkTables();
 
 		/**
 		 * @brief descriptionString(): describe the various parameters in textual form
@@ -51,7 +53,7 @@ namespace flopoco
 		/**
 		 * @brief fullTableDump(): as the name suggests, for debug
 		 */
-		string 	fullTableDump(); 
+		string 	fullTableDump();
 
 		/**
 		 * @brief returns true if the architecture is correct; false if it exceeds the target error
@@ -71,8 +73,6 @@ namespace flopoco
 		int m;
 		/** Just as in the article  */
 		int alpha;
-		/** the number of bits that address the first part of a compressed TIV (alpha -s) */
-		int rho;
 		/** Just as in the article */
 		int beta;
 		/** Just as in the article */
@@ -84,9 +84,9 @@ namespace flopoco
 
 		/** The Table of Initial Values, just as the ARITH 15 article */
 		vector<int64_t> tiv;
-		
+
 		/** The first part of the compressed TIV table, just as in the Hsiao article */
-		vector<int64_t> aTIV;
+		vector<int64_t> ssTIV;
 
 		/** The second part of the compressed TIV table, just as in the Hsiao article */
 		vector<int64_t> diffTIV;
@@ -97,30 +97,39 @@ namespace flopoco
 		double mathError;
 
 		int guardBits;
-		int outputSizeATIV;
-		int outputSizeDiffTIV;
 		vector<int> outputSizeTOi;
 		vector<int> sizeTOi;
 		vector<bool> negativeTOi;
 		int sizeTIV;
-		int sizeATIV;
-		int nbZeroLSBsInATIV;
-		int sizeDiffTIV;
 		int totalSize;
+		/** the number of bits that address the first part of a compressed TIV (alpha -s) */
+#if 0
+		int rho;
+		int outputSizeSSTIV;
+		int outputSizeDiffTIV;
+		int nbZeroLSBsInSSTIV;
+		int sizeDiffTIV;
+		int sizeSSTIV;
+#else
+		DifferentialCompression dcTIV;
+#endif
 
 		// holds precalculated TOi math errors. Valid as long as we don't change m!
+		// Also a table of TIV compressions
 		FixFunctionByMultipartiteTable *mpt;
 
 	private:
 
 		//------------------------------------------------------------------------------------ Private methods
 		void computeTOiSize (int i);
-
 		double deltai(int i);
 		double mui(int i, int Bi);
 		double si(int i, int Ai);
-
 		void computeTIVCompressionParameters();
+
+
+		//------------------------------------------------------------------------------------- Private attributes
+		Target* _target;
 
 	};
 

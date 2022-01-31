@@ -2,7 +2,7 @@
 #define PositFunctionByTable_HPP
 #include <vector>
 
-#include "../../Table.hpp"
+#include "../../Tables/Table.hpp"
 #include "PositFunction.hpp"
 
 namespace flopoco{

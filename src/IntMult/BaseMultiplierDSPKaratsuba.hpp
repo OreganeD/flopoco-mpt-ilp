@@ -10,7 +10,7 @@
 #include "Target.hpp"
 #include "Operator.hpp"
 #include "BitHeap/BitHeap.hpp"
-#include "Table.hpp"
+#include "Tables/Table.hpp"
 #include "BaseMultiplierCategory.hpp"
 
 namespace flopoco {

@@ -33,7 +33,7 @@ namespace flopoco {
 	// global const variables
 	static const map<string, double> emptyDelayMap;
 	const std::string tab = "   ";
-	
+
 	// Reporting levels
 #define LIST 0       // information necessary to the user of FloPoCo
 #define INFO 1       // information useful to the user of FloPoCo
@@ -44,7 +44,7 @@ namespace flopoco {
 #define INNER_SEPARATOR "................................................................................"
 #define DEBUG_SEPARATOR "________________________________________________________________________________"
 #define OUTER_SEPARATOR "################################################################################"
-#define REPORT(level, stream) {if ((level)<=(UserInterface::verbose)){ cerr << "> " << srcFileName << " " << uniqueName_ <<": " << stream << endl;}else{}} 
+#define REPORT(level, stream) {if ((level)<=(UserInterface::verbose)){ cerr << "> " << srcFileName << " " << uniqueName_ <<": " << stream << endl;}else{}}
 #define THROWERROR(stream) {{ostringstream o; o << " ERROR in " << uniqueName_ << " (" << srcFileName << "): " << stream << endl; throw o.str();}}
 
 
@@ -68,7 +68,7 @@ namespace flopoco {
 	 * as described in the developer manual
 	 */
 	typedef pair<int, int> fdim;
-	
+
 	/**
 	 * This is a top-level class representing an Operator.
 	 * This class is inherited by all classes which will output a VHDL entity.
@@ -105,7 +105,7 @@ namespace flopoco {
 
 
 
-	
+
 		/**
 		 * Add a sub-operator to this operator
 		 All the operators in the subCompontentList will be declared in the VHDL.
@@ -152,7 +152,7 @@ namespace flopoco {
 		void doApplySchedule();
 
 
-	
+
 		/**
 		 * Generates the code for a list of operators and all their subcomponents
 		 */
@@ -214,7 +214,7 @@ namespace flopoco {
 		// One option is that fixed-point I/Os should always be plain std_logic_vectors.
 		// It just makes the framework simpler, and anyway typing is managed internally
 		// FP I/O need to be typed to manage the testbenches, e.g. FP equality does
-		// not resume to equality on the bit vectors.  
+		// not resume to equality on the bit vectors.
 		// This is not the case for fixed-point
 		// (comment by F de Dinechin)
 
@@ -462,9 +462,9 @@ namespace flopoco {
 		 * Declares a signal appearing on the Left Hand Side of a VHDL assignment
 		 * @param name is the name of the signal
 		 * @param width is the width of the signal (optional, default 1; value -1 means: incomplete declaration, see Signal.hpp)
-		 * @param isbus: a signal of width 1 is declared as std_logic when false, 
+		 * @param isbus: a signal of width 1 is declared as std_logic when false,
 		 * 				 as std_logic_vector when true (optional, default false)
-		 * @param regType: the registring type of this signal. See also the Signal 
+		 * @param regType: the registring type of this signal. See also the Signal
 		 * 				   Class for more info
 		 * @param incomplete declaration: whether only part of the signal parameters are specified,
 		 * 									and the rest are specified later
@@ -608,7 +608,7 @@ namespace flopoco {
 
 
 		/**
-		 * addRegisteredSignalCopy is _the_ interface to have functional delays, 
+		 * addRegisteredSignalCopy is _the_ interface to have functional delays,
 		 (e.g. the z^(-1) function used in signal processing)
 		 irrespective of what happens during pipelining.
 		 It registers sourceName and creates a registerd copy (which is declare()d.
@@ -716,7 +716,7 @@ namespace flopoco {
 		 */
 		void newSharedInstance(OperatorPtr op, string instanceName, string inPortMaps, string outPortMaps, string inPortMapsCst = "");
 
-	private:	
+	private:
 		/**
 		 * Parse a string containing port mappings for a new instance of an operator
 		 * and add the corresponding port mappings to the parent operator.
@@ -818,7 +818,7 @@ namespace flopoco {
 		*/
 		void setNoParseNoSchedule();
 		bool noParseNoSchedule();
-		
+
 
 		/**
 		 * Append random test cases to a test case list. There is a default
@@ -1085,7 +1085,7 @@ namespace flopoco {
 		 * By default, reports the pipeline depth, but feel free to overload
 		 * it if you have anything useful to tell to the end user
 		 */
-		virtual void outputFinalReport(ostream& s, int level);	
+		virtual void outputFinalReport(ostream& s, int level);
 
 
 		/**
@@ -1101,7 +1101,7 @@ namespace flopoco {
 		/**
 		 * Return the target member
 		 */
-		Target* getTarget();
+		Target* getTarget() const;
 
 		/**
 		 * Return the target member
@@ -1319,7 +1319,7 @@ namespace flopoco {
 		bool isLibraryComponent();
 
 		/**
-		 * Has the dot file having this operator as top level one been produced 
+		 * Has the dot file having this operator as top level one been produced
 		 */
 		bool isOperatorDrawn();
 
@@ -1608,7 +1608,7 @@ namespace flopoco {
 	 * 		- count registers added due to pipelining framework
 	 * 		- count input/output ports
 	 * 		- count resources in subcomponents
-	 * Should not be used together with the manual estimation functions 
+	 * Should not be used together with the manual estimation functions
 	 * addWireCount, addPortCount, addComponentResourceCount!
 	 * @return the string describing the performed operation
 	 */
@@ -1729,7 +1729,7 @@ namespace flopoco {
 
 
 
-	
+
 	/////////////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////Attributes
 	////////////BEWARE: don't add anything below without adding it to cloneOperator, too
@@ -1739,7 +1739,7 @@ namespace flopoco {
 		vector<Signal*>        ioList_;                 /**< The list of I/O signals of the operator */
 		set<string> allSignalsLowercased;        /**< a list of all lowercased signals, used for sanity checks */
 	FlopocoStream          vhdl;                    /**< The internal stream to which the constructor will build the VHDL code */
-		
+
 	std::ostringstream 	resourceEstimate;                   /**< The log of resource estimations made by the user */
 	std::ostringstream 	resourceEstimateReport;             /**< The final report of resource estimations made by the user */
 	ResourceEstimationHelper* reHelper;                     /**< Performs all the necessary operations for resource estimation */
@@ -1753,7 +1753,7 @@ protected:
 	string              uniqueName_;                        /**< By default, a name derived from the operator class and the parameters */
 	string 				      architectureName_;                  /**< Name of the operator architecture */
 	vector<Signal*>     testCaseSignals_;                   /**< The list of pointers to the signals in a test case entry. Its size also gives the dimension of a test case */
-	
+
 	int                  myuid;                             /**< Unique id */
 	int                  cost;                              /**< The cost of the operator depending on different metrics */
 
@@ -1779,7 +1779,7 @@ private:
 	bool                   hasClockEnable_;    	            /**< True if the operator has a clock enable signal  */
 	int		                 hasDelay1Feedbacks_;             /**< True if this operator has feedbacks of one cycle, and no more than one cycle (i.e. an error if the distance is more). False gives warnings */
 	Operator*              indirectOperator_;               /**< NULL if this operator is just an interface operator to several possible implementations, otherwise points to the instance*/
-	// small TODO: rename 
+	// small TODO: rename
 	bool                   isOperatorScheduled_;            /**< Flag to show whether this operator has already been scheduled, mostly to avoid redundant work */
 	bool                   isOperatorApplyScheduleDone_;    /**< Flag to show whether this operator has already passed applySchedule, mostly to avoid redundant work */
 	bool                   isOperatorImplemented_;          /**< Flag to show whether this operator has already been implemented (down to VHDL output) */
