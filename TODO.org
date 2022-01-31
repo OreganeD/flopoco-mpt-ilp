@@ -107,6 +107,7 @@ A quick grep seems to show it is the case.
 ** In the dot output, package shared components into dotted boxes (subgraph cluster_)
 		It doesn't seem that simple
 * Bugs
+** assertion failed in    ./flopoco FixFunctionByTable f="1/(x+1)" signedin=0 lsbin=-8 lsbout=-8 tablecompression=1
 ** ./flopoco FixFunctionByTable f="1/(x+1b-4+1)-.5-1b-6" signedin=false lsbin=-4 lsbout=-5
 has a constant 0 MSB
 
