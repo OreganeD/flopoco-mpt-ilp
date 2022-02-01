@@ -101,28 +101,6 @@ ELSE (MPFI_H AND MPFI_LIB)
   MESSAGE(FATAL_ERROR "Could not find MPFI (found: ${MPFI_H},${MPFI_LIB})")
 ENDIF (MPFI_H AND MPFI_LIB)
 
-# Detect Python
-FIND_PATH(PYTHON_H
-  python2.7/Python.h
-  DOC "Path of Python.h"
-  )
-
-FIND_LIBRARY(PYTHON_LIB
-  NAMES libpython2.7.so libpython2.7.dylib
-  HINTS "/usr/lib/x86_64-linux-gnu"
-  DOC "Directory of the Python library"
-  )
-
-IF ( PYTHON_H AND PYTHON_LIB )
-  SET(PYTHON_FOUND TRUE)
-ENDIF ( PYTHON_H AND PYTHON_LIB )
-
-IF ( PYTHON_FOUND )
-  MESSAGE ( STATUS "Found Python : ${PYTHON_H},${PYTHON_LIB}" )
-ELSE ( PYTHON_FOUND )
-  MESSAGE ( STATUS "Could not find (found: ${PYTHON_H},${PYTHON_LIB}), no flopoco_soaktest will be available")
-ENDIF ( PYTHON_FOUND )
-
 # find boost random
 FIND_PATH(BOOST_RANDOM_H
   boost/random.hpp
@@ -180,11 +158,13 @@ ENDIF(SED)
 
 FIND_PATH(WCPG_H
   wcpg.h
-  DOC "Path of wcpg.h, the include file for GNU MPFR library"
+  HINTS "/usr/local/include/" "~/.local/include/" "${WCPG_PREFIX_DIR}/include/" "$ENV{WCPG_PREFIX_DIR}/include/"
+  DOC "Path of wcpg.h, the include file for the WCPG library"
   )
 
 FIND_LIBRARY(WCPG_LIB
   NAMES wcpg
+  HINTS "/usr/local/lib64/" "/usr/local/lib/"  "${WCPG_PREFIX_DIR}/lib/"  "$ENV{WCPG_PREFIX_DIR}/lib/"
   DOC "Directory of the WCPG library"
   )
 
@@ -202,12 +182,12 @@ ENDIF ( WCPG_FOUND )
 # dectect if scalp is available
 FIND_PATH(SCALP_H
   ScaLP/Solver.h
-  HINTS "/usr/local/include/" "~/.local/include/" "${SCALP_PREFIX_DIR}/include/"
+  HINTS "/usr/local/include/" "~/.local/include/" "${SCALP_PREFIX_DIR}/include/" "$ENV{SCALP_PREFIX_DIR}/include/"
   DOC "Path of main header of scalp"
   )
 FIND_LIBRARY(SCALP_LIB
   NAMES libScaLP.dylib libScaLP libScaLP.so
-  HINTS "/usr/local/lib64/" "/usr/local/lib/"  "${SCALP_PREFIX_DIR}/lib/"
+  HINTS "/usr/local/lib64/" "/usr/local/lib/"  "${SCALP_PREFIX_DIR}/lib/"  "$ENV{SCALP_PREFIX_DIR}/lib/" 
   DOC "Directory of the SCALP main library")
 
 IF (SCALP_H AND SCALP_LIB)
@@ -218,22 +198,22 @@ ENDIF(SCALP_H AND SCALP_LIB)
 
 FIND_LIBRARY(SCALP_CPLEX_LIB
   NAMES libScaLP-CPLEX libScaLP-CPLEX.so libScaLP-CPLEX.dylib
-  HINTS "/usr/local/lib64/" "/usr/local/lib/" "${SCALP_PREFIX_DIR}/" "${SCALP_PREFIX_DIR}/lib/"
+  HINTS "/usr/local/lib64/" "/usr/local/lib/" "${SCALP_PREFIX_DIR}/" "${SCALP_PREFIX_DIR}/lib/" "$ENV{SCALP_PREFIX_DIR}/lib/"  
   DOC "Directory of the SCALP library for cplex solver backend")
 
 FIND_LIBRARY(SCALP_GUROBI_LIB
   NAMES libScaLP-Gurobi libScaLP-Gurobi.so libScaLP-Gurobi.dylib
-  HINTS "/usr/local/lib64/" "/usr/local/lib/" "${SCALP_PREFIX_DIR}/" "${SCALP_PREFIX_DIR}/lib/"
+  HINTS "/usr/local/lib64/" "/usr/local/lib/" "${SCALP_PREFIX_DIR}/" "${SCALP_PREFIX_DIR}/lib/" "$ENV{SCALP_PREFIX_DIR}/lib/"
   DOC "Directory of the SCALP library for Gurobi solver backend")
 
 FIND_LIBRARY(SCALP_SCIP_LIB
   NAMES libScaLP-SCIP libScaLP-SCIP.so libScaLP-SCIP.dylib
-  HINTS "/usr/local/lib64/" "/usr/local/lib/" "${SCALP_PREFIX_DIR}/" "${SCALP_PREFIX_DIR}/lib/"
+  HINTS "/usr/local/lib64/" "/usr/local/lib/" "${SCALP_PREFIX_DIR}/" "${SCALP_PREFIX_DIR}/lib/" "$ENV{SCALP_PREFIX_DIR}/lib/"
   DOC "Directory of the SCALP library for SCIP solver backend")
 
 FIND_LIBRARY(SCALP_LPSOLVE_LIB
   NAMES libScaLP-LPSOLVE libScaLP-LPSOLVE.so libScaLP-LPSolve.so libScaLP-LPSOLVE.dylib
-  HINTS "/usr/local/lib64/" "/usr/local/lib/" "${SCALP_PREFIX_DIR}/" "${SCALP_PREFIX_DIR}/lib/"
+  HINTS "/usr/local/lib64/" "/usr/local/lib/" "${SCALP_PREFIX_DIR}/" "${SCALP_PREFIX_DIR}/lib/" "$ENV{SCALP_PREFIX_DIR}/lib/"
   DOC "Directory of the SCALP library for LPSOLVE solver backend")
 
 IF (SCALP_H AND SCALP_LIB AND (SCALP_CPLEX_LIB OR SCALP_GUROBI_LIB OR SCALP_SCIP_LIB OR SCALP_LPSOLVE_LIB))
@@ -364,13 +344,6 @@ IF (SOLLYA_LIB)
 	)
 ENDIF (SOLLYA_LIB)
 
-IF (PYTHON_LIB)
-  TARGET_LINK_LIBRARIES(
-	FloPoCoLib
-	${PYTHON_LIB}
-	)
-ENDIF (PYTHON_LIB)
-
 IF (WCPG_FOUND)
   TARGET_LINK_LIBRARIES(
 	FloPoCoLib
@@ -429,19 +402,6 @@ TARGET_LINK_LIBRARIES(
   flopoco
   FloPoCoLib
   )
-
-# unplugged for now to speed up compilation, to revive some day
-#IF (PYTHON_FOUND)
-#ADD_EXECUTABLE(flopoco_soaktest
-# src/main_soaktest
-#)
-#TARGET_LINK_LIBRARIES(
-#  flopoco_soaktest
-#	${FLOPOCO_LIB}
-#)
-#INCLUDE_DIRECTORIES(${PYTHON_H})
-#ENDIF (PYTHON_FOUND)
-
 
 
 ADD_EXECUTABLE(fp2bin src/Tools/fp2bin  src/utils)
