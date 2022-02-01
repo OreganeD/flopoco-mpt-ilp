@@ -608,7 +608,7 @@ namespace flopoco{
 	string vhdlize(string const & expr)
 	{
 		string result(expr.size(), 0);
-		transform(expr.begin(), expr.end(), result.begin(), ptr_fun(vhdlizeChar));
+		transform(expr.begin(), expr.end(), result.begin(), vhdlizeChar); //!!! ptr_fun() deprecated in C++17
 
 		// Multiple consecutive underscores are forbidden in VHDL identifiers!
 		string::iterator newend = unique(result.begin(), result.end(), bothUnderscore);

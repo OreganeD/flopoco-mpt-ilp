@@ -203,7 +203,10 @@ namespace flopoco
 
 			vector<mpz_class> mptiv;
 			for (auto i=0; i<(1<<alpha); i++) {
-				mptiv.push_back(mpz_class(TIVFunction(i)));
+//				mptiv.push_back(mpz_class(TIVFunction(i))); //!!! this does not work, ambiguous for clang
+				mpz_class m;
+				mpz_set_ui(m.get_mpz_t(), TIVFunction(i));
+				mptiv.push_back(m);
 			}
 			REPORT(FULL, "Computing new compression for  alpha=" << alpha << "   wOut=" << outputSize + guardBits);
 			dcTIV = DifferentialCompression::find_differential_compression(mptiv, alpha, outputSize + guardBits, _target);
