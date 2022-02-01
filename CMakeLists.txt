@@ -207,13 +207,13 @@ FIND_PATH(SCALP_H
   )
 FIND_LIBRARY(SCALP_LIB
   NAMES libScaLP.dylib libScaLP libScaLP.so
-  HINTS "/usr/local/lib64/" "${SCALP_PREFIX_DIR}/lib/"
+  HINTS "/usr/local/lib64/" "/usr/local/lib/"  "${SCALP_PREFIX_DIR}/lib/"
   DOC "Directory of the SCALP main library")
 
 IF (SCALP_H AND SCALP_LIB)
   MESSAGE(STATUS "Found SCALP: ${SCALP_H},${SCALP_LIB}")
 	ELSE(SCALP_H AND SCALP_LIB)
-  MESSAGE(STATUS "SCALP not found (used for advanced bit heap compression and large multipliers) download and compile it from https://digidev.digi.e-technik.uni-kassel.de/scalp/")
+  MESSAGE(STATUS "SCALP not found (${SCALP_H},${SCALP_LIB}) (used for advanced bit heap compression and large multipliers) download and compile it from https://digidev.digi.e-technik.uni-kassel.de/scalp/")
 ENDIF(SCALP_H AND SCALP_LIB)
 
 FIND_LIBRARY(SCALP_CPLEX_LIB
