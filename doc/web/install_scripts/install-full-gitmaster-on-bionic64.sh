@@ -14,11 +14,7 @@ svn checkout https://digidev.digi.e-technik.uni-kassel.de/home/svn/scalp/ && cd 
 git clone https://gitlab.com/kumm/pagsuite.git && cd pagsuite && mkdir build && cd build && cmake .. -DSCALP_PREFIX_PATH=$BASEDIR/scalp/trunk/ && make -j2 && sudo make install  &&  cd $BASEDIR
 
 #Finally FloPoCo itself, 
-# If you have a gitlab account replace the following lines
-wget http://www.flopoco.org/flopoco-gitmaster.tgz
-tar xzf flopoco-gitmaster.tgz
-# with
-# git clone git@gitlab.com:flopoco/flopoco.git
+git clone git@gitlab.com:flopoco/flopoco.git
 
 cd flopoco && mkdir build && cd build && cmake -DSCALP_PREFIX_DIR="$BASEDIR/scalp/trunk/" .. && make -j2 &&  cd $BASEDIR
 
