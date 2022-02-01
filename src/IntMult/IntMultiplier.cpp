@@ -876,7 +876,7 @@ namespace flopoco {
 
 	void IntMultiplier::registerFactory(){
 		UserInterface::add("IntMultiplier", // name
-											 "A pipelined integer multiplier.",
+											 "A pipelined integer multiplier.  Also uses the global options: tiling, ilpSolver, etc",
 											 "BasicInteger", // category
 											 "", // see also
 											 "wX(int): size of input X; wY(int): size of input Y;\
