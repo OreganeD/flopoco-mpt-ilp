@@ -98,7 +98,7 @@ namespace flopoco{
 		mpz_class result=0;
 		for(unsigned int i=0; i<n; i++) {
 			mpz_class xi = tc->getInputValue ( join("X",i) );
-			if(signedIn && (xi>>(wIn-1)==1) ) {
+			if(signedIn && ((xi>>(wIn-1))==1) ) {
 				xi -= mpz_class(1)<<wIn; // two's complement
 			}
 			result += xi;

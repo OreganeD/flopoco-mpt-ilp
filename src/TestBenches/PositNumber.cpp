@@ -109,7 +109,7 @@ namespace flopoco{
 			return;
 		}
 
-		int occupied_bits = eS_ + abs(rangeRL_) + 2;
+		int occupied_bits = eS_ + std::abs(rangeRL_) + 2;
 		size_t precision = (occupied_bits > width_) ? 0 : width_ - occupied_bits;
 		precision += 1;
 		DEBUG_OUT("PositNumber::getMPFR(mpfr_t): precision="<<precision);
@@ -142,7 +142,7 @@ namespace flopoco{
 		if (rangeRL_ < -rangeMaxWidth || rangeRL_ > rangeMaxWidth) 
 			throw std::string("PositNumber::getSignal: range is invalid");
 
-		int rangeWidth = abs(rangeRL_) + 1; // Encoding of range r is of length r + 1
+		int rangeWidth = std::abs(rangeRL_) + 1; // Encoding of range r is of length r + 1
 
 		// But we don't need the extra bit when the range fill the remaining
 		// bits
@@ -333,7 +333,7 @@ namespace flopoco{
 		DEBUG_OUT("PositNumber::operator=(mpfr_t): exactCoding=" << exactCoding.get_str(2));
 		// We have already filtered the extreme range so we know we need an
 		// extra bit to store the range boundary inside the encoding
-		int totalWidth = precision + 2 + eS_ + abs(normalRangeRL);
+		int totalWidth = precision + 2 + eS_ + std::abs(normalRangeRL);
 		DEBUG_OUT("PositNumber::operator=(mpfr_t): totalWidth=" << totalWidth)
 
 		if (normalRangeRL == width_ - 1) {

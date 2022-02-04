@@ -231,10 +231,10 @@ namespace flopoco {
 			mpfr_clear(coeffa_mp[i]);
 			mpfr_clear(xHistory[i]);
 		}
-		delete(coeffa_mp);
-		delete(coeffb_mp);
-		delete(xHistory);
-		delete(yHistory);
+		delete[](coeffa_mp);
+		delete[](coeffb_mp);
+		delete[](xHistory);
+		delete[](yHistory);
 	};
 
 
