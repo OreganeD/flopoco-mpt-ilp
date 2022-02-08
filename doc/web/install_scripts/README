@@ -3,7 +3,6 @@ They are intended to work as well in vagrant as in docker.
 Remarks:
  "full" means an installation of FloPoCo with all the bells and whistles.
  "plain" means a simpler installation with a reduced number of dependencies.
- "bionic" means Ubuntu 18.04
- "focal"  means Ubuntu 20.04  (both are Long-Term Releases)
-
+ "focal"  means Ubuntu 20.04  (Long-Term Release), or any recent Debian or Ubuntu  
+ 
 The demise of the Inria Gforge means that older versions are no longer available. We'll try to gather the relevant TGZs somewhere.
