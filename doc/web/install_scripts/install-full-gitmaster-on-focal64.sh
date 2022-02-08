@@ -22,7 +22,7 @@ svn checkout https://digidev.digi.e-technik.uni-kassel.de/home/svn/scalp/ && cd 
 #SCIP_DIR=$BASE_DIR/scipoptsuite-6.0.0 # modify just this
 # cd $SCIP_DIR &&  mkdir build && cd build && cmake -DCMAKE_INSTALL_PREFIX=$SCIP_DIR/install .. && make -j4 && make install
 # cd $BASE_DIR
-# svn checkout https://digidev.digi.e-technik.uni-kassel.de/home/svn/scalp/ && cd scalp/trunk && SCALP_PREFIX_DIR=$PWD  && mkdir build && cd build && cmake -DUSE_SCIP=ON -DSCIP_LIBRARIES="$SCIP_DIR/install/lib/" -DSCIP_INCLUDE_DIRS="$SCIP_DIR/install/include/" .. && make -j4
+# svn checkout https://digidev.digi.e-technik.uni-kassel.de/home/svn/scalp/ && cd scalp/trunk && SCALP_PREFIX_DIR=$PWD  && mkdir build && cd build && cmake -DUSE_SCIP=ON -DSCIP_LIBRARIES="$SCIP_DIR/install/lib/libscip.so" -DSCIP_INCLUDE_DIRS="$SCIP_DIR/install/include/" .. && make -j4
 
 cd $BASE_DIR
 # PAGSuite for advanced shift-and-add SCM and MCM operators
@@ -31,7 +31,7 @@ cd $BASE_DIR
 
 cd $BASE_DIR
 #Finally FloPoCo itself, 
-git clone git@gitlab.com:flopoco/flopoco.git
+git clone https://gitlab.com/flopoco/flopoco
 
 cd flopoco && mkdir build && cd build && cmake  -DWCPG_PREFIX_DIR="$WCPG_PREFIX_DIR"  -DSCALP_PREFIX_DIR="$SCALP_PREFIX_DIR" -DPAG_PREFIX_DIR="$BASE_DIR/pagsuite" .. && make -j4 &&  cd $BASE_DIR
 
