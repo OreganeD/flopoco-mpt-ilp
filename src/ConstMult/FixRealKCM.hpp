@@ -72,10 +72,14 @@ namespace flopoco{
 	for use as part of a bigger operator.
 	It works in "dry run" mode: it computes g but does not generate any VHDL
 	In this case, the flow is typically (see FixFIR)
-	1/ call the constructor below. It stops before the VHDL generation
-	2/ have it report its ulp error using getErrorInUlps()
-	3/ the bigger operator accumulates these ulp errors, and computes	 the global g out of the sum
-	4/ It  builds the bit heap, then calls buildForBitHeap(bitHeap, g)
+	1/ The bigger operator calls the constructor below for each multiplier. 
+	   This constructor stops before the VHDL generation
+	2/ Each multiplier reports its ulp error using getErrorInUlps()
+	3/ the bigger operator accumulates these ulp errors, and computes the global g out of the sum
+	4/ the bigger operator creates the bit heap, 
+  5/ the bigger operator calls buildForBitHeap(bitHeap, g) for all its multiplier
+  5/ the bigger operator calls bitHeap.startCompression();
+
 
 	WARNING : nothing is added to the bitHeap when constant is set to 0.
 
