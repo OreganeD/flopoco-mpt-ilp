@@ -3,12 +3,14 @@
 yes | sudo apt update && sudo DEBIAN_FRONTEND=noninteractive apt install -y subversion git cmake sollya wget g++ libsollya-dev flex bison libboost-all-dev autotools-dev autoconf automake f2c libblas-dev liblapack-dev libtool liblpsolve55-dev lp-solve
 
 BASEDIR=$PWD
-git clone https://github.com/fixif/WCPG.git && cd WCPG && sh autogen.sh && ./configure && make && sudo make install && cd $BASEDIR
+git clone https://github.com/fixif/WCPG.git && cd WCPG && sh autogen.sh && ./configure && make -j4 && sudo make install
 
+cd $BASEDIR
 #Finally FloPoCo itself, 
 git clone git@gitlab.com:flopoco/flopoco.git
+cd flopoco && mkdir build && cd build && cmake .. && make -j4
 
-cd flopoco && mkdir build && cd build && cmake .. && make &&  cd $BASEDIR
+cd $BASEDIR
 
 # build the html documentation in doc/web. 
 cd flopoco/build

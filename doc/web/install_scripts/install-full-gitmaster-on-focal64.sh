@@ -9,7 +9,7 @@ BASE_DIR=$PWD
 
 
 cd $BASE_DIR
-#WCPG
+# The WCPG library (worst-case peak gain, for IIR filters) 
 git clone https://github.com/fixif/WCPG.git && cd WCPG && WCPG_PREFIX_DIR=$PWD/install && sh autogen.sh && ./configure --prefix=$WCPG_PREFIX_DIR && make -j4 && make install 
 
 cd $BASE_DIR
