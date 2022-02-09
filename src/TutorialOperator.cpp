@@ -17,7 +17,7 @@ namespace flopoco {
 
 
 
-	TutorialOperator::TutorialOperator(Target* target, int param0_, int param1_) : Operator(target), param0(param0_), param1(param1_) {
+	TutorialOperator::TutorialOperator(OperatorPtr parentOp, Target* target, int param0_, int param1_) : Operator(parentOp, target), param0(param0_), param1(param1_) {
 		/* constructor of the TutorialOperator
 		   Target is the targeted FPGA : Stratix, Virtex ... (see Target.hpp for more information)
 		   param0 and param1 are some parameters declared by this Operator developers,
@@ -134,7 +134,7 @@ namespace flopoco {
 		int param0, param1;
 		UserInterface::parseInt(args, "param0", &param0); // param0 has a default value, this method will recover it if it doesnt't find it in args, 
 		UserInterface::parseInt(args, "param1", &param1); 
-		return new TutorialOperator(target, param0, param1);
+		return new TutorialOperator(parentOp, target, param0, param1);
 	}
 	
 	void TutorialOperator::registerFactory(){

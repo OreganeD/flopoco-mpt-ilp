@@ -26,7 +26,7 @@ namespace flopoco {
 		// definition of some function for the operator    
 
 		// constructor, defined there with two parameters (default value 0 for each)
-		TutorialOperator(Target* target,int param0 = 0, int param1 = 0);
+		TutorialOperator(OperatorPtr parentOp, Target* target,int param0 = 0, int param1 = 0);
 
 		// destructor
 		~TutorialOperator() {};
