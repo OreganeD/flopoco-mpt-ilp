@@ -26,8 +26,7 @@ svn checkout https://digidev.digi.e-technik.uni-kassel.de/home/svn/scalp/ && cd 
 
 cd $BASE_DIR
 # PAGSuite for advanced shift-and-add SCM and MCM operators
-# Commented for now because it is broken
-# git clone https://gitlab.com/kumm/pagsuite.git && cd pagsuite && PAG_PREFIX_DIR=$PWD && mkdir build && cd build && cmake .. -DSCALP_PREFIX_PATH=$SCALP_PREFIX_DIR && make -j4
+ git clone https://gitlab.com/kumm/pagsuite.git && cd pagsuite && PAG_PREFIX_DIR=$PWD && mkdir build && cd build && cmake .. -DSCALP_PREFIX_PATH=$SCALP_PREFIX_DIR && make -j4
 
 cd $BASE_DIR
 #Finally FloPoCo itself, 
