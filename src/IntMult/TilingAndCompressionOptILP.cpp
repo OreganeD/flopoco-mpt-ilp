@@ -255,7 +255,7 @@ void TilingAndCompressionOptILP::constructProblem(int s_max)
     while (nst /= 10)
         dpSt++;
 
-    vector<ScaLP::Term> bitsinColumn(prodWidth + 1);
+    vector<ScaLP::Term> bitsinColumn(prodWidth + 1), constVecBits(prodWidth + 5);
     vector<vector<vector<ScaLP::Variable>>> solve_Vars(wS, vector<vector<ScaLP::Variable>>(wX+x_neg, vector<ScaLP::Variable>(wY+y_neg)));
     ScaLP::Term maxEpsTerm, minEpsTerm, constVecTerm;
     // add the Constraints
@@ -291,6 +291,9 @@ void TilingAndCompressionOptILP::constructProblem(int s_max)
                                     if(signedIO && (xs+(int)tiles[s]->wX() == (int)wX || ys+(int)tiles[s]->wY() == (int)wY) ){              //Handling of the sign extension bits in dynamically calculated constant bit vector
                                         if(tiles[s]->wX() == 1 && tiles[s]->wY() == 1 && xs == wX-1 && ys == wY-1) break; //the 1x1 tile with (1,1) signedness should not get a sign extension vector.
                                         constVecTerm.add(solve_Vars[s][xs+x_neg][ys+y_neg],(double)(((1ULL<<(wX+wY))-(1ULL<<(xs+ys+tiles[s]->getRelativeResultMSBWeight(tiles[s]->getParametrisation(),signedIO && xs+(int)tiles[s]->wX() == wX, signedIO && ys+(int)tiles[s]->wY() == wY))))));
+                                        for(unsigned i = xs+ys+tiles[s]->getRelativeResultMSBWeight(tiles[s]->getParametrisation(),signedIO && xs+(int)tiles[s]->wX() == wX, signedIO && ys+(int)tiles[s]->wY() == wY); i < prodWidth; i++){
+                                            constVecBits[i].add(solve_Vars[s][xs+x_neg][ys+y_neg], 1);
+                                        }
                                         //printf("s=%02d, x=%02d, y=%02d, wx=%01d, wy=%01d, wOut=%02d, msb=%02d, 0x%08llx\n", s, xs, ys, tiles[s]->wX(), tiles[s]->wY(), tiles[s]->getRelativeResultMSBWeight(tiles[s]->getParametrisation(),signedIO && xs+tiles[s]->wX() == wX, signedIO && ys+tiles[s]->wY() == wY)-tiles[s]->getRelativeResultLSBWeight(tiles[s]->getParametrisation())+1, xs+ys+tiles[s]->getRelativeResultMSBWeight(tiles[s]->getParametrisation(),signedIO && xs+tiles[s]->wX() == wX, signedIO && ys+tiles[s]->wY() == wY), ((1ULL<<(wX+wY))-(1ULL<<(xs+ys+tiles[s]->getRelativeResultMSBWeight(tiles[s]->getParametrisation(),signedIO && xs+tiles[s]->wX() == wX, signedIO && ys+tiles[s]->wY() == wY)))));
                                     }
                                 }
@@ -381,6 +384,7 @@ void TilingAndCompressionOptILP::constructProblem(int s_max)
             //cout << cvarName.str() << endl;
             cVars[i] = ScaLP::newBinaryVariable(cvarName.str());
             cTerm.add(cVars[i],  (double)( 1ULL << i));
+            constVecBits[i].add(cVars[i], 1);
             //constVecTerm.add(cVars[i],  (double)( 1ULL << i));
             //obj.add(cVars[i], (double)0.65);    //append variable to cost function (not needed for combined optimization)
         }
@@ -415,11 +419,18 @@ void TilingAndCompressionOptILP::constructProblem(int s_max)
     }
     //Add rounding bit to constant vector
     if(wOut < (int)prodWidth) constVecTerm.add((double)( 1ULL << (prodWidth-wOut-1)));
+    if(wOut < (int)prodWidth) constVecBits[prodWidth-wOut-1].add(1);
     //When the optimal truncation is not used, the truncation error recentering constant is added to the constant vector
-    if((wOut < (int)prodWidth) && !performOptimalTruncation) constVecTerm.add(centerErrConstant.get_d());
+    if((wOut < (int)prodWidth) && !performOptimalTruncation){
+        constVecTerm.add(centerErrConstant.get_d());
+        for(unsigned i = 0; i < prodWidth; i++){
+            if(centerErrConstant.get_ui() & (1ULL << i)) constVecBits[i].add(1);
+        }
+    }
 
     //constant vector bits for sign extension and truncation constants
     vector<ScaLP::Variable> cvBits(prodWidth+5);
+    vector<ScaLP::Variable> ovVars(prodWidth+5);
     if(signedIO || wOut < (int)prodWidth){
         for(unsigned i = 0; i < prodWidth+5; i++){
             stringstream cvarName;
@@ -427,13 +438,27 @@ void TilingAndCompressionOptILP::constructProblem(int s_max)
             //cout << cvarName.str() << " weight " << (double)(1ULL << i) << endl;
             cvBits[i] = ScaLP::newBinaryVariable(cvarName.str());
             constVecTerm.add(cvBits[i], -(double)(1ULL << i));
+
+            stringstream ovarName;
+            ovarName << "o" << setfill('0') << setw(dpC) << i;
+            //cout << cvarName.str() << " weight " << (double)(1ULL << i) << endl;
+            ovVars[i] = ScaLP::newIntegerVariable(ovarName.str());
+            constVecBits[i].add(cvBits[i], -1);
+            constVecBits[i].add(ovVars[i], -2);
+            if(0 < i) constVecBits[i].add(ovVars[i-1], 1);
+            //Calculate individual constant vector bits
+            ScaLP::Constraint cvbConstraint = constVecBits[i] == 0;
+            stringstream consName;
+            consName << "cBit" << setfill('0') << setw(dpC) << i;
+            cvbConstraint.name = consName.str();
+            solver->addConstraint(cvbConstraint);
         }
         //Calculate individual constant vector bits
         ScaLP::Constraint cvConstraint = constVecTerm == 0;
         stringstream consName;
         consName << "cVec";
         cvConstraint.name = consName.str();
-        solver->addConstraint(cvConstraint);
+        //solver->addConstraint(cvConstraint);
     }
 
 
