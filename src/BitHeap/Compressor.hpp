@@ -96,14 +96,30 @@ namespace flopoco
 	class BasicCompressor
 	{
 	public:
-        BasicCompressor(Operator* parentOp_, Target * target, vector<int> heights, float area = 0.0, string type = "combinatorial", bool compactView = false);
+	    /** @enum CompressorType Available types for compressors */
+	    enum class CompressorType {
+	        Gpc,  /**< generalized parallel counters, the standard compressor type */
+	        Variable,  /**< compressors with a variable length, making them adders */
+	        Pseudo, /**< a special compressor type for modulo calculation */
+	        Constant /**< to allow addition with a constant while compressing */
+	    };
+
+	    /** @enum subCompressorType Available types for row-compressors */
+	    enum class subType {
+	        N,  /**< not a row adder */
+	        R,  /**< right element of a row adder */
+	        M,  /**< middle element of a row adder */
+	        L   /**< left element of a row adder */
+	    };
+
+	    BasicCompressor(Operator* parentOp_, Target * target, vector<int> heights, float area = 0.0, CompressorType type = CompressorType::Gpc, bool compactView = false, subType subtype=subType::N);
 
 		~BasicCompressor();
 		/**
 		 * returns pointer to the compressor. In that compressor
 		 * the constructor will generate vhdl code.
 		 */
-        virtual Compressor* getCompressor();
+		virtual Compressor* getCompressor(unsigned int middleLength = -1);
 
 		/**
 		 * 	@brief returns the amount of different inputcolumns
@@ -159,9 +175,10 @@ namespace flopoco
 		vector<int> heights;                /**< the heights of the columns */
 		vector<int> outHeights;             /**< the heights of the columns of the output, if this is a partially compressed result */
 		float area;							/**< size of the compressor in LUT-equivalents */
-		string type; 						/**< combinatorial or variableLength */
+		CompressorType type;                /**< type of compressor */
+		subType subtype;                    /**< to identify the left, middle, right element of a row adder */
+		int rcType = -1;                    /**< index to distinguish between row-adder types */
 		int wOut;
-
 
 		Compressor* compressor; 				/**< if getCompressor() is being called for the first time, the pointer of the generated compressor will be saved here. */
 

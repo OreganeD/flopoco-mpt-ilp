@@ -24,6 +24,7 @@
 #include "BitHeap/ParandehAfsharCompressionStrategy.hpp"
 #include "BitHeap/MaxEfficiencyCompressionStrategy.hpp"
 #include "BitHeap/OptimalCompressionStrategy.hpp"
+#include "BitHeap/CompressionStrategyOptILP.hpp"
 #include <algorithm>
 namespace flopoco {
 
@@ -792,6 +793,10 @@ namespace flopoco {
 		else if(op->getTarget()->getCompressionMethod().compare("optimalMinStages") == 0)
 		{
 			compressionStrategy = new OptimalCompressionStrategy(this,true);
+		}
+		else if(op->getTarget()->getCompressionMethod().compare("optimal_minStages") == 0)
+		{
+		    compressionStrategy = new CompressionStrategyOptILP(this);
 		}
 		else
 		{

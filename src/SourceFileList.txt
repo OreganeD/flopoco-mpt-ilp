@@ -32,6 +32,7 @@ BitHeap/FirstFittingCompressionStrategy
 BitHeap/ParandehAfsharCompressionStrategy
 BitHeap/MaxEfficiencyCompressionStrategy
 BitHeap/OptimalCompressionStrategy
+BitHeap/CompressionStrategyOptILP
 TutorialOperator
 ShiftersEtc/LZOC
 ShiftersEtc/LZOC3
@@ -151,6 +152,7 @@ PrimitiveComponents/GenericLut
 PrimitiveComponents/Primitive
 PrimitiveComponents/GenericAddSub
 PrimitiveComponents/GenericMux
+PrimitiveComponents/RowAdder
 PrimitiveComponents/Xilinx/Xilinx_Primitive
 PrimitiveComponents/Xilinx/Xilinx_LUT_compute
 PrimitiveComponents/Xilinx/Xilinx_CARRY4

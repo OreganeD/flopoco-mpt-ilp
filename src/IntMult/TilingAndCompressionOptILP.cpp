@@ -611,7 +611,7 @@ void TilingAndCompressionOptILP::constructProblem(int s_max)
             //BasicCompressor *newCompressor;
             //int col0=1;
             //newVect.push_back(col0);
-            BasicCompressor *newCompressor = new BasicCompressor(bitheap->getOp(), bitheap->getOp()->getTarget(), vector<int> {1}, 0.0, "combinatorial", true);
+            BasicCompressor *newCompressor = new BasicCompressor(bitheap->getOp(), bitheap->getOp()->getTarget(), vector<int> {1}, 0.0, BasicCompressor::CompressorType::Gpc, true);
             possibleCompressors.push_back(newCompressor);
 
             flipflop = newCompressor;

@@ -35,4 +35,16 @@ private:
 protected:
     int width;
 };
+
+class BasicXilinxFourToTwoCompressor : public BasicCompressor
+{
+public:
+    BasicXilinxFourToTwoCompressor(Operator* parentOp_, Target * target, int wIn);
+    virtual Compressor* getCompressor(unsigned int middleLength);
+    static void calc_widths(int wIn, vector<int> &heights, vector<int> &outHeights);
+protected:
+    int wIn;
+    static vector<int> calc_heights(int wIn);
+};
+
 }

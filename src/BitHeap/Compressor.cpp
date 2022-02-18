@@ -6,8 +6,7 @@ using namespace std;
 
 namespace flopoco{
 
-	BasicCompressor::BasicCompressor(Operator* parentOp_, Target * target_, vector<int> heights_, float area_, string type_, bool compactView_): parentOp(parentOp_), target(target_), heights(heights_), area(area_), type(type_), compactView(compactView_)
-	{
+    BasicCompressor::BasicCompressor(Operator* parentOp_, Target * target_, vector<int> heights_, float area_, CompressorType type_, bool compactView_, subType subtype): parentOp(parentOp_), target(target_), heights(heights_), area(area_), type(type_), compactView(compactView_), subtype(subtype){
 		//compute the size of the input and of the output
 		int wIn = 0;
 		int maxVal = 0;
@@ -33,8 +32,8 @@ namespace flopoco{
 	BasicCompressor::~BasicCompressor(){
 	}
 
-	Compressor* BasicCompressor::getCompressor(){
-		if(type.compare("combinatorial") == 0){
+	Compressor* BasicCompressor::getCompressor(unsigned int middleLength){
+        if(type == CompressorType::Gpc){
 			if(compressor != nullptr){
 				return compressor;
 			}
@@ -53,12 +52,25 @@ namespace flopoco{
 		int inputBits = 0;
 		int outputBits = 0;
 		double ratio = 0.0;
-		for(unsigned int j = 0; j < heights.size(); j++){
-			inputBits += heights[j];
-		}
-		for(unsigned int j = 0; j < outHeights.size(); j++){
-			outputBits += outHeights[j];
-		}
+
+        if(type != CompressorType::Variable){
+            for(unsigned int j = 0; j < heights.size(); j++){
+                inputBits += heights[j];
+            }
+            for(unsigned int j = 0; j < outHeights.size(); j++){
+                outputBits += outHeights[j];
+            }
+        } else {
+            if (middleLength == INT_MAX) {
+                return 1;
+                // TODO: For other types of row adders
+            } else {
+                inputBits = 3 + middleLength * 2 + 2;
+                outputBits = 1 + middleLength + 2;
+                area = getArea(middleLength);
+            }
+        }
+
 		ratio = (double) (inputBits - outputBits);
 		if(area != 0.0){
 			ratio /= (double) area;
@@ -71,27 +83,27 @@ namespace flopoco{
 	}
 
 	unsigned int BasicCompressor::getHeights(unsigned int middleLength){
-		if(type.compare("variable") != 0){
+        if(type != CompressorType::Variable){
 			return heights.size();
 		}
 		else{
 			//TODO
-			return 0;
+			return 1 + middleLength + 1;
 		}
 	}
 
 	unsigned int BasicCompressor::getOutHeights(unsigned int middleLength){
-		if(type.compare("variable") != 0){
+        if(type != CompressorType::Variable){
 			return outHeights.size();
 		}
 		else{
 			//TODO
-			return 0;
+			return 1 + middleLength + 2;
 		}
 	}
 
 	unsigned int BasicCompressor::getHeightsAtColumn(unsigned int column, bool ilpGeneration, unsigned int middleLength){
-		if(type.compare("variable") != 0){
+        if(type != CompressorType::Variable){
 			if(column >= heights.size()){
 				return 0;
 			}
@@ -106,12 +118,17 @@ namespace flopoco{
 		}
 		else{
 			//TODO
-			return 0;
+            if(column >= getHeights(middleLength)){
+                return 0;
+            }
+            else{
+                return column == 0 ? 3 : 2;
+            }
 		}
 	}
 
 	unsigned int BasicCompressor::getOutHeightsAtColumn(unsigned int column, bool ilpGeneration, unsigned int middleLength){
-		if(type.compare("variable") != 0){
+        if(type != CompressorType::Variable){
 			if(column >= outHeights.size()){
 				return 0;
 			}
@@ -126,17 +143,22 @@ namespace flopoco{
 		}
 		else{
 			//TODO
-			return 0;
+            if(column >= getOutHeights(middleLength)){
+                return 0;
+            }
+            else{
+                return 1;
+            }
 		}
 	}
 
 	float BasicCompressor::getArea(unsigned int middleLength){
-		if(type.compare("variable") != 0){
+        if(type != CompressorType::Variable){
 			return area;
 		}
 		else{
 			//TODO
-			return 0.0;
+			return getHeights(middleLength);
 		}
 	}
 
@@ -145,7 +167,7 @@ namespace flopoco{
 	// (3;2), a compressor with six inputs at column i, six outputs at column i+2 and 5 outputs
 	// is represented as (6,0,6;5)
 	string BasicCompressor::getStringOfIO(){
-		if(type.compare("variable") != 0){
+        if(type != CompressorType::Variable){
 			ostringstream out;
 			out.str("");
 			out << "(";
@@ -164,8 +186,23 @@ namespace flopoco{
 			return out.str();
 		}
 		else{
+		    ostringstream out;
+		    out.str("");
+		    switch (rcType) {
+		        case 0:
+		            out << "RCA " << outHeights.size();
+		            return out.str();
+		        case 1:
+		            out << "ternaryRCA " << outHeights.size();
+		            return out.str();
+		        case 2:
+		            out << "4:2 " << outHeights.size();
+		            return out.str();
+		        default:
+		            break;
+            }
 			//TODO
-			return "variable_compressor";
+            return "variable_compressor";
 		}
 	}
 
