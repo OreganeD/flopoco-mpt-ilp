@@ -348,6 +348,22 @@ void CompressionStrategyOptILP::constructProblem(int s_max)
         }{
             BasicCompressor *rightElement = new BasicCompressor(bitheap->getOp(), bitheap->getOp()->getTarget(), vector<int> {4}, 1, CompressorType::Variable, true, subType::R);
             rightElement->wOut = 1;
+            rightElement->rcType = 1;
+            rightElement->outHeights = vector<int> {1};
+            possibleCompressors.push_back(rightElement);
+            BasicCompressor *middleElement = new BasicCompressor(bitheap->getOp(), bitheap->getOp()->getTarget(), vector<int> {3}, 1, CompressorType::Variable, true, subType::M);
+            middleElement->wOut = 1;
+            middleElement->rcType = 1;
+            middleElement->outHeights = vector<int> {1};
+            possibleCompressors.push_back(middleElement);
+            BasicCompressor *leftElement = new BasicCompressor(bitheap->getOp(), bitheap->getOp()->getTarget(), vector<int> {1}, 1, CompressorType::Variable, true, subType::L);
+            leftElement->wOut = 2;
+            leftElement->rcType = 1;
+            leftElement->outHeights = vector<int> {1,1};
+            possibleCompressors.push_back(leftElement);
+        }{
+            BasicCompressor *rightElement = new BasicCompressor(bitheap->getOp(), bitheap->getOp()->getTarget(), vector<int> {4}, 1, CompressorType::Variable, true, subType::R);
+            rightElement->wOut = 1;
             rightElement->rcType = 2;
             rightElement->outHeights = vector<int> {1};
             possibleCompressors.push_back(rightElement);
@@ -469,8 +485,16 @@ void CompressionStrategyOptILP::constructProblem(int s_max)
                                                 cout << "ok" << endl;
                                                 break;
                                             }
-                                            case 1:
+                                            case 1:{
+                                                cout << "ternary row adder in stage " << s <<  "from col " << c << " to " << c+ci << " width " << ci+1 << endl;
+                                                BasicCompressor *newCompressor = new BasicRowAdder(bitheap->getOp(), bitheap->getOp()->getTarget(), ci+1, 3);
+                                                //possibleCompressors.push_back(newCompressor);
+                                                cout << solution.getCompressorsAtPosition(s, c).size() << endl;
+                                                solution.addCompressor(s, c, newCompressor, ci-2);
+                                                cout << solution.getCompressorsAtPosition(s, c).size() << " " << solution.getCompressorsAtPosition(s, c)[0].first->outHeights.size() << endl;
+                                                cout << "ok" << endl;
                                                 break;
+                                            }
                                             case 2:{
                                                 cout << "4:2 row adder in stage " << s <<  "from col " << c << " to " << c+ci << " width " << ci+1 << endl;
                                                 BasicCompressor *newCompressor = new BasicXilinxFourToTwoCompressor(bitheap->getOp(), bitheap->getOp()->getTarget(), ci+1);
