@@ -200,7 +200,7 @@ void CompressionStrategyOptILP::constructProblem(int s_max)
                         //cout <<  "give bits: " << possibleCompressors[e]->getOutHeightsAtColumn((unsigned) ce, false) << " c: " << c+ce << " " << nvarName.str() << endl;
                         bitsinNextColumn[c+ce].add(tempV, possibleCompressors[e]->outHeights[ce]);
                     }
-                    handleRowAdderDependencies(bitsinColumn, rcdDependencies, c, e, tempV);
+                    handleRowAdderDependencies(tempV,bitsinColumn, rcdDependencies, c, e);
                 }
             }
 
@@ -294,7 +294,7 @@ void CompressionStrategyOptILP::constructProblem(int s_max)
         }
     }
 
-    void CompressionStrategyOptILP::handleRowAdderDependencies(vector<ScaLP::Term> &bitsinColumn, vector<vector<ScaLP::Term>> &rcdDependencies, unsigned int c, unsigned int e, const ScaLP::Variable &tempV) const {
+    void CompressionStrategyOptILP::handleRowAdderDependencies(const ScaLP::Variable &tempV, vector<ScaLP::Term> &bitsinColumn, vector<vector<ScaLP::Term>> &rcdDependencies, unsigned int c, unsigned int e) const {
         if(possibleCompressors[e]->type == CompressorType::Variable){
             if(0 < c && (possibleCompressors[e]->subtype == subType::M || possibleCompressors[e]->subtype == subType::L))   //Middle and left element of RCA are counted negative in eq. for relations between RCA elements (C5)
                 rcdDependencies[c-1][possibleCompressors[e]->rcType].add(tempV, -1);
@@ -330,52 +330,25 @@ void CompressionStrategyOptILP::constructProblem(int s_max)
 
     void CompressionStrategyOptILP::addRowAdder(){
         {
-            BasicCompressor *rightElement = new BasicCompressor(bitheap->getOp(), bitheap->getOp()->getTarget(), vector<int> {3}, 1, CompressorType::Variable, true, subType::R);
-            rightElement->wOut = 1;
-            rightElement->rcType = 0;
-            rightElement->outHeights = vector<int> {1};
+            BasicCompressor *rightElement = new BasicCompressor(bitheap->getOp(), bitheap->getOp()->getTarget(), vector<int> {3}, vector<int> {1}, 1, CompressorType::Variable, subType::R, 0);
             possibleCompressors.push_back(rightElement);
-            BasicCompressor *middleElement = new BasicCompressor(bitheap->getOp(), bitheap->getOp()->getTarget(), vector<int> {2}, 1, CompressorType::Variable, true, subType::M);
-            middleElement->wOut = 1;
-            middleElement->rcType = 0;
-            middleElement->outHeights = vector<int> {1};
+            BasicCompressor *middleElement = new BasicCompressor(bitheap->getOp(), bitheap->getOp()->getTarget(), vector<int> {2}, vector<int> {1}, 1, CompressorType::Variable, subType::M, 0);
             possibleCompressors.push_back(middleElement);
-            BasicCompressor *leftElement = new BasicCompressor(bitheap->getOp(), bitheap->getOp()->getTarget(), vector<int> {0}, 1, CompressorType::Variable, true, subType::L);
-            leftElement->wOut = 1;
-            leftElement->rcType = 0;
-            leftElement->outHeights = vector<int> {1};
+            BasicCompressor *leftElement = new BasicCompressor(bitheap->getOp(), bitheap->getOp()->getTarget(), vector<int> {0}, vector<int> {1}, 1, CompressorType::Variable, subType::L, 0);
             possibleCompressors.push_back(leftElement);
         }{
-            BasicCompressor *rightElement = new BasicCompressor(bitheap->getOp(), bitheap->getOp()->getTarget(), vector<int> {4}, 1, CompressorType::Variable, true, subType::R);
-            rightElement->wOut = 1;
-            rightElement->rcType = 1;
-            rightElement->outHeights = vector<int> {1};
+            BasicCompressor *rightElement = new BasicCompressor(bitheap->getOp(), bitheap->getOp()->getTarget(), vector<int> {4}, vector<int> {1}, 1, CompressorType::Variable, subType::R, 1);
             possibleCompressors.push_back(rightElement);
-            BasicCompressor *middleElement = new BasicCompressor(bitheap->getOp(), bitheap->getOp()->getTarget(), vector<int> {3}, 1, CompressorType::Variable, true, subType::M);
-            middleElement->wOut = 1;
-            middleElement->rcType = 1;
-            middleElement->outHeights = vector<int> {1};
+            BasicCompressor *middleElement = new BasicCompressor(bitheap->getOp(), bitheap->getOp()->getTarget(), vector<int> {3}, vector<int> {1}, 1, CompressorType::Variable, subType::M, 1);
             possibleCompressors.push_back(middleElement);
-            BasicCompressor *leftElement = new BasicCompressor(bitheap->getOp(), bitheap->getOp()->getTarget(), vector<int> {1}, 1, CompressorType::Variable, true, subType::L);
-            leftElement->wOut = 2;
-            leftElement->rcType = 1;
-            leftElement->outHeights = vector<int> {1,1};
+            BasicCompressor *leftElement = new BasicCompressor(bitheap->getOp(), bitheap->getOp()->getTarget(), vector<int> {1}, vector<int> {1,1}, 1, CompressorType::Variable, subType::L, 1);
             possibleCompressors.push_back(leftElement);
         }{
-            BasicCompressor *rightElement = new BasicCompressor(bitheap->getOp(), bitheap->getOp()->getTarget(), vector<int> {4}, 1, CompressorType::Variable, true, subType::R);
-            rightElement->wOut = 1;
-            rightElement->rcType = 2;
-            rightElement->outHeights = vector<int> {1};
+            BasicCompressor *rightElement = new BasicCompressor(bitheap->getOp(), bitheap->getOp()->getTarget(), vector<int> {4}, vector<int> {1}, 1, CompressorType::Variable, subType::R, 2);
             possibleCompressors.push_back(rightElement);
-            BasicCompressor *middleElement = new BasicCompressor(bitheap->getOp(), bitheap->getOp()->getTarget(), vector<int> {4}, 1, CompressorType::Variable, true, subType::M);
-            middleElement->wOut = 1;
-            middleElement->rcType = 2;
-            middleElement->outHeights = vector<int> {2};
+            BasicCompressor *middleElement = new BasicCompressor(bitheap->getOp(), bitheap->getOp()->getTarget(), vector<int> {4}, vector<int> {2}, 1, CompressorType::Variable,  subType::M, 2);
             possibleCompressors.push_back(middleElement);
-            BasicCompressor *leftElement = new BasicCompressor(bitheap->getOp(), bitheap->getOp()->getTarget(), vector<int> {0}, 1, CompressorType::Variable, true, subType::L);
-            leftElement->wOut = 1;
-            leftElement->rcType = 2;
-            leftElement->outHeights = vector<int> {2};
+            BasicCompressor *leftElement = new BasicCompressor(bitheap->getOp(), bitheap->getOp()->getTarget(), vector<int> {0}, vector<int> {2}, 1, CompressorType::Variable, subType::L,2);
             possibleCompressors.push_back(leftElement);
         }
     }

@@ -114,6 +114,8 @@ namespace flopoco
 
 	    BasicCompressor(Operator* parentOp_, Target * target, vector<int> heights, float area = 0.0, CompressorType type = CompressorType::Gpc, bool compactView = false, subType subtype=subType::N);
 
+	    BasicCompressor(Operator* parentOp_, Target * target_, vector<int> heights_, vector<int> outHeights_, float area_ = 0.0, CompressorType type_ = CompressorType::Gpc, subType subtype=subType::N, int rcType=-1);
+
 		~BasicCompressor();
 		/**
 		 * returns pointer to the compressor. In that compressor

@@ -22,6 +22,11 @@ namespace flopoco{
 		outHeights.resize(wOut, 1);
 		compressor = nullptr;
 	}
+
+	BasicCompressor::BasicCompressor(Operator* parentOp_, Target * target_, vector<int> heights_, vector<int> outHeights_, float area_, CompressorType type_, subType subtype, int rcType_): parentOp(parentOp_), target(target_), heights(heights_), outHeights(outHeights_), area(area_), type(type_), subtype(subtype), rcType(rcType_), wOut(outHeights_.size()), compactView(true){
+        compressor = nullptr;
+    }
+
 /*
 	BasicCompressor::~BasicCompressor(){
 		if(compressor != nullptr){
