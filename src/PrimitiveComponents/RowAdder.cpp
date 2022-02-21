@@ -33,7 +33,7 @@ namespace flopoco {
             //no need to create a signal for columns of height 0
             if (heights[i] > 0) {
                 addInput(join("X", i), heights[i]);
-                cerr << " creating input " << join("X", i) << " width " << heights[i] << endl;
+                //cerr << " creating input " << join("X", i) << " width " << heights[i] << endl;
             }
         }
         addOutput("R", heights.size()+1);
@@ -41,7 +41,7 @@ namespace flopoco {
         ostringstream name;
         name << "Row_Adder_" << heights.size() ;
         setNameWithFreqAndUID(name.str());
-        cerr << "in-heights: " << heights.size() << " out-heights: " << outHeights.size() << endl;
+        //cerr << "in-heights: " << heights.size() << " out-heights: " << outHeights.size() << endl;
 /*
         int adderUid = parentOp->getNewUId();
         ostringstream adderIn0, adderIn0Name, adderIn1, adderIn1Name, adderOutName, adderCin, adderCinName;
@@ -77,7 +77,7 @@ namespace flopoco {
         string carryInMapping="'0'";
         vector<string> lutInputMappings(6);
         bool previous_carry = false;
-        for(int i = 0; i < heights.size(); i++){
+        for(unsigned i = 0; i < heights.size(); i++){
             int element_size = ((heights[i] > 2 && i != 0) || (heights[i] > 3 && i == 0))?3
                     :(((heights[i] == 2 || heights[i] == 1) && i != 0) || ((heights[i] == 3 || heights[i] == 2) && i == 0))?2:0;
             lut_op lutOp_o5, lutOp_o6;
@@ -112,14 +112,14 @@ namespace flopoco {
             }
             //instantiate LUT
             lut_init lutOp( lutOp_o5, lutOp_o6 );
-            cout << lutOp.get_hex() << endl;
+            //cout << lutOp.get_hex() << endl;
             Xilinx_LUT6_2 *cur_lut = new Xilinx_LUT6_2(this,target);
             cur_lut->setGeneric( "init", lutOp.get_hex() , 64 );
             //connect LUT inputs
             for(int j=0; j <= 5; j++)
             {
                 if(lutInputMappings[j].find("'") == string::npos){   //input is a dynamic signal
-                    cout << lutInputMappings[j] << endl;
+                    //cout << lutInputMappings[j] << endl;
                     inPortMap("i" + to_string(j),lutInputMappings[j]);
                 } else {    //input is a constant
                     inPortMapCst("i" + to_string(j),lutInputMappings[j]);
@@ -200,7 +200,7 @@ namespace flopoco {
     {
         area = wIn; //1 LUT per bit
         RowAdder::calc_widths(wIn, type, heights, outHeights);
-        cout << heights.size() << " " << outHeights.size() << endl;
+        //cout << heights.size() << " " << outHeights.size() << endl;
         rcType = 0;
     }
 

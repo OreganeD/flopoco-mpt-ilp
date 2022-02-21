@@ -91,7 +91,7 @@ void CompressionStrategyOptILP::compressionAlgorithm() {
 						int sta_id = stoi(var_name.substr(2, dpSt));
 						int com_id = stoi(var_name.substr(2 + dpSt + 1, dpK));
 						int col_id = stoi(var_name.substr(2 + dpSt + 1 + dpK + 1, dpC));
-                        cout << "is compressor" << com_id << " stage " << sta_id << " column " << col_id
+						cout << p.second << " compressor" <<  setw(2) << com_id << " stage " << sta_id << " column " <<  setw(3) << col_id
                              << " compressor type " << ((com_id<(int)possibleCompressors.size())?possibleCompressors[com_id]->getStringOfIO():"?") << endl;
                         if(possibleCompressors[com_id]->type == CompressorType::Variable){
                             for(int n = 0; n < (int)lrint(p.second);n++){
@@ -109,7 +109,7 @@ void CompressionStrategyOptILP::compressionAlgorithm() {
 								CompressionStrategy::solution.addCompressor(sta_id, col_id, possibleCompressors[com_id]);
 							}
 						} else {
-                            cout << "skipped " << possibleCompressors[com_id]  << "==" << flipflop << " " << (possibleCompressors[com_id] == flipflop) << endl;
+                            //cout << "skipped FF " << possibleCompressors[com_id]  << "==" << flipflop << " " << (possibleCompressors[com_id] == flipflop) << endl;
                         }
 						break;
 					}
@@ -166,7 +166,7 @@ void CompressionStrategyOptILP::constructProblem(int s_max)
     cout << "   adding the constraints to problem formulation..." << endl;
 
 
-    for(unsigned i = 0; i < wIn; i++){               //Fill array for the bits initially available on Bitheap
+    for(int i = 0; i < wIn; i++){               //Fill array for the bits initially available on Bitheap
         bitsinColumn[i].add(bitAmount[0][i]);
     }
 
@@ -174,7 +174,7 @@ void CompressionStrategyOptILP::constructProblem(int s_max)
     vector<vector<ScaLP::Variable>> bitsInColAndStage(s_max+1, vector<ScaLP::Variable>(bitsinColumn.size()+1));
 
     cout << "Available compressors :" << endl;
-    for(unsigned int e = 0; e < possibleCompressors.size(); e++){
+    for(unsigned e = 0; e < possibleCompressors.size(); e++){
         cout << possibleCompressors[e]->getStringOfIO() << " cost:"<< possibleCompressors[e]->area << endl;
     }
 
@@ -183,7 +183,7 @@ void CompressionStrategyOptILP::constructProblem(int s_max)
         vector<ScaLP::Term> bitsinCurrentColumn(wIn + 1);
         vector<vector<ScaLP::Term>> rcdDependencies(wIn + 1, vector<ScaLP::Term>(3));                       //One term for every column and type of row-adder
 
-        for(unsigned c = 0; c <= wIn; c++){        //one bit more for carry of ripple carry adder
+        for(int c = 0; c <= wIn; c++){        //one bit more for carry of ripple carry adder
 
             if(s < s_max){
                 for(unsigned e = 0; e < possibleCompressors.size(); e++){                                          //place every possible compressor on current position and the following that get covered by it, index extended by 3 for RCA
@@ -391,6 +391,7 @@ void CompressionStrategyOptILP::constructProblem(int s_max)
 
     void CompressionStrategyOptILP::drawBitHeap(){
         vector<vector<int>> bitsOnBitHeap(s_max+1, vector<int>((int)wIn, 0));
+        vector<int> colWidth((int)wIn, 1);
         ScaLP::Result res = solver->getResult();
         for(auto &p:res.values) {
             if (p.second >
@@ -399,8 +400,8 @@ void CompressionStrategyOptILP::constructProblem(int s_max)
                 //if(var_name.substr(0,1).compare("k") != 0) continue;
                 switch (var_name.substr(0, 1).at(0)) {
                     case 'p': {          //constant bits from sign extension of negative congruent pseudo-compressors
-                        int sta_id = stoi(var_name.substr(2, dpSt));
-                        int col_id = stoi(var_name.substr(2 + dpSt + 1, dpC));
+                        //int sta_id = stoi(var_name.substr(2, dpSt));
+                        //int col_id = stoi(var_name.substr(2 + dpSt + 1, dpC));
                         //bitsOnBitHeap[sta_id][col_id] += 1;
                         cout << var_name << "\t " << p.second << endl;
                         break;
@@ -410,6 +411,7 @@ void CompressionStrategyOptILP::constructProblem(int s_max)
                         int col_id = stoi(var_name.substr(2 + dpSt + 1, dpC));
                         if(sta_id < s_max+1 && col_id < wIn)
                             bitsOnBitHeap[sta_id][col_id] = p.second;
+                        if(pow(10,colWidth[col_id]) <= p.second) colWidth[col_id]++;
                         //cout << var_name << "\t " << p.second << endl;
                         break;
                     }
@@ -418,9 +420,13 @@ void CompressionStrategyOptILP::constructProblem(int s_max)
                 }
             }
         }
-        for(int s = 0; s < bitsOnBitHeap.size(); s++){
+        for(int c = bitsOnBitHeap[0].size()-1; 0 <= c; c--){
+            cout << setw(colWidth[c]) << ((c%4==0)?'|':' ');
+        }
+        cout << endl;
+        for(unsigned s = 0; s < bitsOnBitHeap.size(); s++){
             for(int c = bitsOnBitHeap[0].size()-1; 0 <= c; c--){
-                cout << bitsOnBitHeap[s][c];
+                cout << setw(colWidth[c]) << bitsOnBitHeap[s][c];
             }
             cout << endl;
         }
@@ -429,8 +435,8 @@ void CompressionStrategyOptILP::constructProblem(int s_max)
     void CompressionStrategyOptILP::replace_row_adders(BitHeapSolution &solution, vector<vector<vector<int>>> &row_adders){
         cout << solution.getSolutionStatus() << endl;
         for(int rcType = 0; rcType < 3; rcType++){
-            for(int s = 0; s < row_adders.size(); s++){
-                for(int c = 0; c < row_adders[0].size(); c++){
+            for(unsigned s = 0; s < row_adders.size(); s++){
+                for(unsigned c = 0; c < row_adders[0].size(); c++){
                     //cout << "at stage " << s << " col " << c << " " << row_adders[s][c][0] << row_adders[s][c][1] << row_adders[s][c][2] << endl;
                     int ci; bool adder_started;
                     while(0 < row_adders[s][c][0+3*rcType]){
@@ -449,7 +455,7 @@ void CompressionStrategyOptILP::constructProblem(int s_max)
                                         adder_started = false;
                                         switch(rcType){
                                             case 0:{
-                                                cout << "RCA row adder in stage " << s <<  "from col " << c << " to " << c+ci << " width " << ci+1 << endl;
+                                                cout << "RCA row adder in stage " << s <<  " from col " << c << " to " << c+ci << " width " << ci+1 << endl;
                                                 BasicCompressor *newCompressor = new BasicRowAdder(bitheap->getOp(), bitheap->getOp()->getTarget(), ci+1);
                                                 //possibleCompressors.push_back(newCompressor);
                                                 cout << solution.getCompressorsAtPosition(s, c).size() << endl;
@@ -459,7 +465,7 @@ void CompressionStrategyOptILP::constructProblem(int s_max)
                                                 break;
                                             }
                                             case 1:{
-                                                cout << "ternary row adder in stage " << s <<  "from col " << c << " to " << c+ci << " width " << ci+1 << endl;
+                                                cout << "ternary row adder in stage " << s <<  " from col " << c << " to " << c+ci << " width " << ci+1 << endl;
                                                 BasicCompressor *newCompressor = new BasicRowAdder(bitheap->getOp(), bitheap->getOp()->getTarget(), ci+1, 3);
                                                 //possibleCompressors.push_back(newCompressor);
                                                 cout << solution.getCompressorsAtPosition(s, c).size() << endl;
@@ -469,7 +475,7 @@ void CompressionStrategyOptILP::constructProblem(int s_max)
                                                 break;
                                             }
                                             case 2:{
-                                                cout << "4:2 row adder in stage " << s <<  "from col " << c << " to " << c+ci << " width " << ci+1 << endl;
+                                                cout << "4:2 row adder in stage " << s <<  " from col " << c << " to " << c+ci << " width " << ci+1 << endl;
                                                 BasicCompressor *newCompressor = new BasicXilinxFourToTwoCompressor(bitheap->getOp(), bitheap->getOp()->getTarget(), ci+1);
                                                 //possibleCompressors.push_back(newCompressor);
                                                 cout << solution.getCompressorsAtPosition(s, c).size() << endl;
@@ -478,10 +484,10 @@ void CompressionStrategyOptILP::constructProblem(int s_max)
                                                 cout << "ok" << endl;
                                                 break;
                                             }
-                                                break;
                                             default:
                                                 break;
                                         }
+                                        break;
                                     }
                                 }
                             }

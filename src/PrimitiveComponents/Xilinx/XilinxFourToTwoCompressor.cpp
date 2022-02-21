@@ -26,14 +26,14 @@ namespace flopoco{
         this->useLastColumn = useLastColumn;
         setWidth(width);
 
-        for(int i = 0; i < heights.size(); i++){
+/*        for(unsigned i = 0; i < heights.size(); i++){
             cout << heights[i] << ", ";
         }
         cout << endl;
-        for(int i = 0; i < outHeights.size(); i++){
+        for(unsigned i = 0; i < outHeights.size(); i++){
             cout << outHeights[i] << ", ";
         }
-        cout << endl;
+        cout << endl;*/
 
         ostringstream name;
         name << "Compressor_4_to_2_type" << useLastColumn << "_width_" << width;
@@ -199,14 +199,13 @@ namespace flopoco{
         outHeights.resize(wOut);
         if(useLastColumn)
             outHeights[0] = 1; //there is one output at MSB
-            else
-                outHeights[0] = 0; //there is no output at MSB
+        else
+            outHeights[0] = 0; //there is no output at MSB
 
-                for(int i=1; i < wOut-1; i++)
-                {
-                    outHeights[i] = 2;
-                }
-                outHeights[wOut-1] = 1; //there is one output at LSB
+        for(int i=1; i < wOut-1; i++){
+            outHeights[i] = 2;
+        }
+        outHeights[wOut-1] = 1; //there is one output at LSB
     }
 
 
@@ -284,7 +283,7 @@ namespace flopoco{
             area = middleLength + 2;
             calc_widths(middleLength+2, heights, outHeights);
         }
-        cout << "here " << wIn << endl;
+
         compressor = new XilinxFourToTwoCompressor(parentOp, target, wIn, false);
         return compressor;
     }

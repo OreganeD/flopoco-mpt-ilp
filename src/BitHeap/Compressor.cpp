@@ -6,7 +6,7 @@ using namespace std;
 
 namespace flopoco{
 
-    BasicCompressor::BasicCompressor(Operator* parentOp_, Target * target_, vector<int> heights_, float area_, CompressorType type_, bool compactView_, subType subtype): parentOp(parentOp_), target(target_), heights(heights_), area(area_), type(type_), compactView(compactView_), subtype(subtype){
+    BasicCompressor::BasicCompressor(Operator* parentOp_, Target * target_, vector<int> heights_, float area_, CompressorType type_, bool compactView_, subType subtype): parentOp(parentOp_), target(target_), heights(heights_), area(area_), type(type_), subtype(subtype), compactView(compactView_){
 		//compute the size of the input and of the output
 		int wIn = 0;
 		int maxVal = 0;
@@ -195,13 +195,13 @@ namespace flopoco{
 		    out.str("");
 		    switch (rcType) {
 		        case 0:
-		            out << "RCA " << outHeights.size();
+		            out << "RCA " << heights[0];
 		            return out.str();
 		        case 1:
-		            out << "ternaryRCA " << outHeights.size();
+		            out << "ternaryRCA " << heights[0];
 		            return out.str();
 		        case 2:
-		            out << "4:2 " << outHeights.size();
+		            out << "4:2 " << heights[0];
 		            return out.str();
 		        default:
 		            break;
