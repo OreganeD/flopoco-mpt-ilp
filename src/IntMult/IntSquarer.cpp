@@ -174,6 +174,9 @@ returns: an integer pext that defines the position of the last column
 		        }
 		    }
 
+		    #ifdef HAVE_SCALP
+		    getTarget()->setCompressionMethod("optimalMinStages");
+            #endif
 		
 		    bh.startCompression();
 		    string bhr=bh.getSumName();
@@ -192,7 +195,7 @@ returns: an integer pext that defines the position of the last column
 		    getTarget()->setUseTargetOptimizations(true);
 		    getTarget()->setGenerateFigures(true);
 		    name << "Squarer" << wIn << "x" << wIn << "_wOut" << wOut;
-		    commands << "useIrregular=1 use2xk=1 useLUT=1 useKaratsuba=" << ((72<=wIn)?1:0) << " useDSP=" << (maxDSP?1:0) << " maxDSP=" << maxDSP << " squarer=1 " << "wX=" << wIn << " wY=" << wIn  << " wOut=" << wOut << " signedIO=" << signedIn;
+		    commands << "useIrregular=0 use2xk=1 useLUT=1 useKaratsuba=" << ((72<=wIn)?1:0) << " useDSP=" << (maxDSP?1:0) << " maxDSP=" << maxDSP << " squarer=1 " << "wX=" << wIn << " wY=" << wIn  << " wOut=" << wOut << " signedIO=" << signedIn;
 		    newInstance( "IntMultiplier", name.str(), commands.str(),"X=>X, Y=>X", "R=>R");
 		} else if(method == "multiplier"){
 		    stringstream commands, name;
@@ -201,7 +204,7 @@ returns: an integer pext that defines the position of the last column
 		    getTarget()->setUseTargetOptimizations(true);
 		    getTarget()->setGenerateFigures(true);
 		    name << "Squarer" << wIn << "x" << wIn << "_wOut" << wOut;
-		    commands << "useIrregular=1 use2xk=1 useLUT=1 useKaratsuba=" << ((72<=wIn)?1:0) << " useDSP=" << (maxDSP?1:0) << " maxDSP=" << maxDSP << " squarer=0 " << "wX=" << wIn << " wY=" << wIn  << " wOut=" << wOut << " signedIO=" << signedIn;
+		    commands << "useIrregular=0 use2xk=1 useLUT=1 useKaratsuba=" << ((72<=wIn)?1:0) << " useDSP=" << (maxDSP?1:0) << " maxDSP=" << maxDSP << " squarer=0 " << "wX=" << wIn << " wY=" << wIn  << " wOut=" << wOut << " signedIO=" << signedIn;
 		    newInstance( "IntMultiplier", name.str(), commands.str(),"X=>X, Y=>X", "R=>R");
 		} else {
 		    THROWERROR("Unknown squarer design method!");
