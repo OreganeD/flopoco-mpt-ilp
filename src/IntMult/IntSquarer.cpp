@@ -194,6 +194,15 @@ returns: an integer pext that defines the position of the last column
 		    name << "Squarer" << wIn << "x" << wIn << "_wOut" << wOut;
 		    commands << "useIrregular=1 use2xk=1 useLUT=1 useKaratsuba=" << ((72<=wIn)?1:0) << " useDSP=" << (maxDSP?1:0) << " maxDSP=" << maxDSP << " squarer=1 " << "wX=" << wIn << " wY=" << wIn  << " wOut=" << wOut << " signedIO=" << signedIn;
 		    newInstance( "IntMultiplier", name.str(), commands.str(),"X=>X, Y=>X", "R=>R");
+		} else if(method == "multiplier"){
+		    stringstream commands, name;
+		    getTarget()->setTilingMethod("optimal");
+		    getTarget()->setCompressionMethod("optimalMinStages");
+		    getTarget()->setUseTargetOptimizations(true);
+		    getTarget()->setGenerateFigures(true);
+		    name << "Squarer" << wIn << "x" << wIn << "_wOut" << wOut;
+		    commands << "useIrregular=1 use2xk=1 useLUT=1 useKaratsuba=" << ((72<=wIn)?1:0) << " useDSP=" << (maxDSP?1:0) << " maxDSP=" << maxDSP << " squarer=0 " << "wX=" << wIn << " wY=" << wIn  << " wOut=" << wOut << " signedIO=" << signedIn;
+		    newInstance( "IntMultiplier", name.str(), commands.str(),"X=>X, Y=>X", "R=>R");
 		} else {
 		    THROWERROR("Unknown squarer design method!");
 		}
