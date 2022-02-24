@@ -945,14 +945,14 @@ namespace flopoco{
                 else
                     adderCin << "\'0\'";
             }
-
+            cout << "compressionDoneIndex " << compressionDoneIndex << " adderStartIndex " << adderStartIndex << " bh_widhth " << bitheap->width << " bh_msb " << bitheap->msb << endl;
             //create the signals for the inputs/output of the adder
             bitheap->getOp()->vhdl << endl;
-            bitheap->getOp()->vhdl << tab << bitheap->getOp()->declare(adderIn0Name.str(), bitheap->msb-adderStartIndex+1+1)
+            bitheap->getOp()->vhdl << tab << bitheap->getOp()->declare(adderIn0Name.str(), bitheap->msb-bitheap->lsb-adderStartIndex+1+1)
                                    << " <= \"0\" & " << adderIn0.str() << ";" << endl;
-            bitheap->getOp()->vhdl << tab << bitheap->getOp()->declare(adderIn1Name.str(), bitheap->msb-adderStartIndex+1+1)
+            bitheap->getOp()->vhdl << tab << bitheap->getOp()->declare(adderIn1Name.str(), bitheap->msb-bitheap->lsb-adderStartIndex+1+1)
                                    << " <= \"0\" & " << adderIn1.str() << ";" << endl;
-            bitheap->getOp()->vhdl << tab << bitheap->getOp()->declare(adderIn2Name.str(), bitheap->msb-adderStartIndex+1+1)
+            bitheap->getOp()->vhdl << tab << bitheap->getOp()->declare(adderIn2Name.str(), bitheap->msb-bitheap->lsb-adderStartIndex+1+1)
                                    << " <= \"0\" & " << adderIn2.str() << ";" << endl;
             bitheap->getOp()->vhdl << tab << bitheap->getOp()->declare(adderCinName.str())
                                    << " <= " << adderCin.str() << ";" << endl;
@@ -961,7 +961,7 @@ namespace flopoco{
             //declare the adder
             bitheap->getOp()->newInstance("XilinxTernaryAddSub",
                                           "bitheapFinalAdd_bh"+to_string(bitheap->guid),
-                                          "wIn=" + to_string(bitheap->msb-adderStartIndex+1+1),
+                                          "wIn=" + to_string(bitheap->msb-bitheap->lsb-adderStartIndex+1+1),
                                           "x_i=>"+ adderIn0Name.str()
                                           + ",y_i=>"+adderIn1Name.str()
                                           + ",z_i=>"+adderIn2Name.str(),
