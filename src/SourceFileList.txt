@@ -153,6 +153,7 @@ PrimitiveComponents/Primitive
 PrimitiveComponents/GenericAddSub
 PrimitiveComponents/GenericMux
 PrimitiveComponents/RowAdder
+PrimitiveComponents/ASIC/ApproxCompressor_NAC18
 PrimitiveComponents/Xilinx/Xilinx_Primitive
 PrimitiveComponents/Xilinx/Xilinx_LUT_compute
 PrimitiveComponents/Xilinx/Xilinx_CARRY4

@@ -65,6 +65,7 @@ Xilinx_Comparator
 Xilinx_TernaryAdd_2State
 XilinxGPC
 XilinxFourToTwoCompressor
+ApproxCompressor_NAC18
 TutorialOperator
 BaseMultiplierDSPSuperTilesXilinx
 BaseMultiplierXilinx2xk
