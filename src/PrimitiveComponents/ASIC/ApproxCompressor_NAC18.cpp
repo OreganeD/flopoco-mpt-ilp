@@ -13,7 +13,7 @@ namespace flopoco{
 
         //set name
         ostringstream o_name;
-        o_name << "ApproxCompressor_NAC18_" << heights[0] << "_" << ((4<heights[0])?3:0);
+        o_name << "ApproxCompressor_NAC18_" << heights[0] << "_" << ((4<heights[0])?3:2);
         setNameWithFreqAndUID(o_name.str());
     
         if(heights[0] == 6){
@@ -27,12 +27,7 @@ namespace flopoco{
             }
             for(int y = 0; y < outHeights[0]; y++){
                 declare(target->logicDelay(), join("y",y));	//to declare temporary y variables to consider delays
-                if(y == 0){
-                    vhdl << tab << "R(0) <= " << join("y",y) << ";" << endl;
-                } else {
-                    vhdl << tab << join("R",y) << "(0) <= " << join("y",y) << ";" << endl;
-                }
-
+                vhdl << tab << ((y == 0)?"R":join("R",y)) << "(0) <= " << join("y",y) << ";" << endl;
             }
 
             vhdl << tab << "n9   <= not(X0(4)) and not(X0(2));" << endl;
@@ -62,19 +57,13 @@ namespace flopoco{
 	
     void ApproxCompressor_NAC18::declareIO_Signals(){
         //Create inputs of the compressor
-        for(unsigned i=0;i<heights.size();i++)
-        {
+        for(unsigned i=0;i<heights.size();i++){
             if(heights[heights.size()-i-1] > 0)
                 addInput(join("X",i), heights[heights.size()-i-1]);
         }
         //Create outputs of the compressor
-        for(int i=0;i<outHeights[0];i++)
-        {
-            if(i == 0){
-                addOutput("R",1);
-            } else {
-                addOutput(join("R",i),1);
-            }
+        for(int i=0;i<outHeights[0];i++){
+            addOutput(((i == 0)?"R":join("R",i)),1);    //The first output has to be called R
         }
     }
 
@@ -138,7 +127,7 @@ namespace flopoco{
             mpz_class n19  = !(x[0]);
             mpz_class n20  = (!(x[5]) && !(x[1])) || !(x[3]);
             mpz_class y2 = !(n20) || !(n14) || !(n10) || !(n19);
-cout << y0 << " " << y1 << " " << y2 << endl;
+
             tc->addExpectedOutput("R", y0);
             tc->addExpectedOutput("R1", y1);
             tc->addExpectedOutput("R2", y2);
