@@ -23,28 +23,33 @@ namespace flopoco{
             outHeights = vector<int> {3};   //Output bits of the compressor in first column
             declareIO_Signals();            //Declare the inputs an outputs
             for(int n = 9; n <= 20; n++){
-                declare(0, join("n",n), 1);	//to declare temporary n variables
+                declare(0, join("n",n));	//to declare temporary n variables
             }
             for(int y = 0; y < outHeights[0]; y++){
-                declare(target->logicDelay(), join("y",y), 1);	//to declare temporary y variables to consider delays
-                vhdl << tab << join("R",y) << " <= " << join("y",y) << ";" << endl;
+                declare(target->logicDelay(), join("y",y));	//to declare temporary y variables to consider delays
+                if(y == 0){
+                    vhdl << tab << "R(0) <= " << join("y",y) << ";" << endl;
+                } else {
+                    vhdl << tab << join("R",y) << "(0) <= " << join("y",y) << ";" << endl;
+                }
+
             }
 
-            vhdl << tab << "n9   <= not(X(4)) and not(X(2));" << endl;
-            vhdl << tab << "n10  <= not(X(5)) or not(X(1));" << endl;
-            vhdl << tab << "n11  <= not(X(3));" << endl;
-            vhdl << tab << "n12  <= (not(n11) and not(X(0))) or (not(X(1)) and not(X(5)));" << endl;
-            vhdl << tab << "y(0) <= not(n12) or not(n10) or not(n9);" << endl;
+            vhdl << tab << "n9   <= not(X0(4)) and not(X0(2));" << endl;
+            vhdl << tab << "n10  <= not(X0(5)) or not(X0(1));" << endl;
+            vhdl << tab << "n11  <= not(X0(3));" << endl;
+            vhdl << tab << "n12  <= (not(n11) and not(X0(0))) or (not(X0(1)) and not(X0(5)));" << endl;
+            vhdl << tab << "y0 <= not(n12) or not(n10) or not(n9);" << endl;
     
-            vhdl << tab << "n14  <= not(X(4)) or not(X(2));" << endl;
+            vhdl << tab << "n14  <= not(X0(4)) or not(X0(2));" << endl;
             vhdl << tab << "n15  <= not(n14) or not(n10);" << endl;
-            vhdl << tab << "n16  <= not(n15) or not(X(0));" << endl;
-            vhdl << tab << "n17  <= (not(X(4)) and not(X(2))) or (not(X(1)) and not(X(5)));" << endl;
-            vhdl << tab << "y(1) <= not(n17) or not(n16) or not(n11);" << endl;
+            vhdl << tab << "n16  <= not(n15) or not(X0(0));" << endl;
+            vhdl << tab << "n17  <= (not(X0(4)) and not(X0(2))) or (not(X0(1)) and not(X0(5)));" << endl;
+            vhdl << tab << "y1 <= not(n17) or not(n16) or not(n11);" << endl;
     
-            vhdl << tab << "n19  <= not(X(0));" << endl;
-            vhdl << tab << "n20  <= (not(X(5)) and not(X(1))) or not(X(3));" << endl;
-            vhdl << tab << "y(2) <= not(n20) or not(n14) or not(n10) or not(n19);" << endl;
+            vhdl << tab << "n19  <= not(X0(0));" << endl;
+            vhdl << tab << "n20  <= (not(X0(5)) and not(X0(1))) or not(X0(3));" << endl;
+            vhdl << tab << "y2 <= not(n20) or not(n14) or not(n10) or not(n19);" << endl;
     
         } else {
             stringstream s;
@@ -65,7 +70,11 @@ namespace flopoco{
         //Create outputs of the compressor
         for(int i=0;i<outHeights[0];i++)
         {
-            addOutput(join("R",i), 1);
+            if(i == 0){
+                addOutput("R",1);
+            } else {
+                addOutput(join("R",i),1);
+            }
         }
     }
 
@@ -105,7 +114,7 @@ namespace flopoco{
     }
 
 
-    void ApproxCompressor_NAC18::emulate(TestCase *tc, vector<int> heights) {
+    void ApproxCompressor_NAC18::emulate(TestCase *tc) {
         mpz_class sX;
         sX = tc->getInputValue(join("X", 0));
 
@@ -129,8 +138,8 @@ namespace flopoco{
             mpz_class n19  = !(x[0]);
             mpz_class n20  = (!(x[5]) && !(x[1])) || !(x[3]);
             mpz_class y2 = !(n20) || !(n14) || !(n10) || !(n19);
-
-            tc->addExpectedOutput("R0", y0);
+cout << y0 << " " << y1 << " " << y2 << endl;
+            tc->addExpectedOutput("R", y0);
             tc->addExpectedOutput("R1", y1);
             tc->addExpectedOutput("R2", y2);
         } else {

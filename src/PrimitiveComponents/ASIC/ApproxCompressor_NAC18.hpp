@@ -21,7 +21,7 @@ namespace flopoco
 		static void registerFactory();
 
 	public:
-        void emulate(TestCase *tc, vector<int> heights);
+        void emulate(TestCase *tc);
 
 	private:
 	    void declareIO_Signals(void);
