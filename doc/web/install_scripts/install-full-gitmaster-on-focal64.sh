@@ -7,19 +7,18 @@ yes | sudo apt update && sudo DEBIAN_FRONTEND=noninteractive apt install -y subv
 
 BASE_DIR=$PWD
 
-
 cd $BASE_DIR
 # The WCPG library (worst-case peak gain, for IIR filters) 
 git clone https://github.com/fixif/WCPG.git && cd WCPG && WCPG_PREFIX_DIR=$PWD/install && sh autogen.sh && ./configure --prefix=$WCPG_PREFIX_DIR && make -j4 && make install 
 
 cd $BASE_DIR
 # ScaLP with auto detection of installed ILP solvers
-git clone https://digidev.digi.e-technik.uni-kassel.de/git/scalp.git && cd scalp && SCALP_PREFIX_DIR=$PWD && mkdir build && cd build
+git clone https://digidev.digi.e-technik.uni-kassel.de/git/scalp.git && cd scalp && SCALP_PREFIX_DIR=$PWD/install && mkdir build && cd build
 #The following will do if LPSolve (not recommended) or SCIP (recommended but not the fastest one) are used and installed system-wide
 cmake .. 
 #To use Gurobi or CPLEX as ILP solver or if you use different path(es), provide the path(es) to the corresponding solvers (modify to your installation path) to cmake:
 #cmake .. -DGUROBI_DIR=.. -DCPLEX_DIR=... -DSCIP_DIR=... -DLPSOLVE_DIR=...
-make -j4
+make -j4 & make install
 
 # ScaLP with the SCIP backend: 
 # SCIP needs to be downloaded separately, but then uncommenting the following three lines should get it working
@@ -30,13 +29,13 @@ make -j4
 
 cd $BASE_DIR
 # PAGSuite for advanced shift-and-add SCM and MCM operators
- git clone https://gitlab.com/kumm/pagsuite.git && cd pagsuite && PAG_PREFIX_DIR=$PWD && mkdir build && cd build && cmake .. -DSCALP_PREFIX_PATH=$SCALP_PREFIX_DIR && make -j4
+ git clone https://gitlab.com/kumm/pagsuite.git && cd pagsuite && PAG_PREFIX_DIR=$PWD/install && mkdir build && cd build && cmake .. -DSCALP_PREFIX_PATH=$SCALP_PREFIX_DIR && make -j4 && make install
 
 cd $BASE_DIR
 #Finally FloPoCo itself, 
 git clone https://gitlab.com/flopoco/flopoco
 
-cd flopoco && mkdir build && cd build && cmake  -DWCPG_PREFIX_DIR="$WCPG_PREFIX_DIR"  -DSCALP_PREFIX_DIR="$SCALP_PREFIX_DIR" -DPAG_PREFIX_DIR="$BASE_DIR/pagsuite" .. && make -j4 &&  cd $BASE_DIR
+cd flopoco && mkdir build && cd build && cmake  -DWCPG_PREFIX_DIR="$WCPG_PREFIX_DIR"  -DSCALP_PREFIX_DIR="$SCALP_PREFIX_DIR" -DPAG_PREFIX_DIR="$PAG_PREFIX_DIR" .. && make -j4 &&  cd $BASE_DIR
 
 # build the html documentation in doc/web. 
 cd flopoco/build
