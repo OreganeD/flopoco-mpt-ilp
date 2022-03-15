@@ -14,7 +14,7 @@ git clone https://github.com/fixif/WCPG.git && cd WCPG && WCPG_PREFIX_DIR=$PWD/i
 
 cd $BASE_DIR
 # ScaLP with auto detection of installed ILP solvers
-svn checkout https://digidev.digi.e-technik.uni-kassel.de/home/svn/scalp/ && cd scalp/trunk && SCALP_PREFIX_DIR=$PWD && mkdir build && cd build
+git clone https://digidev.digi.e-technik.uni-kassel.de/git/scalp.git && cd scalp && SCALP_PREFIX_DIR=$PWD && mkdir build && cd build
 #The following will do if LPSolve (not recommended) or SCIP (recommended but not the fastest one) are used and installed system-wide
 cmake .. 
 #To use Gurobi or CPLEX as ILP solver or if you use different path(es), provide the path(es) to the corresponding solvers (modify to your installation path) to cmake:
