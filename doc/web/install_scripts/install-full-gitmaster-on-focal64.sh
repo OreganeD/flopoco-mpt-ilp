@@ -15,7 +15,7 @@ cd $BASE_DIR
 # ScaLP with auto detection of installed ILP solvers
 git clone https://digidev.digi.e-technik.uni-kassel.de/git/scalp.git && cd scalp && SCALP_PREFIX_DIR=$PWD/install && mkdir build && cd build
 #The following will do if LPSolve (not recommended) or SCIP (recommended but not the fastest one) are used and installed system-wide
-cmake .. 
+cmake -DCMAKE_INSTALL_PREFIX=$SCALP_PREFIX_DIR .. 
 #To use Gurobi or CPLEX as ILP solver or if you use different path(es), provide the path(es) to the corresponding solvers (modify to your installation path) to cmake:
 #cmake .. -DGUROBI_DIR=.. -DCPLEX_DIR=... -DSCIP_DIR=... -DLPSOLVE_DIR=...
 make -j4 & make install
@@ -29,7 +29,7 @@ make -j4 & make install
 
 cd $BASE_DIR
 # PAGSuite for advanced shift-and-add SCM and MCM operators
- git clone https://gitlab.com/kumm/pagsuite.git && cd pagsuite && PAG_PREFIX_DIR=$PWD/install && mkdir build && cd build && cmake .. -DSCALP_PREFIX_PATH=$SCALP_PREFIX_DIR && make -j4 && make install
+git clone https://gitlab.com/kumm/pagsuite.git && cd pagsuite && PAG_PREFIX_DIR=$PWD/install && mkdir build && cd build && cmake .. -DSCALP_PREFIX_PATH=$SCALP_PREFIX_DIR -DCMAKE_INSTALL_PREFIX=$PAG_PREFIX_DIR && make -j4 && make install
 
 cd $BASE_DIR
 #Finally FloPoCo itself, 
