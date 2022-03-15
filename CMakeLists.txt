@@ -158,13 +158,13 @@ ENDIF(SED)
 
 FIND_PATH(WCPG_H
   wcpg.h
-  HINTS "/usr/local/include/" "~/.local/include/" "${WCPG_PREFIX_DIR}/include/" "$ENV{WCPG_PREFIX_DIR}/include/"
+  HINTS "${WCPG_PREFIX_DIR}/include/" "$ENV{WCPG_PREFIX_DIR}/include/" "/usr/local/include/" "~/.local/include/"
   DOC "Path of wcpg.h, the include file for the WCPG library"
   )
 
 FIND_LIBRARY(WCPG_LIB
   NAMES wcpg
-  HINTS "/usr/local/lib64/" "/usr/local/lib/"  "${WCPG_PREFIX_DIR}/lib/"  "$ENV{WCPG_PREFIX_DIR}/lib/"
+  HINTS "${WCPG_PREFIX_DIR}/lib/"  "$ENV{WCPG_PREFIX_DIR}/lib/" "/usr/local/lib64/" "/usr/local/lib/"
   DOC "Directory of the WCPG library"
   )
 
@@ -182,12 +182,12 @@ ENDIF ( WCPG_FOUND )
 # dectect if scalp is available
 FIND_PATH(SCALP_H
   ScaLP/Solver.h
-  HINTS "/usr/local/include/" "~/.local/include/" "${SCALP_PREFIX_DIR}/include/" "$ENV{SCALP_PREFIX_DIR}/include/"
+  HINTS "${SCALP_PREFIX_DIR}/include/" "$ENV{SCALP_PREFIX_DIR}/include/" "/usr/local/include/" "~/.local/include/"
   DOC "Path of main header of scalp"
   )
 FIND_LIBRARY(SCALP_LIB
   NAMES libScaLP.dylib libScaLP libScaLP.so
-  HINTS "/usr/local/lib64/" "/usr/local/lib/"  "${SCALP_PREFIX_DIR}/lib/"  "$ENV{SCALP_PREFIX_DIR}/lib/" 
+  HINTS "${SCALP_PREFIX_DIR}/lib/"  "$ENV{SCALP_PREFIX_DIR}/lib/" "/usr/local/lib64/" "/usr/local/lib/"
   DOC "Directory of the SCALP main library")
 
 IF (SCALP_H AND SCALP_LIB)
@@ -198,22 +198,22 @@ ENDIF(SCALP_H AND SCALP_LIB)
 
 FIND_LIBRARY(SCALP_CPLEX_LIB
   NAMES libScaLP-CPLEX libScaLP-CPLEX.so libScaLP-CPLEX.dylib
-  HINTS "/usr/local/lib64/" "/usr/local/lib/" "${SCALP_PREFIX_DIR}/" "${SCALP_PREFIX_DIR}/lib/" "$ENV{SCALP_PREFIX_DIR}/lib/"  
+  HINTS "${SCALP_PREFIX_DIR}/" "${SCALP_PREFIX_DIR}/lib/" "$ENV{SCALP_PREFIX_DIR}/lib/" "/usr/local/lib64/" "/usr/local/lib/"
   DOC "Directory of the SCALP library for cplex solver backend")
 
 FIND_LIBRARY(SCALP_GUROBI_LIB
   NAMES libScaLP-Gurobi libScaLP-Gurobi.so libScaLP-Gurobi.dylib
-  HINTS "/usr/local/lib64/" "/usr/local/lib/" "${SCALP_PREFIX_DIR}/" "${SCALP_PREFIX_DIR}/lib/" "$ENV{SCALP_PREFIX_DIR}/lib/"
+  HINTS "${SCALP_PREFIX_DIR}/" "${SCALP_PREFIX_DIR}/lib/" "$ENV{SCALP_PREFIX_DIR}/lib/" "/usr/local/lib64/" "/usr/local/lib/"
   DOC "Directory of the SCALP library for Gurobi solver backend")
 
 FIND_LIBRARY(SCALP_SCIP_LIB
   NAMES libScaLP-SCIP libScaLP-SCIP.so libScaLP-SCIP.dylib
-  HINTS "/usr/local/lib64/" "/usr/local/lib/" "${SCALP_PREFIX_DIR}/" "${SCALP_PREFIX_DIR}/lib/" "$ENV{SCALP_PREFIX_DIR}/lib/"
+  HINTS "${SCALP_PREFIX_DIR}/" "${SCALP_PREFIX_DIR}/lib/" "$ENV{SCALP_PREFIX_DIR}/lib/" "/usr/local/lib64/" "/usr/local/lib/"
   DOC "Directory of the SCALP library for SCIP solver backend")
 
 FIND_LIBRARY(SCALP_LPSOLVE_LIB
   NAMES libScaLP-LPSOLVE libScaLP-LPSOLVE.so libScaLP-LPSolve.so libScaLP-LPSOLVE.dylib
-  HINTS "/usr/local/lib64/" "/usr/local/lib/" "${SCALP_PREFIX_DIR}/" "${SCALP_PREFIX_DIR}/lib/" "$ENV{SCALP_PREFIX_DIR}/lib/"
+  HINTS "${SCALP_PREFIX_DIR}/" "${SCALP_PREFIX_DIR}/lib/" "$ENV{SCALP_PREFIX_DIR}/lib/" "/usr/local/lib64/" "/usr/local/lib/"
   DOC "Directory of the SCALP library for LPSOLVE solver backend")
 
 IF (SCALP_H AND SCALP_LIB AND (SCALP_CPLEX_LIB OR SCALP_GUROBI_LIB OR SCALP_SCIP_LIB OR SCALP_LPSOLVE_LIB))
