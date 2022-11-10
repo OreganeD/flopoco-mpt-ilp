@@ -14,3 +14,37 @@ The build procedure is shown in the installation guide that you can find in doc/
 
 Developers welcome!
 
+#Artifacts
+
+Artifacts for the article _Using integer linear programming for correctly rounded multipartite architectures_, based of a fork from flopoco from march 2022
+
+##Prerequisites
+
+- Gurobi
+- julia, and the julia libraries JuMP, ArgParse, Gurobi
+- flopoco dependecies (so maybe install it using the install script http://www.flopoco.org/flopoco_installation.html before pulling the repo)
+
+##Linking
+
+In src/FixFunctions/table_multipartite_flopoco.jl, change the variable `flopoco_dir` to your flopoco path. You might need the full hard path (`/home/yourUsername/` instead of `~/`)
+
+In `src/FixFunctions/FixFunctionByMultipartiteTable.cpp`, change the variable `flopoco_dir` to your flopoco path and `julia_dir` to your julia path
+
+##Compile flopoco
+
+In the build directory, run `cmake  -DWCPG_PREFIX_DIR="$WCPG_PREFIX_DIR" -DSCALP_PREFIX_DIR="$SCALP_PREFIX_DIR" -DPAG_PREFIX_DIR="$BASE_DIR/pagsuite" .. && make -j4`
+
+##Generate multipartite tables with ILP solvers
+
+Example :
+`/home/oregane/manual_install/flopoco/flopoco/build/flopoco generateFigures=1 plainVHDL=true frequency=10 FixFunctionByMultipartiteTable f="sin(pi/4*x)" lsbIn=-10 lsbout=-10 signedin=false correctRounding=true optimiseForFPGA=true`
+
+f : your function
+lsbIn : the in precision, msbIn is fixed to -1
+lsbOut : the out precision, msbOut is fixed to -1
+signedin : the signed input is not implemented
+correctRounding : use correct rounding or not
+optimiseForFPGA : optimise the linear program 
+
+Please note that this code currently only supports increasing functions.
+

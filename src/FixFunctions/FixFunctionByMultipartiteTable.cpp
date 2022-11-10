@@ -75,8 +75,8 @@ namespace flopoco
 	 @param[int]	nbTOi_	number of tables which will be created
 	 @param[bool]	signedIn_	true if the input range is [-1,1)
 	 */
-	FixFunctionByMultipartiteTable::FixFunctionByMultipartiteTable(OperatorPtr parentOp, Target *target, string functionName_, int nbTOi_, bool signedIn_, int lsbIn_, int lsbOut_):
-		Operator(parentOp, target), nbTOi(nbTOi_)
+	FixFunctionByMultipartiteTable::FixFunctionByMultipartiteTable(OperatorPtr parentOp, Target *target, string functionName_, int nbTOi_, bool signedIn_, int lsbIn_, int lsbOut_, bool correctRounding_, bool optimiseForFPGA_):
+		Operator(parentOp, target), nbTOi(nbTOi_), correctRounding(correctRounding_), optimiseForFPGA(optimiseForFPGA_)
 {
 		compressTIV = target->tableCompression();
 		srcFileName="FixFunctionByMultipartiteTable";
@@ -96,11 +96,11 @@ namespace flopoco
 		REPORT(DETAILED, "Entering: FixFunctionByMultipartiteTable \"" << functionName_ << "\" " << nbTOi_ << " " << signedIn_ << " " << lsbIn_  << " " << lsbOut_ << " ");
 		int wX=-lsbIn_;
 		addInput("X", wX);
-		int outputSize = f->wOut; // TODO finalRounding would impact this line
+		int outputSize =-lsbIn_; //f->wOut; testing this for synthesis bc we don't care // TODO finalRounding would impact this line
 		addOutput("Y" ,outputSize , 2);
 		useNumericStd();
 
-
+		/* // Exploration 
 		int sizeMax = f->wOut<<f->wIn; // size of a plain table
 		topTen=vector<Multipartite*>(ten);
 		for (int i=0; i<ten; i++){
@@ -188,18 +188,102 @@ namespace flopoco
 
 		bestMP = topTen[rank];
 
-		REPORT(DEBUG,"Full table dump:" <<endl << bestMP->fullTableDump());
+		REPORT(DEBUG,"Full table dump:" <<endl << bestMP->fullTableDump()); */
+
+		// Ask julia everything
+		if(f->signedIn)
+			THROWERROR("Sorry idk how to do that, flemme");
+		
+		int msb_in = -1;
+		int lsb_in = f->lsbIn;
+		int msb_out = -1;
+		int lsb_out = f->lsbOut;
+
+		string exec;
+		string flopoco_dir;
+		string julia_dir;
+		flopoco_dir = ""; // Add the path to flopoco here
+		julia_dir = ""; // It does not work for me without the hardcoded path but maybe you can figure it out
+		exec = julia_dir + "julia " + flopoco_dir + "src/FixFunctions/table_multipartite_flopoco.jl --f \"" + functionName_ + "\" --msbIn " + to_string(msb_in) + " --lsbIn " + to_string(lsb_in) + " --msbOut " + to_string(msb_out) + " --lsbOut " + to_string(lsb_out);
+		if (correctRounding == 1)
+			exec += " --correct";
+		if (optimiseForFPGA == 1)
+			exec += " --FPGA";
+
+		cout << exec << endl;
+		system(exec.c_str());
+
+		// Get julia's results
+		ifstream myfile (flopoco_dir + "src/FixFunctions/tables.data", ios::in);
+		int m, alpha, betai, gammai, lsb_TIV, lsb_TOi, msb_TIV, msb_TOi, useXori;
+		std::vector<int> beta, gamma, lsb_TO, msb_TO, useXor;
+		myfile >> m;
+		cout << m;
+		myfile >> alpha;
+		for (int i=0; i < m; i++) {
+			myfile >> betai;
+			beta.push_back(betai);
+		}
+		for (int i=0; i < m; i++) {
+			myfile >> gammai;
+			gamma.push_back(gammai);
+		}
+		for (int i=0; i < m; i++) {
+			myfile >> useXori;
+			useXor.push_back(useXori);
+		}
+		myfile >> msb_TIV;
+		myfile >> lsb_TIV;
+		for (int i=0; i < m; i++) {
+			myfile >> msb_TOi;
+			msb_TO.push_back(msb_TOi);
+		}
+		for (int i=0; i < m; i++) {
+			myfile >> lsb_TOi;
+			lsb_TO.push_back(lsb_TOi);
+		}
+		int lsb_min = min(lsb_TIV, *min_element(lsb_TO.begin(), lsb_TO.end()));
+		// print the right stuff for synthesis
+		ostringstream latex_report;
+		latex_report << "Latex table line : " << endl << "$";
+		latex_report << msb_TIV - lsb_TIV +1 << "\\cdot 2^{" << alpha << "}";
+		for (int t=m-1; t >= 0; t--) {
+			if (useXor[t] == 0)
+				latex_report << " + " << msb_TO[t] - lsb_TO[t] + 1 << "\\cdot 2^{" << beta[t] + gamma[t] - useXor[t] << "}";
+			else
+				latex_report << " + \\underline{" << msb_TO[t] - lsb_TO[t] + 1 << "\\cdot 2^{" << beta[t] + gamma[t] - useXor[t] << "}}";
+		}
+		latex_report << "$\\\\" << endl;
+		REPORT(INFO, latex_report.str());
+		// Read the table entries
+		int TIVi, TOi;
+		std::vector<int> TIV;
+		std::vector<int> TO[m];
+		//cout << "Entries of TIV : " << (1 << alpha) << endl;
+		for (int i = 0; i < (1<< alpha); i++) {
+			myfile >> TIVi;
+			TIV.push_back(TIVi);
+		}
+		for (int t = 0; t < m; t++) {
+			//cout << "Entries of TO" << t << " : " << (1 << alpha) << endl;
+			for (int i = 0; i < (1 <<(beta[t] + gamma[t] - useXor[t])); i++) {
+				myfile >> TOi;
+				(TO[t]).push_back(TOi);
+			}
+		}
+
 		vector<mpz_class> mpzTIV;
-		for (auto i : bestMP->tiv) {
+		for (auto i : TIV) {
 			mpzTIV.push_back(mpz_class((long) i));
 		}
-		if(!target->tableCompression()) { // uncompressed TIV
-			vhdl << tab << declare("inTIV", bestMP->alpha) << " <= X" << range(f->wIn-1, f->wIn-bestMP->alpha) << ";" << endl;
+		//if(!target->tableCompression()) { // uncompressed TIV
+		// TIV compression is seen as an extra TO 
+			vhdl << tab << declare("inTIV", alpha) << " <= X" << range(f->wIn-1, f->wIn-alpha) << ";" << endl;
 
 			Table::newUniqueInstance(this, "inTIV", "outTIV",
-															 mpzTIV, "TIV", bestMP->alpha, f->wOut+bestMP->guardBits );
+															 mpzTIV, "TIV", alpha, msb_TIV - lsb_TIV +1);
 				vhdl << endl;
-		}else
+		/*}else
 			{ // Hsiao-compressed TIV
 				REPORT (INFO, "TIV compression report:" << endl << bestMP->dcTIV.report()); 
 				vhdl << tab << declare("inSSTIV", bestMP->dcTIV.subsamplingIndexSize) << " <= X" << range(f->wIn-1, f->wIn-bestMP->dcTIV.subsamplingIndexSize) << ";" << endl;
@@ -223,10 +307,11 @@ namespace flopoco
 				// TODO need to sign-extend for 1/(1+x), but it makes an error for sin(x)
 				//  getSignalByName("outDiffTIV")->setIsSigned(); // so that it is sign-extended in the bit heap
 				// No need to sign-extend it, it is already taken care of in the construction of the table.
-			}
+			}*/
 
 		int p = 0;
-		for(unsigned int i = 0; i < bestMP->toi.size(); ++i)		{
+		int inputSize = msb_in - lsb_in +1;
+		for(unsigned int i = 0; i < m; ++i) {
 			string ai = join("a", i);
 			string bi = join("b", i);
 			string inTOi = join("inTO", i);
@@ -235,39 +320,57 @@ namespace flopoco
 			string nameTOi = join("TO", i);
 			string signi = join("sign", i);
 
-			p += bestMP->betai[i];
-			vhdl << tab << declare(ai, bestMP->gammai[i]) << " <= X" << range(bestMP->inputSize - 1, bestMP->inputSize - bestMP->gammai[i]) << ";" << endl;
-			vhdl << tab << declare(bi, bestMP->betai[i]) << " <= X" << range(p - 1, p - bestMP->betai[i]) << ";" << endl;
-			vhdl << tab << declare(signi) << " <= not(" << bi << of( bestMP->betai[i] - 1) << ");" << endl;
-			vhdl << tab << declare(inTOi,bestMP->gammai[i]+bestMP->betai[i]-1) << " <= " << ai << " & ((" << bi << range(bestMP->betai[i]-2, 0) << ") xor " << rangeAssign(bestMP->betai[i]-2,0, signi)<< ");" << endl;
+			p += beta[i];
+			//if (gamma[i] != 0)
+			//	vhdl << tab << declare(ai, gamma[i]) << " <= X" << range(inputSize - 1, inputSize - gamma[i]) << ";" << endl;
+			vhdl << tab << declare(bi, beta[i]) << " <= X" << range(p - 1, p - beta[i]) << ";" << endl;
+			vhdl << tab << declare(signi) << " <= not(" << bi << of( beta[i] - 1) << ");" << endl;
+			vhdl << tab << declare(inTOi, gamma[i]+beta[i]-useXor[i]) << " <= ";
+			if (gamma[i] == 0) {
+			       	vhdl << "";
+			} else {
+				vhdl << "X" << range(inputSize - 1, inputSize - gamma[i]);
+			}
+			if (useXor[i]) {
+				if (beta[i] != 1)
+					vhdl << ((gamma[i] == 0) ? "" : " &") <<  " ((" << bi << range(beta[i]-1-useXor[i], 0) << ")" << " xor " << rangeAssign(beta[i]-2,0, signi) << ")";
+				vhdl << ";" << endl;
+			} else {
+				vhdl << ((gamma[i] == 0) ? "" : " &") <<  " ((" << bi << range(beta[i]-1-useXor[i], 0) << "));" << endl;
+			}
 			vector<mpz_class> mpzTOi;
-			for (long i : bestMP->toi[i])
+			for (long i : TO[i]) {
 				mpzTOi.push_back(mpz_class((long) i));
-			Table::newUniqueInstance(this, inTOi, outTOi,
-															 mpzTOi, nameTOi, bestMP->gammai[i]+bestMP->betai[i]-1, bestMP->outputSizeTOi[i]);
-			string trueSign = (bestMP->negativeTOi[i] ? "(not "+signi+")" : signi);
-			vhdl << tab << declare(deltai, bestMP->outputSizeTOi[i]+1) << " <= " << trueSign << " & (" <<  outTOi  << " xor " << rangeAssign(bestMP->outputSizeTOi[i]-1,0, trueSign)<< ");" << endl;
+			}
+			int outputSizeTOi = msb_TO[i] - lsb_TO[i] + 1;
+			Table::newUniqueInstance(this, inTOi, outTOi, mpzTOi, nameTOi, gamma[i]+beta[i]-useXor[i], outputSizeTOi);
+			//string trueSign = (bestMP->negativeTOi[i] ? "(not "+signi+")" : signi); // our tables are only positive
+			string trueSign = (useXor[i]) ? signi : "\"0\"";
+			vhdl << tab << declare(deltai, outputSizeTOi+1) << " <= " << trueSign << " & (" <<  outTOi;
+		      	if (useXor[i])
+				vhdl << " xor " << rangeAssign(outputSizeTOi-1,0, trueSign);
+			vhdl << ");" << endl;
 			getSignalByName(deltai)->setIsSigned(); // so that it is sign-extended in the bit heap
 		}
 
 		// Throwing everything into a bit heap
 
-		BitHeap *bh = new BitHeap(this, bestMP->outputSize + bestMP->guardBits); // TODO this is using an adder tree
+		BitHeap *bh = new BitHeap(this, msb_out - lsb_min +1); // TODO this is using an adder tree
 
-		if(!target->tableCompression()) { // uncompressed TIV
-			bh->addSignal("outTIV");
-		}else
+		//if(!target->tableCompression()) { // uncompressed TIV
+			bh->addSignal("outTIV", lsb_TIV - lsb_min); // TODO check que c'est la bonne formule
+		/*}else
 			{ // Hsiao-compressed TIV
 				bh->addSignal("outSSTIV", bestMP->dcTIV.subsamplingShift()); // shifted because its LSB bits were shaved in the Hsiao compression
 				bh->addSignal("outDiffTIV");
-			}
+			}*/
 
-		for(unsigned int i = 0; i < bestMP->toi.size(); ++i)		{
-			bh->addSignal(join("delta", i) );
+		for(unsigned int i = 0; i < m; ++i)		{
+			bh->addSignal(join("delta", i), lsb_TO[i] - lsb_min );
 		}
 		bh->startCompression();
 
-		vhdl << tab << "Y <= " << /* "sum" */bh->getSumName() << range(bestMP->outputSize + bestMP->guardBits - 1, bestMP->guardBits) << ";" << endl;
+		vhdl << tab << "Y <= " << /* "sum" */bh->getSumName() << range( msb_out - lsb_min, lsb_out-lsb_min) << ";" << endl;
 	}
 
 
@@ -304,7 +407,7 @@ namespace flopoco
 
 	void FixFunctionByMultipartiteTable::emulate(TestCase* tc)
 	{
-		f->emulate(tc);
+		f->emulate(tc, correctRounding);
 	}
 
 	//------------------------------------------------------------------------------------ Private classes
@@ -792,14 +895,16 @@ namespace flopoco
 
 	OperatorPtr FixFunctionByMultipartiteTable::parseArguments(OperatorPtr parentOp, Target *target, vector<string> &args) {
 		string f;
-		bool signedIn;
+		bool signedIn, correctRounding, optimiseForFPGA;
 		int lsbIn, lsbOut, nbTO;
 		UserInterface::parseString(args, "f", &f);
 		UserInterface::parsePositiveInt(args, "nbTO", &nbTO);
 		UserInterface::parseInt(args, "lsbIn", &lsbIn);
 		UserInterface::parseInt(args, "lsbOut", &lsbOut);
 		UserInterface::parseBoolean(args, "signedIn", &signedIn);
-		return new FixFunctionByMultipartiteTable(parentOp, target, f, nbTO, signedIn, lsbIn, lsbOut);
+		UserInterface::parseBoolean(args, "correctRounding", &correctRounding);
+		UserInterface::parseBoolean(args, "optimiseForFPGA", &optimiseForFPGA);
+		return new FixFunctionByMultipartiteTable(parentOp, target, f, nbTO, signedIn, lsbIn, lsbOut, correctRounding, optimiseForFPGA);
 	}
 
 	void FixFunctionByMultipartiteTable::registerFactory(){
@@ -809,6 +914,8 @@ namespace flopoco
 											 "",
 						   "f(string): function to be evaluated between double-quotes, for instance \"exp(x*x)\";\
 signedIn(bool): if true the function input range is [-1,1), if false it is [0,1);\
+correctRounding(bool): use correct rounding;\
+optimiseForFPGA(bool): optimise for FPGA;\
 lsbIn(int): weight of input LSB, for instance -8 for an 8-bit input;\
 lsbOut(int): weight of output LSB;\
 nbTO(int)=0: number of Tables of Offsets, between 1 (bipartite) to 4 or 5 for large input sizes -- 0: let the tool choose",
